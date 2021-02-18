@@ -1,0 +1,8 @@
+*.user
+*.png
+
+.vs/
+_out/
+_tmp/
+_dist/
+_build_*
