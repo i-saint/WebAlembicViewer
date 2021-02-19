@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Web Alembic Viewer</title>
+</head>
+<body>
+    <div id="drop_zone">Drop files here</div>
+    <output id="list"></output>
+
+    <script>
+        function onDrop(evt) {
+            evt.stopPropagation();
+            evt.preventDefault();
+
+            let output = [];
+            for (let f of evt.dataTransfer.files) {
+                output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
+                    f.size, ' bytes, last modified: ',
+                    f.lastModifiedDate.toLocaleDateString(), '</li>');
+
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var span = document.createElement('span');
+                    span.innerHTML = ['<img class="thumb" src="', e.target.result, '" title="', escape(f.name), '"/>'].join('');
+                    document.getElementById('list').insertBefore(span, null);
+                };
+                reader.readAsDataURL(f);
+            }
+            document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+        }
+
+        function onDragOver(evt) {
+            evt.stopPropagation();
+            evt.preventDefault();
+            evt.dataTransfer.dropEffect = 'copy';
+        }
+
+        let dropZone = document.getElementById('drop_zone');
+        dropZone.addEventListener('dragover', onDragOver, false);
+        dropZone.addEventListener('drop', onDrop, false);
+    </script>
+</body>
+</html>
