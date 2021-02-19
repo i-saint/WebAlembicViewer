@@ -22,8 +22,9 @@ class IMesh : public IEntity
 {
 public:
     virtual float4x4 getTransform() const = 0;
-    virtual std::span<float3> getPoints() const = 0;
     virtual std::span<int> getIndices() const = 0;
+    virtual std::span<float3> getPoints() const = 0;
+    virtual std::span<float3> getNormals() const = 0;
 };
 
 class IScene
@@ -35,7 +36,7 @@ public:
     virtual std::tuple<double, double> getTimeRange() const = 0;
     virtual void seek(double time) = 0;
 
-    virtual std::span<IEntity*> getEntities() = 0;
+    virtual IMesh* getMesh() = 0; // monolithic mesh
 };
 
 
