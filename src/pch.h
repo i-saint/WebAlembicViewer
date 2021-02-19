@@ -7,6 +7,9 @@
 #include <map>
 #include <algorithm>
 #include <functional>
+#include <memory>
+#include <fstream>
+#include <span>
 
 #include <Alembic/AbcCoreAbstract/All.h>
 #include <Alembic/AbcCoreOgawa/All.h>
