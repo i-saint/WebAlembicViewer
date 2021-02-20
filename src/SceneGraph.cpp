@@ -15,7 +15,7 @@ inline auto MakeSpan(Alembic::Util::shared_ptr<Abc::TypedArraySample<T>> s)
     if (s)
         return std::span<value_type>{ (value_type*)s->get(), s->size() };
     else
-        return std::span<value_type>{ (value_type*)nullptr, 0 };
+        return std::span<value_type>{ (value_type*)nullptr, (size_t)0 };
 }
 
 template<class T> inline T* Expand(std::vector<T>& v, size_t n)
