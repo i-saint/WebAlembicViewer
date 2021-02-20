@@ -19,7 +19,7 @@ public:
 private:
     GLFWwindow* m_window{};
 
-    GLuint m_vs{};
+    GLuint m_vs_fill{};
     GLuint m_fs_fill{};
     GLuint m_shader_fill{};
 
@@ -38,7 +38,7 @@ private:
 
 
 
-static const char* g_vertex_shader_src = R"(
+static const char* g_vs_fill_src = R"(
 uniform mat4 g_view_proj;
 uniform float g_point_size;
 attribute vec3 g_point;
@@ -50,7 +50,7 @@ void main()
 }
 )";
 
-static const char* g_fragment_shader_src = R"(
+static const char* g_fs_fill_src = R"(
 precision mediump float;
 uniform vec4 g_color;
 
@@ -60,13 +60,31 @@ void main()
 }
 )";
 
+
+static void CheckError(GLuint shader)
+{
+    GLint result;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &result);
+    if (result == GL_FALSE) {
+        std::string log;
+        GLint len;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
+        log.resize(len);
+
+        GLsizei length;
+        glGetShaderInfoLog(shader, log.size(), &length, log.data());
+
+        puts(log.c_str());
+    }
+}
+
 Renderer::Renderer()
 {
 }
 
 Renderer::~Renderer()
 {
-    glDeleteShader(m_vs);
+    glDeleteShader(m_vs_fill);
     glDeleteShader(m_fs_fill);
     glDeleteProgram(m_shader_fill);
 
@@ -77,16 +95,18 @@ bool Renderer::initialize(GLFWwindow* v)
 {
     m_window = v;
 
-    m_vs = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(m_vs, 1, &g_vertex_shader_src, nullptr);
-    glCompileShader(m_vs);
+    m_vs_fill = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(m_vs_fill, 1, &g_vs_fill_src, nullptr);
+    glCompileShader(m_vs_fill);
+    CheckError(m_vs_fill);
 
     m_fs_fill = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(m_fs_fill, 1, &g_fragment_shader_src, nullptr);
+    glShaderSource(m_fs_fill, 1, &g_fs_fill_src, nullptr);
     glCompileShader(m_fs_fill);
+    CheckError(m_vs_fill);
 
     m_shader_fill = glCreateProgram();
-    glAttachShader(m_shader_fill, m_vs);
+    glAttachShader(m_shader_fill, m_vs_fill);
     glAttachShader(m_shader_fill, m_fs_fill);
     glLinkProgram(m_shader_fill);
 

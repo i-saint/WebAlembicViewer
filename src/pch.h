@@ -25,6 +25,7 @@
 
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
+    #include <emscripten/bind.h>
     #define wabcAPI EMSCRIPTEN_KEEPALIVE extern "C" __attribute__((visibility("default")))
 #else
     #include <EGL/egl.h>

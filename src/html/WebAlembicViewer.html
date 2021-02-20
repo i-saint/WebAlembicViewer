@@ -150,6 +150,13 @@
     <div id="drop_zone">Drop files here</div>
     <output id="list"></output>
 
+    <div class="emscripten_border">
+        <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
+    </div>
+    <div>
+        <input type="range" id="time" name="time" min="0" max="0" step="0.033" value="0" />
+        <label for="time">Time</label>
+    </div>
     <textarea id="output" rows="8"></textarea>
 
     <script type='text/javascript'>
@@ -181,6 +188,16 @@
                 if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
                 console.error(text);
             },
+            canvas: (function () {
+                var canvas = document.getElementById('canvas');
+
+                // As a default initial behavior, pop up an alert when webgl context is lost. To make your
+                // application robust, you may want to override this behavior before shipping!
+                // See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
+                canvas.addEventListener("webglcontextlost", function (e) { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
+
+                return canvas;
+            })(),
             setStatus: function (text) {
                 if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
                 if (text === Module.setStatus.last.text) return;
@@ -219,7 +236,7 @@
             };
         };
 
-        Module.noInitialRun = true;
+        //Module.noInitialRun = true;
         Module.onRuntimeInitialized = function () {
             //callMain();
         };
@@ -238,7 +255,12 @@
                 fr.onload = function (e) {
                     let data = new Uint8Array(fr.result);
                     Module['FS_createDataFile']('/', f.name, data, true, true, true);
-                    callMain([f.name]);
+                    if (Module.wabcLoadScene(f.name)) {
+                        let slider = document.getElementById('time');
+                        slider.min = slider.value = Module.wabcGetStartTime();
+                        slider.max = Module.wabcGetEndTime();
+                        Module.wabcSeek(parseFloat(slider.value));
+                    }
                 };
                 fr.readAsArrayBuffer(f);
             }

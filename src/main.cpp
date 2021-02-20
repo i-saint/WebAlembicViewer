@@ -16,14 +16,15 @@ static wabc::IRendererPtr g_renderer;
 static GLFWwindow* g_window;
 
 
-wabcAPI bool wabcLoadScene(const char* path)
+wabcAPI bool wabcLoadScene(std::string path)
 {
     g_scene = wabc::CreateScene();
-    if (g_scene->load(path)) {
+    if (g_scene->load(path.c_str())) {
+        printf("wabcLoadScene(\"%s\"): succeeded", path.c_str());
         return true;
     }
     else {
-        g_scene = nullptr;
+        printf("wabcLoadScene(\"%s\"): failed", path.c_str());
         return false;
     }
 }
@@ -46,6 +47,15 @@ wabcAPI void wabcSeek(double t)
 }
 
 #ifdef __EMSCRIPTEN__
+EMSCRIPTEN_BINDINGS(wabc) {
+    emscripten::function("wabcLoadScene", &wabcLoadScene);
+    emscripten::function("wabcGetStartTime", &wabcGetStartTime);
+    emscripten::function("wabcGetEndTime", &wabcGetEndTime);
+    emscripten::function("wabcSeek", &wabcSeek);
+}
+#endif
+
+#ifdef __EMSCRIPTEN__
 void Draw()
 #else
 void Draw(GLFWwindow*)
@@ -60,10 +70,7 @@ void Draw(GLFWwindow*)
 
 int main(int argc, char** argv)
 {
-    //if (argc < 2) {
-    //    printf("no input files\n");
-    //    return 0;
-    //}
+    printf("main()\n");
     if (!glfwInit()) {
         printf("glfwInit() failed\n");
         return 1;
@@ -73,7 +80,7 @@ int main(int argc, char** argv)
     glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    g_window = glfwCreateWindow(300, 300, "Web Alembic Viewer", nullptr, nullptr);
+    g_window = glfwCreateWindow(512, 512, "Web Alembic Viewer", nullptr, nullptr);
     if (!g_window) {
         printf("glfwCreateWindow() failed\n");
         return 1;
@@ -105,5 +112,7 @@ int main(int argc, char** argv)
         glfwWaitEvents();
     }
 #endif
+
+    glfwDestroyWindow(g_window);
     glfwTerminate();
 }

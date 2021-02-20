@@ -73,7 +73,7 @@ public:
     void release() override;
 
     bool load(const char* path) override;
-    void close() override;
+    void unload() override;
 
     std::tuple<double, double> getTimeRange() const override;
     void seek(double time) override;
@@ -112,7 +112,7 @@ void Scene::release()
 
 bool Scene::load(const char* path)
 {
-    close();
+    unload();
 
     try
     {
@@ -121,7 +121,7 @@ bool Scene::load(const char* path)
         m_stream.reset(new std::fstream());
         m_stream->open(path, std::ios::in | std::ios::binary);
         if (!m_stream->is_open()) {
-            close();
+            unload();
             return false;
         }
 
@@ -131,7 +131,7 @@ bool Scene::load(const char* path)
     }
     catch (Alembic::Util::Exception e)
     {
-        close();
+        unload();
 
 #ifdef wabcEnableHDF5
         try
@@ -140,7 +140,7 @@ bool Scene::load(const char* path)
         }
         catch (Alembic::Util::Exception e2)
         {
-            close();
+            unload();
             //sgDbgPrint(
             //    "failed to open %s\n"
             //    "it may not an alembic file"
@@ -209,7 +209,7 @@ bool Scene::load(const char* path)
     return m_archive.valid();
 }
 
-void Scene::close()
+void Scene::unload()
 {
     m_archive = {};
     m_stream = {};
