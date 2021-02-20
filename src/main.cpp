@@ -51,12 +51,11 @@ void Draw()
 void Draw(GLFWwindow*)
 #endif
 {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    //glUseProgram(shader_programme);
-    //glBindVertexArray(vao);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    g_renderer->beginScene();
 
-    glfwSwapBuffers(g_window);
+    // todo
+
+    g_renderer->endScene();
 }
 
 int main(int argc, char** argv)
@@ -66,7 +65,7 @@ int main(int argc, char** argv)
     //    return 0;
     //}
     if (!glfwInit()) {
-        printf("ERROR: could not start GLFW3\n");
+        printf("glfwInit() failed\n");
         return 1;
     }
 
@@ -75,10 +74,16 @@ int main(int argc, char** argv)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     g_window = glfwCreateWindow(300, 300, "Web Alembic Viewer", nullptr, nullptr);
+    if (!g_window) {
+        printf("glfwCreateWindow() failed\n");
+        return 1;
+    }
+
     glfwMakeContextCurrent(g_window);
 
     g_scene = wabc::CreateScene();
     g_renderer = wabc::CreateRenderer();
+    g_renderer->initialize(g_window);
 
     if (argc >= 2) {
         if (g_scene->load(argv[1])) {
@@ -98,7 +103,6 @@ int main(int argc, char** argv)
     glfwSetWindowRefreshCallback(g_window , &Draw);
     while (!glfwWindowShouldClose(g_window)) {
         glfwWaitEvents();
-        //glfwPollEvents();
     }
 #endif
     glfwTerminate();

@@ -18,18 +18,19 @@
 #include <Alembic/AbcMaterial/All.h>
 
 
+#define GLFW_INCLUDE_ES3
+#define GL_GLEXT_PROTOTYPES
+#define EGL_EGLEXT_PROTOTYPES
+#include <GLFW/glfw3.h>
+
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
     #define wabcAPI EMSCRIPTEN_KEEPALIVE extern "C" __attribute__((visibility("default")))
 #else
+    #include <EGL/egl.h>
     #ifdef _WIN32
         #define wabcAPI extern "C" __declspec(dllexport)
     #else
         #define wabcAPI extern "C" __attribute__((visibility("default")))
     #endif
-    #include <EGL/egl.h>
 #endif // __EMSCRIPTEN__
-
-#define GLFW_INCLUDE_ES3
-#define GL_GLEXT_PROTOTYPES
-#include <GLFW/glfw3.h>

@@ -64,6 +64,7 @@ public:
     virtual ~IRenderer() {};
     virtual void release() = 0;
 
+    virtual bool initialize(GLFWwindow* v) = 0;
     virtual void beginScene() = 0;
     virtual void endScene() = 0;
     virtual void setCamera(ICamera* cam) = 0;
