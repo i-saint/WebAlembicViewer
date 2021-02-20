@@ -3,6 +3,8 @@
 
 namespace wabc {
 
+template<class T> struct releaser { void operator()(T* v) { v->release(); } };
+
 class IEntity
 {
 public:
@@ -30,6 +32,8 @@ public:
 class IScene
 {
 public:
+    virtual void release() = 0;
+
     virtual bool load(const char* path) = 0;
     virtual void close() = 0;
 
@@ -38,6 +42,8 @@ public:
 
     virtual IMesh* getMesh() = 0; // monolithic mesh
 };
+IScene* CreateScene_();
+inline std::shared_ptr<IScene> CreateScene() { return std::shared_ptr<IScene>(CreateScene_(), releaser<IScene>()); }
 
 
 class IRenderer

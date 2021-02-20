@@ -70,20 +70,28 @@ public:
         float4x4 global_matrix = float4x4::identity();
     };
 
+    void release() override;
+
     bool load(const char* path) override;
     void close() override;
 
     std::tuple<double, double> getTimeRange() const override;
     void seek(double time) override;
-    void seekImpl(ImportContext& ctx);
 
-    IMesh* getMesh() override { return m_mesh.get(); }
+    void scanNodes(ImportContext ctx);
+    void seekImpl(ImportContext ctx);
+
+    IMesh* getMesh() override { return m_mono_mesh.get(); }
 
 private:
     std::shared_ptr<std::fstream> m_stream;
     Abc::IArchive m_archive;
 
-    MeshPtr m_mesh;
+    std::map<void*, size_t> m_sample_counts;
+    std::tuple<double, double> m_time_range;
+
+
+    MeshPtr m_mono_mesh;
 };
 
 
@@ -95,6 +103,11 @@ void Mesh::clear()
     m_normals.clear();
 }
 
+
+void Scene::release()
+{
+    delete this;
+}
 
 bool Scene::load(const char* path)
 {
@@ -114,7 +127,6 @@ bool Scene::load(const char* path)
         std::vector< std::istream*> streams{ m_stream.get() };
         Alembic::AbcCoreOgawa::ReadArchive archive_reader(streams);
         m_archive = Abc::IArchive(archive_reader(path), Abc::kWrapExisting, Abc::ErrorHandler::kThrowPolicy);
-        return true;
     }
     catch (Alembic::Util::Exception e)
     {
@@ -139,21 +151,111 @@ bool Scene::load(const char* path)
         //    "failed to open %s\n"
         //    "it may not an alembic file or not in Ogawa format (HDF5 is not supported)"
         //    , path);
-        return false;
 #endif
     }
-    return false;
+
+    if (m_archive) {
+        ImportContext ctx;
+        ctx.obj = m_archive.getTop();
+        scanNodes(ctx);
+
+        // setup time range
+        m_time_range = { 0.0, 0.0 };
+        uint32_t nt = m_archive.getNumTimeSamplings();
+        for (uint32_t ti = 1; ti < nt; ++ti) {
+            double time_start = 0.0, time_end = 0.0;
+
+            auto ts = m_archive.getTimeSampling(ti);
+            auto tst = ts->getTimeSamplingType();
+            if (tst.isUniform() || tst.isCyclic()) {
+                auto start = ts->getStoredTimes()[0];
+                uint32_t num_samples = (uint32_t)m_sample_counts[ts.get()];
+                uint32_t samples_per_cycle = tst.getNumSamplesPerCycle();
+                double time_per_cycle = tst.getTimePerCycle();
+                uint32_t num_cycles = num_samples / samples_per_cycle;
+
+                if (tst.isUniform()) {
+                    time_start = start;
+                    time_end = num_cycles > 0 ? start + (time_per_cycle * (num_cycles - 1)) : start;
+                }
+                else if (tst.isCyclic()) {
+                    auto& times = ts->getStoredTimes();
+                    if (!times.empty()) {
+                        size_t ntimes = times.size();
+                        time_start = start + (times.front() - time_per_cycle);
+                        time_end = start + (times.back() - time_per_cycle) + (time_per_cycle * num_cycles);
+                    }
+                }
+            }
+            else if (tst.isAcyclic()) {
+                auto& s = ts->getStoredTimes();
+                if (!s.empty()) {
+                    time_start = s.front();
+                    time_end = s.back();
+                }
+            }
+
+            if (ti == 1) {
+                m_time_range = { time_start, time_end };
+            }
+            else {
+                std::get<0>(m_time_range) = std::min(std::get<0>(m_time_range), time_start);
+                std::get<1>(m_time_range) = std::max(std::get<1>(m_time_range), time_end);
+            }
+        }
+    }
+
+    return m_archive.valid();
 }
 
 void Scene::close()
 {
     m_archive = {};
     m_stream = {};
+
+    m_sample_counts = {};
+    m_time_range = {};
 }
 
 std::tuple<double, double> Scene::getTimeRange() const
 {
-    return { 0.0, 0.0 };
+    return m_time_range;
+}
+
+void Scene::scanNodes(ImportContext ctx)
+{
+    auto update_sample_count = [this](auto& schema) {
+        auto ts = schema.getTimeSampling();
+        auto& n = m_sample_counts[ts.get()];
+        n = std::max(n, schema.getNumSamples());
+    };
+
+    auto obj = ctx.obj;
+    const auto& metadata = obj.getMetaData();
+    if (AbcGeom::IXformSchema::matches(metadata)) {
+        auto schema = AbcGeom::IXform(obj).getSchema();
+        update_sample_count(schema);
+    }
+    else if (AbcGeom::ICameraSchema::matches(metadata)) {
+        auto schema = AbcGeom::ICamera(obj).getSchema();
+        update_sample_count(schema);
+    }
+    else if (AbcGeom::IPolyMeshSchema::matches(metadata)) {
+        auto schema = AbcGeom::IPolyMesh(obj).getSchema();
+        update_sample_count(schema);
+    }
+    else if (AbcGeom::IPointsSchema::matches(metadata)) {
+        auto schema = AbcGeom::IPoints(obj).getSchema();
+        update_sample_count(schema);
+    }
+    else {
+    }
+
+    size_t n = obj.getNumChildren();
+    for (size_t ci = 0; ci < n; ++ci) {
+        ctx.obj = obj.getChild(ci);
+        scanNodes(ctx);
+    }
 }
 
 void Scene::seek(double time)
@@ -161,9 +263,9 @@ void Scene::seek(double time)
     if (!m_archive)
         return;
 
-    if (!m_mesh)
-        m_mesh = std::make_shared<Mesh>();
-    m_mesh->clear();
+    if (!m_mono_mesh)
+        m_mono_mesh = std::make_shared<Mesh>();
+    m_mono_mesh->clear();
 
     ImportContext ctx;
     ctx.obj = m_archive.getTop();
@@ -171,34 +273,26 @@ void Scene::seek(double time)
     seekImpl(ctx);
 }
 
-void Scene::seekImpl(ImportContext& ctx)
+void Scene::seekImpl(ImportContext ctx)
 {
-    auto process_children = [&](ImportContext cctx) {
-        auto obj = ctx.obj;
-        size_t n = obj.getNumChildren();
-        for (size_t ci = 0; ci < n; ++ci) {
-            cctx.obj = obj.getChild(ci);
-            seekImpl(cctx);
-        }
-    };
-
     auto obj = ctx.obj;
     auto time = ctx.time;
     const auto& metadata = obj.getMetaData();
     if (AbcGeom::IXformSchema::matches(metadata)) {
         auto schema = AbcGeom::IXform(obj).getSchema();
+
         AbcGeom::XformSample sample;
         schema.get(sample, time);
         auto m = sample.getMatrix();
-
-        ImportContext cctx = ctx;
-        cctx.local_matrix.assign((double4x4&)m);
-        cctx.global_matrix = cctx.local_matrix * ctx.global_matrix;
-
-        process_children(cctx);
+        ctx.local_matrix.assign((double4x4&)m);
+        ctx.global_matrix = ctx.local_matrix * ctx.global_matrix;
+    }
+    else if (AbcGeom::ICameraSchema::matches(metadata)) {
+        auto schema = AbcGeom::ICamera(obj).getSchema();
     }
     else if (AbcGeom::IPolyMeshSchema::matches(metadata)) {
         auto schema = AbcGeom::IPolyMesh(obj).getSchema();
+
         AbcGeom::IPolyMeshSchema::Sample sample;
         schema.get(sample, time);
         auto counts = MakeSpan(sample.getFaceCounts());
@@ -216,7 +310,7 @@ void Scene::seekImpl(ImportContext& ctx)
                 num_triangles += c - 2;
         }
 
-        float3* dst_points = Expand(m_mesh->m_points, num_triangles * 3);
+        float3* dst_points = Expand(m_mono_mesh->m_points, num_triangles * 3);
         const float3* src_points = points.data();
         const int* src_indices = indices.data();
         for (int c : counts) {
@@ -232,16 +326,22 @@ void Scene::seekImpl(ImportContext& ctx)
             }
             src_indices += c;
         }
-
-        process_children(ctx);
     }
     else if (AbcGeom::IPointsSchema::matches(metadata)) {
+        auto schema = AbcGeom::IPoints(obj).getSchema();
         // todo
-        process_children(ctx);
     }
-    else {
-        process_children(ctx);
+
+    size_t n = obj.getNumChildren();
+    for (size_t ci = 0; ci < n; ++ci) {
+        ctx.obj = obj.getChild(ci);
+        seekImpl(ctx);
     }
+}
+
+IScene* CreateScene_()
+{
+    return new Scene();
 }
 
 } // namespace wabc
