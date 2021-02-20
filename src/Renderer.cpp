@@ -120,6 +120,16 @@ bool Renderer::initialize(GLFWwindow* v)
 
     glGenBuffers(1, &m_vb);
 
+    //std::vector<float3> points{
+    //    float3{-0.6f, -0.4f, 0.0f} *1.0f,
+    //    float3{ 0.6f, -0.4f, 0.0f} *1.0f,
+    //    float3{ 0.0f,  0.6f, 0.0f} *1.0f,
+    //};
+    //glBindBuffer(GL_ARRAY_BUFFER, m_vb);
+    //glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float3), points.data(), GL_STATIC_DRAW);
+
+    m_view_proj = transpose(orthographic(-100.0f, 100.0f, -100.0f, 100.0f, 0.0f, 100.0f));
+
     return true;
 }
 
@@ -155,8 +165,18 @@ void Renderer::setCamera(ICamera* cam)
 
 void Renderer::draw(IMesh* mesh)
 {
-    glBindVertexArray(m_vb);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    if (!mesh)
+        return;
+
+    auto points = mesh->getPoints();
+    glBindBuffer(GL_ARRAY_BUFFER, m_vb);
+    glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float3), points.data(), GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(m_attr_point);
+    glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
+
+    glDrawArrays(GL_POINTS, 0, points.size());
+    glDrawArrays(GL_LINES, 0, points.size());
 }
 
 IRenderer* CreateRenderer_()

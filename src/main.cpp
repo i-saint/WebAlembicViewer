@@ -62,9 +62,7 @@ void Draw(GLFWwindow*)
 #endif
 {
     g_renderer->beginScene();
-
-    // todo
-
+    g_renderer->draw(g_scene->getMesh());
     g_renderer->endScene();
 }
 
@@ -111,8 +109,7 @@ int main(int argc, char** argv)
     while (!glfwWindowShouldClose(g_window)) {
         glfwWaitEvents();
     }
-#endif
-
     glfwDestroyWindow(g_window);
     glfwTerminate();
+#endif
 }

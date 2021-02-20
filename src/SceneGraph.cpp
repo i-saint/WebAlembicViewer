@@ -280,13 +280,13 @@ void Scene::seek(double time)
 void Scene::seekImpl(ImportContext ctx)
 {
     auto obj = ctx.obj;
-    auto time = ctx.time;
+    auto ss = Abc::ISampleSelector(ctx.time);
     const auto& metadata = obj.getMetaData();
     if (AbcGeom::IXformSchema::matches(metadata)) {
         auto schema = AbcGeom::IXform(obj).getSchema();
 
         AbcGeom::XformSample sample;
-        schema.get(sample, time);
+        schema.get(sample, ss);
         auto m = sample.getMatrix();
         ctx.local_matrix.assign((double4x4&)m);
         ctx.global_matrix = ctx.local_matrix * ctx.global_matrix;
@@ -298,7 +298,7 @@ void Scene::seekImpl(ImportContext ctx)
         auto schema = AbcGeom::IPolyMesh(obj).getSchema();
 
         AbcGeom::IPolyMeshSchema::Sample sample;
-        schema.get(sample, time);
+        schema.get(sample, ss);
         auto counts = MakeSpan(sample.getFaceCounts());
         auto indices = MakeSpan(sample.getFaceIndices());
         auto points_orig = MakeSpan(sample.getPositions());

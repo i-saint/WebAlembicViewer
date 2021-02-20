@@ -154,7 +154,7 @@
         <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
     </div>
     <div>
-        <input type="range" id="time" name="time" min="0" max="0" step="0.033" value="0" />
+        <input type="range" id="time" name="time" min="0" max="0" step="0.033" value="0" style="width: 500px" />
         <label for="time">Time</label>
     </div>
     <textarea id="output" rows="8"></textarea>
@@ -238,7 +238,7 @@
 
         //Module.noInitialRun = true;
         Module.onRuntimeInitialized = function () {
-            //callMain();
+            document.getElementById('time').addEventListener('change', onTimeChange);
         };
 
         function onDrop(evt) {
@@ -271,6 +271,11 @@
             evt.stopPropagation();
             evt.preventDefault();
             evt.dataTransfer.dropEffect = 'copy';
+        }
+
+        function onTimeChange() {
+            let slider = document.getElementById('time');
+            Module.wabcSeek(parseFloat(slider.value));
         }
 
         let dropZone = document.getElementById('drop_zone');
