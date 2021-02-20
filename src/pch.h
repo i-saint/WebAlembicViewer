@@ -16,3 +16,20 @@
 //#include <Alembic/AbcCoreHDF5/All.h>
 #include <Alembic/AbcGeom/All.h>
 #include <Alembic/AbcMaterial/All.h>
+
+
+#ifdef __EMSCRIPTEN__
+    #include <emscripten.h>
+    #define wabcAPI EMSCRIPTEN_KEEPALIVE extern "C" __attribute__((visibility("default")))
+#else
+    #ifdef _WIN32
+        #define wabcAPI extern "C" __declspec(dllexport)
+    #else
+        #define wabcAPI extern "C" __attribute__((visibility("default")))
+    #endif
+    #include <EGL/egl.h>
+#endif // __EMSCRIPTEN__
+
+#define GLFW_INCLUDE_ES3
+#define GL_GLEXT_PROTOTYPES
+#include <GLFW/glfw3.h>

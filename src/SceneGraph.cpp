@@ -81,6 +81,7 @@ public:
     void scanNodes(ImportContext ctx);
     void seekImpl(ImportContext ctx);
 
+    double getTime() const override { return m_time; }
     IMesh* getMesh() override { return m_mono_mesh.get(); }
 
 private:
@@ -90,7 +91,7 @@ private:
     std::map<void*, size_t> m_sample_counts;
     std::tuple<double, double> m_time_range;
 
-
+    double m_time = 0.0;
     MeshPtr m_mono_mesh;
 };
 
@@ -215,6 +216,8 @@ void Scene::close()
 
     m_sample_counts = {};
     m_time_range = {};
+
+    m_time = 0.0;
 }
 
 std::tuple<double, double> Scene::getTimeRange() const
@@ -263,6 +266,7 @@ void Scene::seek(double time)
     if (!m_archive)
         return;
 
+    m_time = time;
     if (!m_mono_mesh)
         m_mono_mesh = std::make_shared<Mesh>();
     m_mono_mesh->clear();

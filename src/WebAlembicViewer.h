@@ -3,7 +3,9 @@
 
 namespace wabc {
 
-template<class T> struct releaser { void operator()(T* v) { v->release(); } };
+template<class T>
+struct releaser { void operator()(T* v) { v->release(); } };
+
 
 class IEntity
 {
@@ -32,6 +34,7 @@ public:
 class IScene
 {
 public:
+    virtual ~IScene() {};
     virtual void release() = 0;
 
     virtual bool load(const char* path) = 0;
@@ -40,10 +43,12 @@ public:
     virtual std::tuple<double, double> getTimeRange() const = 0;
     virtual void seek(double time) = 0;
 
+    virtual double getTime() const = 0;
     virtual IMesh* getMesh() = 0; // monolithic mesh
 };
 IScene* CreateScene_();
-inline std::shared_ptr<IScene> CreateScene() { return std::shared_ptr<IScene>(CreateScene_(), releaser<IScene>()); }
+using IScenePtr = std::shared_ptr<IScene>;
+inline IScenePtr CreateScene() { return IScenePtr(CreateScene_(), releaser<IScene>()); }
 
 
 class IRenderer
@@ -57,10 +62,15 @@ public:
     };
 
     virtual ~IRenderer() {};
+    virtual void release() = 0;
+
     virtual void beginScene() = 0;
     virtual void endScene() = 0;
     virtual void setCamera(ICamera* cam) = 0;
     virtual void draw(IMesh* mesh) = 0;
 };
+IRenderer* CreateRenderer_();
+using IRendererPtr = std::shared_ptr<IRenderer>;
+inline IRendererPtr CreateRenderer() { return IRendererPtr(CreateRenderer_(), releaser<IRenderer>()); }
 
 } // namespace wabc
