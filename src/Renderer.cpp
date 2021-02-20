@@ -126,7 +126,7 @@ bool Renderer::initialize(GLFWwindow* v)
     //    float3{ 0.0f,  0.6f, 0.0f} *1.0f,
     //};
     //glBindBuffer(GL_ARRAY_BUFFER, m_vb);
-    //glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float3), points.data(), GL_STATIC_DRAW);
+    //glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float3), points.data(), GL_DYNAMIC_DRAW);
 
     m_view_proj = transpose(orthographic(-100.0f, 100.0f, -100.0f, 100.0f, 0.0f, 100.0f));
 
@@ -156,6 +156,7 @@ void Renderer::beginScene()
 
 void Renderer::endScene()
 {
+    glFlush();
     glfwSwapBuffers(m_window);
 }
 
@@ -170,7 +171,7 @@ void Renderer::draw(IMesh* mesh)
 
     auto points = mesh->getPoints();
     glBindBuffer(GL_ARRAY_BUFFER, m_vb);
-    glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float3), points.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float3), points.data(), GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(m_attr_point);
     glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);

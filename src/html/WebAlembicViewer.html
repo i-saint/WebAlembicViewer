@@ -147,9 +147,6 @@
         <progress value="0" max="100" id="progress" hidden=1></progress>
     </div>
 
-    <div id="drop_zone">Drop files here</div>
-    <output id="list"></output>
-
     <div class="emscripten_border">
         <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
     </div>
@@ -160,9 +157,12 @@
     <textarea id="output" rows="8"></textarea>
 
     <script type='text/javascript'>
-        var statusElement = document.getElementById('status');
-        var progressElement = document.getElementById('progress');
-        var spinnerElement = document.getElementById('spinner');
+        let statusElement = document.getElementById('status');
+        let progressElement = document.getElementById('progress');
+        let spinnerElement = document.getElementById('spinner');
+
+        let timeSlider = document.getElementById('time');
+        let canvas = document.getElementById('canvas');
 
         var Module = {
             preRun: [],
@@ -236,35 +236,23 @@
             };
         };
 
-        //Module.noInitialRun = true;
-        Module.onRuntimeInitialized = function () {
-            document.getElementById('time').addEventListener('change', onTimeChange);
-        };
-
         function onDrop(evt) {
             evt.stopPropagation();
             evt.preventDefault();
 
-            let output = [];
             for (let f of evt.dataTransfer.files) {
-                output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
-                    f.size, ' bytes, last modified: ',
-                    f.lastModifiedDate.toLocaleDateString(), '</li>');
-
                 let fr = new FileReader();
                 fr.onload = function (e) {
                     let data = new Uint8Array(fr.result);
                     Module['FS_createDataFile']('/', f.name, data, true, true, true);
                     if (Module.wabcLoadScene(f.name)) {
-                        let slider = document.getElementById('time');
-                        slider.min = slider.value = Module.wabcGetStartTime();
-                        slider.max = Module.wabcGetEndTime();
-                        Module.wabcSeek(parseFloat(slider.value));
+                        timeSlider.min = timeSlider.value = Module.wabcGetStartTime();
+                        timeSlider.max = Module.wabcGetEndTime();
+                        Module.wabcSeek(parseFloat(timeSlider.value));
                     }
                 };
                 fr.readAsArrayBuffer(f);
             }
-            document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
         }
 
         function onDragOver(evt) {
@@ -274,13 +262,16 @@
         }
 
         function onTimeChange() {
-            let slider = document.getElementById('time');
-            Module.wabcSeek(parseFloat(slider.value));
+            Module.wabcSeek(parseFloat(timeSlider.value));
         }
 
-        let dropZone = document.getElementById('drop_zone');
-        dropZone.addEventListener('dragover', onDragOver, false);
-        dropZone.addEventListener('drop', onDrop, false);
+        //Module.noInitialRun = true;
+        Module.onRuntimeInitialized = function () {
+            canvas.addEventListener('dragover', onDragOver, false);
+            canvas.addEventListener('drop', onDrop, false);
+
+            timeSlider.addEventListener('change', onTimeChange);
+        };
     </script>
     <script async type="text/javascript" src="WebAlembicViewer.js"></script>
 </body>

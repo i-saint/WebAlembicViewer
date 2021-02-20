@@ -20,11 +20,11 @@ wabcAPI bool wabcLoadScene(std::string path)
 {
     g_scene = wabc::CreateScene();
     if (g_scene->load(path.c_str())) {
-        printf("wabcLoadScene(\"%s\"): succeeded", path.c_str());
+        printf("wabcLoadScene(\"%s\"): succeeded\n", path.c_str());
         return true;
     }
     else {
-        printf("wabcLoadScene(\"%s\"): failed", path.c_str());
+        printf("wabcLoadScene(\"%s\"): failed\n", path.c_str());
         return false;
     }
 }
