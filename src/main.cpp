@@ -56,9 +56,9 @@ EMSCRIPTEN_BINDINGS(wabc) {
 #endif
 
 #ifdef __EMSCRIPTEN__
-void Draw()
+static void Draw()
 #else
-void Draw(GLFWwindow*)
+static void Draw(GLFWwindow*)
 #endif
 {
     g_renderer->beginScene();
@@ -66,9 +66,30 @@ void Draw(GLFWwindow*)
     g_renderer->endScene();
 }
 
+static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (action == GLFW_PRESS && key == GLFW_KEY_ESCAPE)
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+}
+
+static void OnMouseButton(GLFWwindow* window, int button, int action, int mod)
+{
+    //printf("OnMouseButton() %d %d %d\n", button, action, mod);
+}
+
+static void OnMouseMove(GLFWwindow* window, double x, double y)
+{
+    //printf("OnMouseMove() %lf %lf\n", x, y);
+}
+
+static void OnScroll(GLFWwindow* window, double x, double y)
+{
+    //printf("OnScroll() %lf %lf\n", x, y);
+}
+
+
 int main(int argc, char** argv)
 {
-    printf("main()\n");
     if (!glfwInit()) {
         printf("glfwInit() failed\n");
         return 1;
@@ -83,6 +104,10 @@ int main(int argc, char** argv)
         printf("glfwCreateWindow() failed\n");
         return 1;
     }
+    glfwSetKeyCallback(g_window, OnKey);
+    glfwSetMouseButtonCallback(g_window, OnMouseButton);
+    glfwSetCursorPosCallback(g_window, OnMouseMove);
+    glfwSetScrollCallback(g_window, OnScroll);
 
     glfwMakeContextCurrent(g_window);
 

@@ -243,13 +243,13 @@
             for (let f of evt.dataTransfer.files) {
                 let fr = new FileReader();
                 fr.onload = function (e) {
-                    let data = new Uint8Array(fr.result);
-                    Module['FS_createDataFile']('/', f.name, data, true, true, true);
+                    FS.writeFile(f.name, new Uint8Array(fr.result));
                     if (Module.wabcLoadScene(f.name)) {
                         timeSlider.min = timeSlider.value = Module.wabcGetStartTime();
                         timeSlider.max = Module.wabcGetEndTime();
                         Module.wabcSeek(parseFloat(timeSlider.value));
                     }
+                    FS.unlink(f.name);
                 };
                 fr.readAsArrayBuffer(f);
             }
