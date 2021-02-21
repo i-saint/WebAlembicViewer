@@ -25,6 +25,7 @@ static int g_mouse_button;
 static float2 g_mouse_pos;
 static float3 g_camera_position{ 0.0f, 0.0f, 10.0f };
 static float3 g_camera_target{ 0.0f, 0.0f, 0.0f };
+static int g_active_camera = -1; // -1: free
 static float g_camera_fov = 60.0f;
 static float g_camera_near = 0.01f;
 static float g_camera_far = 100.0f;
@@ -32,7 +33,12 @@ static double g_seek_time;
 
 static void Draw()
 {
-    g_renderer->setCamera(g_camera_position, g_camera_target, g_camera_fov, g_camera_near, g_camera_far);
+    if (g_active_camera < 0) {
+        g_renderer->setCamera(g_camera_position, normalize(g_camera_target - g_camera_position), g_camera_fov, g_camera_near, g_camera_far);
+    }
+    else {
+        g_renderer->setCamera(g_scene->getCameras()[g_active_camera]);
+    }
 
     g_renderer->beginDraw();
     g_renderer->draw(g_scene->getMesh());
@@ -169,6 +175,23 @@ wabcAPI void wabcSeek(double t)
     }
 }
 
+wabcAPI int wabcGetCameraCount()
+{
+    return g_scene ? (int)g_scene->getCameras().size() : 0;
+}
+
+std::string wabcGetCameraPath(int v)
+{
+    if (g_scene)
+        return g_scene->getCameras()[v]->getPath();
+    return "";
+}
+
+wabcAPI void wabcSetActiveCamera(int v)
+{
+    g_active_camera = v;
+}
+
 wabcAPI void wabcSetFOV(float v)
 {
     g_camera_fov = v;
@@ -199,16 +222,21 @@ wabcAPI void wabcDraw()
 
 #ifdef __EMSCRIPTEN__
 EMSCRIPTEN_BINDINGS(wabc) {
-    emscripten::function("wabcLoadScene", &wabcLoadScene);
-    emscripten::function("wabcGetStartTime", &wabcGetStartTime);
-    emscripten::function("wabcGetEndTime", &wabcGetEndTime);
-    emscripten::function("wabcSeek", &wabcSeek);
+    using namespace emscripten;
+    function("wabcLoadScene", &wabcLoadScene);
+    function("wabcGetStartTime", &wabcGetStartTime);
+    function("wabcGetEndTime", &wabcGetEndTime);
+    function("wabcSeek", &wabcSeek);
 
-    emscripten::function("wabcSetFOV", &wabcSetFOV);
-    emscripten::function("wabcSetDrawFaces", &wabcSetDrawFaces);
-    emscripten::function("wabcSetDrawWireframe", &wabcSetDrawWireframe);
-    emscripten::function("wabcSetDrawPoints", &wabcSetDrawPoints);
-    emscripten::function("wabcDraw", &wabcDraw);
+    function("wabcGetCameraCount", &wabcGetCameraCount);
+    function("wabcGetCameraPath", &wabcGetCameraPath, allow_raw_pointers());
+    function("wabcSetActiveCamera", &wabcSetActiveCamera);
+    function("wabcSetFOV", &wabcSetFOV);
+
+    function("wabcSetDrawFaces", &wabcSetDrawFaces);
+    function("wabcSetDrawWireframe", &wabcSetDrawWireframe);
+    function("wabcSetDrawPoints", &wabcSetDrawPoints);
+    function("wabcDraw", &wabcDraw);
 }
 #endif
 

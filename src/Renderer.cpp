@@ -11,6 +11,7 @@ public:
     void release() override;
     bool initialize(GLFWwindow* v) override;
     void setCamera(float3 pos, float3 target, float fov, float near_, float far_) override;
+    void setCamera(ICamera* cam) override;
     void setDrawPoints(bool v) override { m_draw_points = v; }
     void setDrawWireframe(bool v) override { m_draw_wireframe = v; }
     void setDrawFaces(bool v) override { m_draw_faces = v; }
@@ -166,7 +167,7 @@ void Renderer::endDraw()
     glfwSwapBuffers(m_window);
 }
 
-void Renderer::setCamera(float3 pos, float3 target, float fov, float near_, float far_)
+void Renderer::setCamera(float3 pos, float3 dir, float fov, float near_, float far_)
 {
     int w, h;
     glfwGetFramebufferSize(m_window, &w, &h);
@@ -179,7 +180,7 @@ void Renderer::setCamera(float3 pos, float3 target, float fov, float near_, floa
     float4x4 proj = float4x4::identity();
     float4x4 view = float4x4::identity();
     {
-        float3 f = normalize(target - pos);
+        float3 f = dir;
         float3 s = normalize(cross(f, float3::up()));
         float3 u = cross(s, f);
         view[0] = { s.x, u.x, f.x, 0.0f };
@@ -197,6 +198,13 @@ void Renderer::setCamera(float3 pos, float3 target, float fov, float near_, floa
     }
 
     m_view_proj = (view * proj);
+}
+
+void Renderer::setCamera(ICamera* cam)
+{
+    if (!cam)
+        return;
+    setCamera(cam->getPosition(), cam->getDirection(), cam->getFOV(), cam->getNearPlane(), cam->getFarPlane());
 }
 
 void Renderer::draw(IMesh* v)

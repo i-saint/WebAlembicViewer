@@ -29,23 +29,30 @@ template<class T> inline T* Expand(std::vector<T>& v, size_t n)
 class Camera : public ICamera
 {
 public:
-    float3 getPosition() const { return m_position; }
-    float3 getDirection() const { return m_direction; }
-    float3 getUp() const { return m_up; }
-    float getFOV() const { return m_fov; }
+    const std::string& getPath() const override { return m_path; }
+    float3 getPosition() const override { return m_position; }
+    float3 getDirection() const override { return m_direction; }
+    float3 getUp() const override { return m_up; }
+    float getFOV() const override { return m_fov; }
+    float getNearPlane() const override { return m_near; }
+    float getFarPlane() const override { return m_far; }
 
-private:
+public:
+    std::string m_path;
     float3 m_position{};
     float3 m_direction{ 0.0f, 0.0f, 1.0f };
     float3 m_up{ 0.0f, 1.0f, 0.0f };
-    float m_fov = 30.0f;
+    float m_fov = 60.0f;
+    float m_near = 0.01f;
+    float m_far = 100.0f;
 };
+using CameraPtr = std::shared_ptr<Camera>;
 
 class Mesh : public IMesh
 {
 public:
     Mesh();
-    ~Mesh();
+    ~Mesh() override;
     std::span<float3> getPoints() const override { return MakeSpan(m_points); }
     std::span<float3> getPointsEx() const override { return MakeSpan(m_points_ex); }
     std::span<float3> getNormalsEx() const override { return MakeSpan(m_normals_ex); }
@@ -54,6 +61,7 @@ public:
     GLuint getPointsExBuffer() const override { return m_buf_points_ex; }
     GLuint getNormalsExBuffer() const override { return m_buf_normals_ex; }
     GLuint getWireframeIndicesBuffer() const override { return m_buf_wireframe_indices; }
+
     void clear();
     void upload();
 
@@ -74,9 +82,10 @@ class Points : public IPoints
 {
 public:
     Points();
-    ~Points();
+    ~Points() override;
     std::span<float3> getPoints() const override { return MakeSpan(m_points); }
     GLuint getPointBuffer() const override { return m_vb_points; }
+
     void clear();
     void upload();
 
@@ -112,6 +121,7 @@ public:
     double getTime() const override { return m_time; }
     IMesh* getMesh() override { return m_mono_mesh.get(); }
     IPoints* getPoints() override { return m_mono_points.get(); }
+    std::span<ICamera*> getCameras() override { return MakeSpan(m_cameras); }
 
 private:
     std::shared_ptr<std::fstream> m_stream;
@@ -123,6 +133,9 @@ private:
     double m_time = -1.0;
     MeshPtr m_mono_mesh;
     PointsPtr m_mono_points;
+
+    std::map<std::string, CameraPtr> m_camera_table;
+    std::vector<ICamera*> m_cameras;
 };
 
 
@@ -199,6 +212,22 @@ void Points::upload()
 void Scene::release()
 {
     delete this;
+}
+
+void Scene::unload()
+{
+    m_archive = {};
+    m_stream = {};
+
+    m_sample_counts = {};
+    m_time_range = {};
+
+    m_time = -1.0;
+    m_mono_mesh = {};
+    m_mono_points = {};
+
+    m_cameras = {};
+    m_camera_table = {};
 }
 
 bool Scene::load(const char* path)
@@ -303,19 +332,6 @@ bool Scene::load(const char* path)
     return m_archive.valid();
 }
 
-void Scene::unload()
-{
-    m_archive = {};
-    m_stream = {};
-
-    m_sample_counts = {};
-    m_time_range = {};
-
-    m_time = -1.0;
-    m_mono_mesh = {};
-    m_mono_points = {};
-}
-
 std::tuple<double, double> Scene::getTimeRange() const
 {
     return m_time_range;
@@ -338,6 +354,11 @@ void Scene::scanNodes(ImportContext ctx)
     else if (AbcGeom::ICameraSchema::matches(metadata)) {
         auto schema = AbcGeom::ICamera(obj).getSchema();
         update_sample_count(schema);
+
+        auto cam = std::make_shared<Camera>();
+        cam->m_path = obj.getFullName();
+        m_camera_table[cam->m_path] = cam;
+        m_cameras.push_back(cam.get());
     }
     else if (AbcGeom::IPolyMeshSchema::matches(metadata)) {
         auto schema = AbcGeom::IPolyMesh(obj).getSchema();
@@ -379,6 +400,7 @@ void Scene::seekImpl(ImportContext ctx)
 {
     auto obj = ctx.obj;
     auto ss = Abc::ISampleSelector(ctx.time);
+
     const auto& metadata = obj.getMetaData();
     if (AbcGeom::IXformSchema::matches(metadata)) {
         auto schema = AbcGeom::IXform(obj).getSchema();

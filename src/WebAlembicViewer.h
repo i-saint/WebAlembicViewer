@@ -16,10 +16,13 @@ public:
 class ICamera : public IEntity
 {
 public:
+    virtual const std::string& getPath() const = 0;
     virtual float3 getPosition() const = 0;
     virtual float3 getDirection() const = 0;
     virtual float3 getUp() const = 0;
     virtual float getFOV() const = 0;
+    virtual float getNearPlane() const = 0;
+    virtual float getFarPlane() const = 0;
 };
 
 class IMesh : public IEntity
@@ -57,6 +60,7 @@ public:
     virtual double getTime() const = 0;
     virtual IMesh* getMesh() = 0;     // monolithic mesh
     virtual IPoints* getPoints() = 0; // monolithic points
+    virtual std::span<ICamera*> getCameras() = 0;
 };
 IScene* CreateScene_();
 using IScenePtr = std::shared_ptr<IScene>;
@@ -77,7 +81,8 @@ public:
     virtual void release() = 0;
 
     virtual bool initialize(GLFWwindow* v) = 0;
-    virtual void setCamera(float3 pos, float3 target, float fov, float near_, float far_) = 0;
+    virtual void setCamera(float3 pos, float3 dir, float fov, float near_, float far_) = 0;
+    virtual void setCamera(ICamera* cam) = 0;
     virtual void setDrawPoints(bool v) = 0;
     virtual void setDrawWireframe(bool v) = 0;
     virtual void setDrawFaces(bool v) = 0;

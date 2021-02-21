@@ -168,6 +168,14 @@
             <label for="drawPoints">Points</label>
         </span>
     </div>
+    <div>
+        <span>
+            Camera
+            <select id="cameraList" name="cameraList">
+                <option value="-1">free</option>
+            </select>
+        </span>
+    </div>
     <textarea id="output" rows="8"></textarea>
 
     <script type='text/javascript'>
@@ -179,7 +187,90 @@
         let checkFaces = document.getElementById('drawFace');
         let checkWireframe = document.getElementById('drawWireframe');
         let checkPoints = document.getElementById('drawPoints');
+        let cameraList = document.getElementById('cameraList');
         let canvas = document.getElementById('canvas');
+
+        function addCamera(n, v) {
+            let opt = document.createElement('option');
+            opt.text = n;
+            opt.value = v;
+            cameraList.appendChild(opt);
+        }
+
+        function loadScene(filename, data) {
+            FS.writeFile(filename, new Uint8Array(data));
+            if (Module.wabcLoadScene(filename)) {
+                // update time slider
+                let t = Module.wabcGetStartTime();
+                timeSlider.min = timeSlider.value = t;
+                timeSlider.max = Module.wabcGetEndTime();
+
+                // update camera list
+                while (cameraList.firstChild)
+                    cameraList.removeChild(cameraList.firstChild);
+                addCamera('free', -1);
+                let cameraCount = Module.wabcGetCameraCount();
+                for (let i = 0; i < cameraCount; ++i)
+                    addCamera(Module.wabcGetCameraPath(i), i);
+
+                // load first frame
+                Module.wabcSeek(t);
+            }
+            FS.unlink(filename);
+        }
+
+        function loadSceneFromURL(url) {
+            fetch(url)
+                .then(res => res.blob())
+                .then(blob => blob.arrayBuffer())
+                .then(data => {
+                    loadScene('tmp.abc', data)
+                });
+        }
+
+        function onDrop(evt) {
+            evt.stopPropagation();
+            evt.preventDefault();
+
+            for (let f of evt.dataTransfer.files) {
+                let fr = new FileReader();
+                fr.onload = function (e) {
+                    loadScene(f.name, fr.result);
+                };
+                fr.readAsArrayBuffer(f);
+            }
+        }
+
+        function onDragOver(evt) {
+            evt.stopPropagation();
+            evt.preventDefault();
+            evt.dataTransfer.dropEffect = 'copy';
+        }
+
+        function onTimeChange() {
+            Module.wabcSeek(parseFloat(timeSlider.value));
+            Module.wabcDraw();
+        }
+
+        function onCheckFaces() {
+            Module.wabcSetDrawFaces(checkFaces.checked);
+            Module.wabcDraw();
+        }
+
+        function onCheckWireframe() {
+            Module.wabcSetDrawWireframe(checkWireframe.checked);
+            Module.wabcDraw();
+        }
+
+        function onCheckPoints() {
+            Module.wabcSetDrawPoints(checkPoints.checked);
+            Module.wabcDraw();
+        }
+
+        function onCameraChange() {
+            Module.wabcSetActiveCamera(parseInt(cameraList.value));
+            Module.wabcDraw();
+        }
 
         var Module = {
             preRun: [],
@@ -253,64 +344,6 @@
             };
         };
 
-        function loadScene(filename, data) {
-            FS.writeFile(filename, new Uint8Array(data));
-            if (Module.wabcLoadScene(filename)) {
-                timeSlider.min = timeSlider.value = Module.wabcGetStartTime();
-                timeSlider.max = Module.wabcGetEndTime();
-                Module.wabcSeek(parseFloat(timeSlider.value));
-            }
-            FS.unlink(filename);
-        }
-
-        function loadSceneFromURL(url) {
-            fetch(url)
-                .then(res => res.blob())
-                .then(blob => blob.arrayBuffer())
-                .then(data => {
-                    loadScene('tmp.abc', data)
-                });
-        }
-
-        function onDrop(evt) {
-            evt.stopPropagation();
-            evt.preventDefault();
-
-            for (let f of evt.dataTransfer.files) {
-                let fr = new FileReader();
-                fr.onload = function (e) {
-                    loadScene(f.name, fr.result);
-                };
-                fr.readAsArrayBuffer(f);
-            }
-        }
-
-        function onDragOver(evt) {
-            evt.stopPropagation();
-            evt.preventDefault();
-            evt.dataTransfer.dropEffect = 'copy';
-        }
-
-        function onTimeChange() {
-            Module.wabcSeek(parseFloat(timeSlider.value));
-            Module.wabcDraw();
-        }
-
-        function onCheckFaces() {
-            Module.wabcSetDrawFaces(checkFaces.checked);
-            Module.wabcDraw();
-        }
-
-        function onCheckWireframe() {
-            Module.wabcSetDrawWireframe(checkWireframe.checked);
-            Module.wabcDraw();
-        }
-
-        function onCheckPoints() {
-            Module.wabcSetDrawPoints(checkPoints.checked);
-            Module.wabcDraw();
-        }
-
         //Module.noInitialRun = true;
         Module.onRuntimeInitialized = function () {
             canvas.addEventListener('dragover', onDragOver, false);
@@ -320,6 +353,7 @@
             checkFaces.addEventListener('input', onCheckFaces);
             checkWireframe.addEventListener('input', onCheckWireframe);
             checkPoints.addEventListener('input', onCheckPoints);
+            cameraList.addEventListener('change', onCameraChange);
         };
     </script>
     <script async type="text/javascript" src="WebAlembicViewer.js"></script>
