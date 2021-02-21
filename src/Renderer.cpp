@@ -10,10 +10,13 @@ public:
     ~Renderer();
     void release() override;
     bool initialize(GLFWwindow* v) override;
-
-    void beginScene() override;
-    void endScene() override;
     void setCamera(float3 pos, float3 target, float fov, float near_, float far_) override;
+    void setDrawPoints(bool v) override { m_draw_points = v; }
+    void setDrawWireframe(bool v) override { m_draw_wireframe = v; }
+    void setDrawFaces(bool v) override { m_draw_faces = v; }
+
+    void beginDraw() override;
+    void endDraw() override;
     void draw(IMesh* mesh) override;
     void draw(IPoints* points) override;
 
@@ -32,6 +35,10 @@ private:
     float4x4 m_view_proj = float4x4::identity();
     float4 m_color = {0.0f, 0.0f, 0.0f, 1.0f};
     float m_point_size = 4.0f;
+
+    bool m_draw_points = true;
+    bool m_draw_wireframe = true;
+    bool m_draw_faces = true;
 };
 
 
@@ -125,7 +132,7 @@ void Renderer::release()
     delete this;
 }
 
-void Renderer::beginScene()
+void Renderer::beginDraw()
 {
     int w, h;
     glfwGetFramebufferSize(m_window, &w, &h);
@@ -141,7 +148,7 @@ void Renderer::beginScene()
     glUniform4fv(m_loc_color, 1, (const GLfloat*)&m_color);
 }
 
-void Renderer::endScene()
+void Renderer::endDraw()
 {
     glFlush();
     glfwSwapBuffers(m_window);
@@ -195,19 +202,19 @@ void Renderer::draw(IMesh* v)
     auto points_ex = v->getPointsEx();
     auto wireframe_indices = v->getWireframeIndices();
 
-    //// triangles
-    //{
-    //    glBindBuffer(GL_ARRAY_BUFFER, v->getPointsExBuffer());
-    //    glEnableVertexAttribArray(m_attr_point);
-    //    glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
+    // faces
+    if (m_draw_faces) {
+        glBindBuffer(GL_ARRAY_BUFFER, v->getPointsExBuffer());
+        glEnableVertexAttribArray(m_attr_point);
+        glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
 
-    //    glDrawArrays(GL_TRIANGLES, 0, points_ex.size());
+        glDrawArrays(GL_TRIANGLES, 0, points_ex.size());
 
-    //    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    //}
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
 
     // wire frame
-    {
+    if (m_draw_wireframe) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, v->getWireframeIndicesBuffer());
         glBindBuffer(GL_ARRAY_BUFFER, v->getPointsBuffer());
         glEnableVertexAttribArray(m_attr_point);
@@ -220,7 +227,7 @@ void Renderer::draw(IMesh* v)
     }
 
     // points
-    {
+    if (m_draw_points) {
         glBindBuffer(GL_ARRAY_BUFFER, v->getPointsBuffer());
         glEnableVertexAttribArray(m_attr_point);
         glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);

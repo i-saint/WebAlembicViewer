@@ -34,10 +34,10 @@ static void Draw()
 {
     g_renderer->setCamera(g_camera_position, g_camera_target, g_camera_fov, g_camera_near, g_camera_far);
 
-    g_renderer->beginScene();
+    g_renderer->beginDraw();
     g_renderer->draw(g_scene->getMesh());
     g_renderer->draw(g_scene->getPoints());
-    g_renderer->endScene();
+    g_renderer->endDraw();
 }
 
 static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -174,6 +174,24 @@ wabcAPI void wabcSetFOV(float v)
     g_camera_fov = v;
 }
 
+wabcAPI void wabcSetDrawFaces(bool v)
+{
+    if (g_renderer)
+        g_renderer->setDrawFaces(v);
+}
+
+wabcAPI void wabcSetDrawWireframe(float v)
+{
+    if (g_renderer)
+        g_renderer->setDrawWireframe(v);
+}
+
+wabcAPI void wabcSetDrawPoints(float v)
+{
+    if (g_renderer)
+        g_renderer->setDrawPoints(v);
+}
+
 wabcAPI void wabcDraw()
 {
     Draw();
@@ -187,6 +205,9 @@ EMSCRIPTEN_BINDINGS(wabc) {
     emscripten::function("wabcSeek", &wabcSeek);
 
     emscripten::function("wabcSetFOV", &wabcSetFOV);
+    emscripten::function("wabcSetDrawFaces", &wabcSetDrawFaces);
+    emscripten::function("wabcSetDrawWireframe", &wabcSetDrawWireframe);
+    emscripten::function("wabcSetDrawPoints", &wabcSetDrawPoints);
     emscripten::function("wabcDraw", &wabcDraw);
 }
 #endif

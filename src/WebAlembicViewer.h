@@ -77,10 +77,13 @@ public:
     virtual void release() = 0;
 
     virtual bool initialize(GLFWwindow* v) = 0;
-
-    virtual void beginScene() = 0;
-    virtual void endScene() = 0;
     virtual void setCamera(float3 pos, float3 target, float fov, float near_, float far_) = 0;
+    virtual void setDrawPoints(bool v) = 0;
+    virtual void setDrawWireframe(bool v) = 0;
+    virtual void setDrawFaces(bool v) = 0;
+
+    virtual void beginDraw() = 0;
+    virtual void endDraw() = 0;
     virtual void draw(IMesh* mesh) = 0;
     virtual void draw(IPoints* points) = 0;
 };
