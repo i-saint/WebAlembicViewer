@@ -192,16 +192,43 @@ void Renderer::draw(IMesh* v)
     auto points = v->getPoints();
     if (points.empty())
         return;
+    auto points_ex = v->getPointsEx();
+    auto wireframe_indices = v->getWireframeIndices();
 
-    auto points_buffer = v->getPointBuffer();
-    glBindBuffer(GL_ARRAY_BUFFER, points_buffer);
-    glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float3), points.data(), GL_DYNAMIC_DRAW);
+    //// triangles
+    //{
+    //    glBindBuffer(GL_ARRAY_BUFFER, v->getPointsExBuffer());
+    //    glEnableVertexAttribArray(m_attr_point);
+    //    glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
 
-    glEnableVertexAttribArray(m_attr_point);
-    glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
+    //    glDrawArrays(GL_TRIANGLES, 0, points_ex.size());
 
-    glDrawArrays(GL_POINTS, 0, points.size());
-    glDrawArrays(GL_LINES, 0, points.size());
+    //    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //}
+
+    // wire frame
+    {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, v->getWireframeIndicesBuffer());
+        glBindBuffer(GL_ARRAY_BUFFER, v->getPointsBuffer());
+        glEnableVertexAttribArray(m_attr_point);
+        glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
+
+        glDrawElements(GL_LINES, wireframe_indices.size(), GL_UNSIGNED_INT, 0);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
+    // points
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, v->getPointsBuffer());
+        glEnableVertexAttribArray(m_attr_point);
+        glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
+
+        glDrawArrays(GL_POINTS, 0, points.size());
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
 }
 
 void Renderer::draw(IPoints* v)
@@ -213,13 +240,9 @@ void Renderer::draw(IPoints* v)
     if (points.empty())
         return;
 
-    auto points_buffer = v->getPointBuffer();
-    glBindBuffer(GL_ARRAY_BUFFER, points_buffer);
-    glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float3), points.data(), GL_DYNAMIC_DRAW);
-
+    glBindBuffer(GL_ARRAY_BUFFER, v->getPointBuffer());
     glEnableVertexAttribArray(m_attr_point);
     glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
-
     glDrawArrays(GL_POINTS, 0, points.size());
 }
 

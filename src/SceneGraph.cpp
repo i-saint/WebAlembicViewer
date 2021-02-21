@@ -47,17 +47,25 @@ public:
     Mesh();
     ~Mesh();
     std::span<float3> getPoints() const override { return MakeSpan(m_points); }
-    std::span<float3> getNormals() const override { return MakeSpan(m_normals); }
-    GLuint getPointBuffer() const override { return m_vb_points; }
-    GLuint getNormalBuffer() const override { return m_vb_normals; }
+    std::span<float3> getPointsEx() const override { return MakeSpan(m_points_ex); }
+    std::span<float3> getNormalsEx() const override { return MakeSpan(m_normals_ex); }
+    std::span<int> getWireframeIndices() const override { return MakeSpan(m_wireframe_indices); }
+    GLuint getPointsBuffer() const override { return m_buf_points; }
+    GLuint getPointsExBuffer() const override { return m_buf_points_ex; }
+    GLuint getNormalsExBuffer() const override { return m_buf_normals_ex; }
+    GLuint getWireframeIndicesBuffer() const override { return m_buf_wireframe_indices; }
     void clear();
     void upload();
 
 public:
     std::vector<float3> m_points;
-    std::vector<float3> m_normals;
-    GLuint m_vb_points{};
-    GLuint m_vb_normals{};
+    std::vector<float3> m_points_ex;
+    std::vector<float3> m_normals_ex;
+    std::vector<int> m_wireframe_indices;
+    GLuint m_buf_points{};
+    GLuint m_buf_points_ex{};
+    GLuint m_buf_normals_ex{};
+    GLuint m_buf_wireframe_indices{};
 };
 using MeshPtr = std::shared_ptr<Mesh>;
 
@@ -121,27 +129,45 @@ private:
 
 Mesh::Mesh()
 {
-    glGenBuffers(1, &m_vb_points);
-    glGenBuffers(1, &m_vb_normals);
+    glGenBuffers(1, &m_buf_points);
+    glGenBuffers(1, &m_buf_points_ex);
+    glGenBuffers(1, &m_buf_normals_ex);
+    glGenBuffers(1, &m_buf_wireframe_indices);
 }
 
 Mesh::~Mesh()
 {
-    glDeleteBuffers(1, &m_vb_points);
-    glDeleteBuffers(1, &m_vb_normals);
+    glDeleteBuffers(1, &m_buf_points);
+    glDeleteBuffers(1, &m_buf_points_ex);
+    glDeleteBuffers(1, &m_buf_normals_ex);
+    glDeleteBuffers(1, &m_buf_wireframe_indices);
 }
 
 void Mesh::clear()
 {
     m_points.clear();
-    m_normals.clear();
+    m_points_ex.clear();
+    m_normals_ex.clear();
+    m_wireframe_indices.clear();
 }
 
 void Mesh::upload()
 {
     if (!m_points.empty()) {
-        glBindBuffer(GL_ARRAY_BUFFER, m_vb_points);
-        glBufferData(GL_ARRAY_BUFFER, m_points.size() * sizeof(float3), m_points.data(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, m_buf_points);
+        glBufferData(GL_ARRAY_BUFFER, m_points.size() * sizeof(float3), m_points.data(), GL_STREAM_DRAW);
+    }
+    if (!m_points_ex.empty()) {
+        glBindBuffer(GL_ARRAY_BUFFER, m_buf_points_ex);
+        glBufferData(GL_ARRAY_BUFFER, m_points_ex.size() * sizeof(float3), m_points_ex.data(), GL_STREAM_DRAW);
+    }
+    if (!m_normals_ex.empty()) {
+        glBindBuffer(GL_ARRAY_BUFFER, m_buf_normals_ex);
+        glBufferData(GL_ARRAY_BUFFER, m_normals_ex.size() * sizeof(float3), m_normals_ex.data(), GL_STREAM_DRAW);
+    }
+    if (!m_wireframe_indices.empty()) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buf_wireframe_indices);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_wireframe_indices.size() * sizeof(int), m_wireframe_indices.data(), GL_STREAM_DRAW);
     }
 }
 
@@ -366,7 +392,26 @@ void Scene::seekImpl(ImportContext ctx)
     else if (AbcGeom::ICameraSchema::matches(metadata)) {
         auto schema = AbcGeom::ICamera(obj).getSchema();
 
-        // todo
+        AbcGeom::CameraSample sample;
+        schema.get(sample, ss);
+
+        const float lens_size_factor = 10.0f; // lens size is in cm
+
+        float focal_length = (float)sample.getFocalLength();
+        float2 sensor_size = {
+            (float)sample.getHorizontalAperture() * lens_size_factor,
+            (float)sample.getVerticalAperture() * lens_size_factor
+        };
+        float2 lens_shift = {
+            (float)sample.getHorizontalFilmOffset(),
+            (float)sample.getVerticalFilmOffset()
+        };
+
+        float fov = compute_fov(sensor_size.y, focal_length);
+        float near_plane = (float)sample.getNearClippingPlane();
+        float far_plane = (float)sample.getFarClippingPlane();
+        near_plane = std::max(near_plane, 0.01f);
+        far_plane = std::max(far_plane, near_plane);
     }
     else if (AbcGeom::IPolyMeshSchema::matches(metadata)) {
         auto schema = AbcGeom::IPolyMesh(obj).getSchema();
@@ -377,22 +422,47 @@ void Scene::seekImpl(ImportContext ctx)
         auto indices = MakeSpan(sample.getFaceIndices());
         auto points_orig = MakeSpan(sample.getPositions());
 
+        // make points in global space
         size_t num_points = points_orig.size();
-        std::vector<float3> points(num_points);
+        int index_offset = (int)m_mono_mesh->m_points.size();
+        float3* points = Expand(m_mono_mesh->m_points, num_points);
         for (size_t i = 0; i < num_points; ++i)
             points[i] = mul_p(ctx.global_matrix, (float3&)points_orig[i]);
 
+        // count primitives and allocate space
+        int num_lines = 0;
         int num_triangles = 0;
         for (int c : counts) {
-            if (c > 2)
+            if (c == 2) {
+                num_lines += 1;
+            }
+            else if (c >= 3) {
                 num_triangles += c - 2;
+                num_lines += c;
+            }
         }
 
-        float3* dst_points = Expand(m_mono_mesh->m_points, num_triangles * 3);
-        const float3* src_points = points.data();
+        float3* dst_points = Expand(m_mono_mesh->m_points_ex, num_triangles * 3);
+        int* dst_indices = Expand(m_mono_mesh->m_wireframe_indices, num_lines * 2);
+        const float3* src_points = points;
         const int* src_indices = indices.data();
+
+        // setup indices & vertices
         for (int c : counts) {
-            if (c > 2) {
+            if (c == 2) {
+                // add wire frame indices
+                *dst_indices++ = src_indices[0] + index_offset;
+                *dst_indices++ = src_indices[1] + index_offset;
+            }
+            else if (c > 2) {
+                // add wire frame indices
+                for (int fi = 0; fi < c; ++fi) {
+                    *dst_indices++ = src_indices[fi] + index_offset;
+                    *dst_indices++ = (fi == c - 1 ? src_indices[0] : src_indices[fi + 1]) + index_offset;
+                }
+
+                // add triangle vertices
+                // todo: handle flip faces option
                 for (int fi = 0; fi < c - 2; ++fi) {
                     int i0 = src_indices[0];
                     int i1 = src_indices[1 + fi];

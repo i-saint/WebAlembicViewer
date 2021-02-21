@@ -26,9 +26,13 @@ class IMesh : public IEntity
 {
 public:
     virtual std::span<float3> getPoints() const = 0;
-    virtual std::span<float3> getNormals() const = 0;
-    virtual GLuint getPointBuffer() const = 0;
-    virtual GLuint getNormalBuffer() const = 0;
+    virtual std::span<float3> getPointsEx() const = 0; // expanded (not indexed)
+    virtual std::span<float3> getNormalsEx() const = 0; // expanded (not indexed)
+    virtual std::span<int> getWireframeIndices() const = 0;
+    virtual GLuint getPointsBuffer() const = 0;
+    virtual GLuint getPointsExBuffer() const = 0;
+    virtual GLuint getNormalsExBuffer() const = 0;
+    virtual GLuint getWireframeIndicesBuffer() const = 0;
 };
 
 class IPoints : public IEntity
