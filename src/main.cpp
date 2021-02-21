@@ -10,10 +10,22 @@
 #pragma comment(lib, "libEGL.dll.lib")
 #pragma comment(lib, "libGLESv2.dll.lib")
 
+using wabc::float2;
+using wabc::float3;
+using wabc::float3x3;
+using wabc::float4x4;
 
 static wabc::IScenePtr g_scene;
 static wabc::IRendererPtr g_renderer;
 static GLFWwindow* g_window;
+
+static int g_mouse_button;
+static float2 g_mouse_pos;
+static float3 g_camera_position{ 0.0f, 0.0f, 10.0f };
+static float3 g_camera_target{ 0.0f, 0.0f, 0.0f };
+static float g_camera_fov = 60.0f;
+static float g_camera_near = 0.01f;
+static float g_camera_far = 100.0f;
 
 
 wabcAPI bool wabcLoadScene(std::string path)
@@ -55,12 +67,10 @@ EMSCRIPTEN_BINDINGS(wabc) {
 }
 #endif
 
-#ifdef __EMSCRIPTEN__
 static void Draw()
-#else
-static void Draw(GLFWwindow*)
-#endif
 {
+    g_renderer->setCamera(g_camera_position, g_camera_target, g_camera_fov, g_camera_near, g_camera_far);
+
     g_renderer->beginScene();
     g_renderer->draw(g_scene->getMesh());
     g_renderer->endScene();
@@ -75,16 +85,58 @@ static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mod
 static void OnMouseButton(GLFWwindow* window, int button, int action, int mod)
 {
     //printf("OnMouseButton() %d %d %d\n", button, action, mod);
+    if (action == GLFW_PRESS)
+        g_mouse_button |= (1 << button);
+    else if (action == GLFW_RELEASE)
+        g_mouse_button &= ~(1 << button);
 }
 
 static void OnMouseMove(GLFWwindow* window, double x, double y)
 {
     //printf("OnMouseMove() %lf %lf\n", x, y);
+
+    using namespace wabc;
+
+    float2 pos = float2{ (float)x, (float)y };
+    float2 move = pos - g_mouse_pos;
+    g_mouse_pos = pos;
+
+    if ((g_mouse_button & 1) != 0) {
+        // rotate
+        float3 axis = cross(normalize(g_camera_target - g_camera_position), float3::up());
+        g_camera_position = to_mat3x3(rotate_y(move.x * DegToRad * 0.1f)) * g_camera_position;
+        g_camera_position = to_mat3x3(rotate(axis, move.y * DegToRad * 0.1f)) * g_camera_position;
+    }
+    else if ((g_mouse_button & 2) != 0) {
+        // move
+        float len = length(g_camera_target - g_camera_position);
+        float3 t = float3{ move.x, move.y, 0.0f } *0.001f * len;
+
+        float3 dir = normalize(g_camera_target - g_camera_position);
+        quatf rot = look_quat(dir, float3::up());
+        t = to_mat3x3(rot) * t;
+
+        g_camera_position += t;
+        g_camera_target += t;
+    }
 }
 
 static void OnScroll(GLFWwindow* window, double x, double y)
 {
     //printf("OnScroll() %lf %lf\n", x, y);
+#ifdef __EMSCRIPTEN__
+    x /= 125.0;
+    y /= 125.0;
+#endif
+
+    using namespace wabc;
+    if (y != 0.0) {
+        // zoom
+        float s = -y * 0.1f + 1.0f;
+        float d = length(g_camera_target - g_camera_position) * s;
+        float3 dir = normalize(g_camera_position - g_camera_target);
+        g_camera_position = g_camera_target + (dir * d);
+    }
 }
 
 
@@ -99,7 +151,7 @@ int main(int argc, char** argv)
     glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    g_window = glfwCreateWindow(512, 512, "Web Alembic Viewer", nullptr, nullptr);
+    g_window = glfwCreateWindow(1280, 720, "Web Alembic Viewer", nullptr, nullptr);
     if (!g_window) {
         printf("glfwCreateWindow() failed\n");
         return 1;
@@ -130,9 +182,10 @@ int main(int argc, char** argv)
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(&Draw, 0, 1);
 #else
-    glfwSetWindowRefreshCallback(g_window , &Draw);
+    glfwSwapInterval(1);
     while (!glfwWindowShouldClose(g_window)) {
-        glfwWaitEvents();
+        Draw();
+        glfwPollEvents();
     }
     glfwDestroyWindow(g_window);
     glfwTerminate();

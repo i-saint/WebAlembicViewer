@@ -65,9 +65,10 @@ public:
     virtual void release() = 0;
 
     virtual bool initialize(GLFWwindow* v) = 0;
+
     virtual void beginScene() = 0;
     virtual void endScene() = 0;
-    virtual void setCamera(ICamera* cam) = 0;
+    virtual void setCamera(float3 pos, float3 target, float fov, float near_, float far_) = 0;
     virtual void draw(IMesh* mesh) = 0;
 };
 IRenderer* CreateRenderer_();

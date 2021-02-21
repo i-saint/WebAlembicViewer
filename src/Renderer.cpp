@@ -13,7 +13,7 @@ public:
 
     void beginScene() override;
     void endScene() override;
-    void setCamera(ICamera* cam) override;
+    void setCamera(float3 pos, float3 target, float fov, float near_, float far_) override;
     void draw(IMesh* mesh) override;
 
 private:
@@ -160,8 +160,46 @@ void Renderer::endScene()
     glfwSwapBuffers(m_window);
 }
 
-void Renderer::setCamera(ICamera* cam)
+void Renderer::setCamera(float3 pos, float3 target, float fov, float near_, float far_)
 {
+    int w, h;
+    glfwGetFramebufferSize(m_window, &w, &h);
+    float aspect = (float)w / (float)h;
+
+    //quatf rot = look_quat(dir, float3::up());
+    //float4x4 view = invert(transform(pos, rot));
+    //float4x4 proj = perspective(fov, aspect, near_, far_);
+
+    float4x4 proj = float4x4::identity();
+    float4x4 view = float4x4::identity();
+    {
+        float3 f(normalize(target - pos));
+        float3 s(normalize(cross(f, float3::up())));
+        float3 u(cross(s, f));
+
+        view[0][0] = s.x;
+        view[1][0] = s.y;
+        view[2][0] = s.z;
+        view[0][1] = u.x;
+        view[1][1] = u.y;
+        view[2][1] = u.z;
+        view[0][2] = -f.x;
+        view[1][2] = -f.y;
+        view[2][2] = -f.z;
+        view[3][0] = -dot(s, pos);
+        view[3][1] = -dot(u, pos);
+        view[3][2] = dot(f, pos);
+    }
+    {
+        float f = std::tan(fov * DegToRad / 2.0f);
+        proj[0][0] = 1.0f / (aspect * f);
+        proj[1][1] = 1.0f / (f);
+        proj[2][2] = -(far_ + near_) / (far_ - near_);
+        proj[2][3] = -1.0f;
+        proj[3][2] = -(2.0f * far_ * near_) / (far_ - near_);
+    }
+
+    m_view_proj = (view * proj);
 }
 
 void Renderer::draw(IMesh* mesh)
