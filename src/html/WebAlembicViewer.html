@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Emscripten-Generated Code</title>
+    <title>Web Alembic Viewer</title>
     <style>
         body {
             font-family: arial;
@@ -155,14 +155,18 @@
         <label for="time">Time</label>
     </div>
     <div>
-        <input type="checkbox" id="drawFace" name="drawFace" checked>
-        <label for="drawFace">Face</label>
-
-        <input type="checkbox" id="drawWireframe" name="drawWireframe" checked>
-        <label for="drawWireframe">Wireframe</label>
-
-        <input type="checkbox" id="drawPoints" name="drawPoints" checked>
-        <label for="drawPoints">Points</label>
+        <span>
+            <input type="checkbox" id="drawFace" name="drawFace" checked>
+            <label for="drawFace">Face</label>
+        </span>
+        <span>
+            <input type="checkbox" id="drawWireframe" name="drawWireframe" checked>
+            <label for="drawWireframe">Wireframe</label>
+        </span>
+        <span>
+            <input type="checkbox" id="drawPoints" name="drawPoints" checked>
+            <label for="drawPoints">Points</label>
+        </span>
     </div>
     <textarea id="output" rows="8"></textarea>
 
@@ -249,6 +253,25 @@
             };
         };
 
+        function loadScene(filename, data) {
+            FS.writeFile(filename, new Uint8Array(data));
+            if (Module.wabcLoadScene(filename)) {
+                timeSlider.min = timeSlider.value = Module.wabcGetStartTime();
+                timeSlider.max = Module.wabcGetEndTime();
+                Module.wabcSeek(parseFloat(timeSlider.value));
+            }
+            FS.unlink(filename);
+        }
+
+        function loadSceneFromURL(url) {
+            fetch(url)
+                .then(res => res.blob())
+                .then(blob => blob.arrayBuffer())
+                .then(data => {
+                    loadScene('tmp.abc', data)
+                });
+        }
+
         function onDrop(evt) {
             evt.stopPropagation();
             evt.preventDefault();
@@ -256,13 +279,7 @@
             for (let f of evt.dataTransfer.files) {
                 let fr = new FileReader();
                 fr.onload = function (e) {
-                    FS.writeFile(f.name, new Uint8Array(fr.result));
-                    if (Module.wabcLoadScene(f.name)) {
-                        timeSlider.min = timeSlider.value = Module.wabcGetStartTime();
-                        timeSlider.max = Module.wabcGetEndTime();
-                        Module.wabcSeek(parseFloat(timeSlider.value));
-                    }
-                    FS.unlink(f.name);
+                    loadScene(f.name, fr.result);
                 };
                 fr.readAsArrayBuffer(f);
             }

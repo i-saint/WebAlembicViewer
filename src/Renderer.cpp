@@ -27,13 +27,15 @@ private:
     GLuint m_fs_fill{};
     GLuint m_shader_fill{};
 
-    GLuint m_loc_view_proj{};
-    GLuint m_loc_point_size{};
-    GLuint m_loc_color{};
-    GLuint m_attr_point{};
+    GLuint m_u_mvp{};
+    GLuint m_u_point_size{};
+    GLuint m_u_color{};
+    GLuint m_ia_point{};
+    GLuint m_ia_normal{};
 
     float4x4 m_view_proj = float4x4::identity();
-    float4 m_color = {0.0f, 0.0f, 0.0f, 1.0f};
+    float4 m_face_color = { 0.4f, 0.4f, 0.4f, 1.0f };
+    float4 m_fill_color = { 0.0f, 0.0f, 0.0f, 1.0f };
     float m_point_size = 4.0f;
 
     bool m_draw_points = true;
@@ -45,24 +47,28 @@ private:
 
 
 static const char* g_vs_fill_src = R"(
-uniform mat4 g_view_proj;
-uniform float g_point_size;
-attribute vec3 g_point;
+uniform mat4 u_mvp;
+uniform float u_point_size;
+attribute vec3 ia_point;
+attribute vec3 ia_normal;
+varying vec3 vs_normal;
 
 void main()
 {
-    gl_Position = g_view_proj * vec4(g_point, 1.0);
-    gl_PointSize = g_point_size;
+    gl_Position = u_mvp * vec4(ia_point, 1.0);
+    vs_normal = ia_normal;
+    gl_PointSize = u_point_size;
 }
 )";
 
 static const char* g_fs_fill_src = R"(
 precision mediump float;
-uniform vec4 g_color;
+uniform vec4 u_color;
+varying vec3 vs_normal;
 
 void main()
 {
-    gl_FragColor = g_color;
+    gl_FragColor = u_color;
 }
 )";
 
@@ -114,13 +120,14 @@ bool Renderer::initialize(GLFWwindow* v)
     glAttachShader(m_shader_fill, m_fs_fill);
     glLinkProgram(m_shader_fill);
 
-    m_loc_view_proj = glGetUniformLocation(m_shader_fill, "g_view_proj");
-    m_loc_point_size = glGetUniformLocation(m_shader_fill, "g_point_size");
-    m_loc_color = glGetUniformLocation(m_shader_fill, "g_color");
-    m_attr_point = glGetAttribLocation(m_shader_fill, "g_point");
+    m_u_mvp         = glGetUniformLocation(m_shader_fill, "u_mvp");
+    m_u_point_size  = glGetUniformLocation(m_shader_fill, "u_point_size");
+    m_u_color       = glGetUniformLocation(m_shader_fill, "u_color");
+    m_ia_point      = glGetAttribLocation(m_shader_fill, "ia_point");
+    m_ia_normal     = glGetAttribLocation(m_shader_fill, "ia_normal");
 
-    glEnableVertexAttribArray(m_attr_point);
-    glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
+    glEnableVertexAttribArray(m_ia_point);
+    glVertexAttribPointer(m_ia_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
 
     m_view_proj = transpose(orthographic(-100.0f, 100.0f, -100.0f, 100.0f, 0.0f, 100.0f));
 
@@ -143,13 +150,18 @@ void Renderer::beginDraw()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(m_shader_fill);
-    glUniformMatrix4fv(m_loc_view_proj, 1, GL_FALSE, (const GLfloat*)&m_view_proj);
-    glUniform1fv(m_loc_point_size, 1, (const GLfloat*)&m_point_size);
-    glUniform4fv(m_loc_color, 1, (const GLfloat*)&m_color);
+    glUniformMatrix4fv(m_u_mvp, 1, GL_FALSE, (const GLfloat*)&m_view_proj);
+    glUniform1fv(m_u_point_size, 1, (const GLfloat*)&m_point_size);
+    glUniform4fv(m_u_color, 1, (const GLfloat*)&m_fill_color);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LEQUAL);
 }
 
 void Renderer::endDraw()
 {
+    glDisable(GL_DEPTH_TEST);
+
     glFlush();
     glfwSwapBuffers(m_window);
 }
@@ -170,14 +182,10 @@ void Renderer::setCamera(float3 pos, float3 target, float fov, float near_, floa
         float3 f = normalize(target - pos);
         float3 s = normalize(cross(f, float3::up()));
         float3 u = cross(s, f);
-
-        (float3&)view[0] = s;
-        (float3&)view[1] = u;
-        (float3&)view[2] = f;
-        view[0][3] = -dot(s, pos);
-        view[1][3] = -dot(u, pos);
-        view[2][3] = dot(f, pos);
-        view = transpose(view);
+        view[0] = { s.x, u.x, f.x, 0.0f };
+        view[1] = { s.y, u.y, f.y, 0.0f };
+        view[2] = { s.z, u.z, f.z, 0.0f };
+        view[3] = { -dot(s, pos), -dot(u, pos), dot(f, pos), 1.0f };
     }
     {
         float f = std::tan(fov * DegToRad / 2.0f);
@@ -204,37 +212,59 @@ void Renderer::draw(IMesh* v)
 
     // faces
     if (m_draw_faces) {
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(1.0f, 1.0f);
+
+        glUseProgram(m_shader_fill);
+        glUniform4fv(m_u_color, 1, (const GLfloat*)&m_face_color);
+
         glBindBuffer(GL_ARRAY_BUFFER, v->getPointsExBuffer());
-        glEnableVertexAttribArray(m_attr_point);
-        glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
+        glEnableVertexAttribArray(m_ia_point);
+        glVertexAttribPointer(m_ia_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
 
         glDrawArrays(GL_TRIANGLES, 0, points_ex.size());
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        glDisable(GL_POLYGON_OFFSET_FILL);
     }
 
     // wire frame
     if (m_draw_wireframe) {
+        glDepthMask(GL_FALSE);
+
+        glUseProgram(m_shader_fill);
+        glUniform4fv(m_u_color, 1, (const GLfloat*)&m_fill_color);
+
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, v->getWireframeIndicesBuffer());
         glBindBuffer(GL_ARRAY_BUFFER, v->getPointsBuffer());
-        glEnableVertexAttribArray(m_attr_point);
-        glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
+        glEnableVertexAttribArray(m_ia_point);
+        glVertexAttribPointer(m_ia_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
 
         glDrawElements(GL_LINES, wireframe_indices.size(), GL_UNSIGNED_INT, 0);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        glDepthMask(GL_TRUE);
     }
 
     // points
     if (m_draw_points) {
+        glDepthMask(GL_FALSE);
+
+        glUseProgram(m_shader_fill);
+        glUniform4fv(m_u_color, 1, (const GLfloat*)&m_fill_color);
+
         glBindBuffer(GL_ARRAY_BUFFER, v->getPointsBuffer());
-        glEnableVertexAttribArray(m_attr_point);
-        glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
+        glEnableVertexAttribArray(m_ia_point);
+        glVertexAttribPointer(m_ia_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
 
         glDrawArrays(GL_POINTS, 0, points.size());
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        glDepthMask(GL_TRUE);
     }
 }
 
@@ -247,10 +277,22 @@ void Renderer::draw(IPoints* v)
     if (points.empty())
         return;
 
-    glBindBuffer(GL_ARRAY_BUFFER, v->getPointBuffer());
-    glEnableVertexAttribArray(m_attr_point);
-    glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
-    glDrawArrays(GL_POINTS, 0, points.size());
+    {
+        glDepthMask(GL_FALSE);
+
+        glUseProgram(m_shader_fill);
+        glUniform4fv(m_u_color, 1, (const GLfloat*)&m_fill_color);
+
+        glBindBuffer(GL_ARRAY_BUFFER, v->getPointBuffer());
+        glEnableVertexAttribArray(m_ia_point);
+        glVertexAttribPointer(m_ia_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
+
+        glDrawArrays(GL_POINTS, 0, points.size());
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        glDepthMask(GL_TRUE);
+    }
 }
 
 IRenderer* CreateRenderer_()
