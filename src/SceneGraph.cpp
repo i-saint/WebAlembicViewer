@@ -422,13 +422,18 @@ void Scene::seekImpl(ImportContext ctx)
             float3 pos, scale;
             quatf rot;
             extract_trs(ctx.global_matrix, pos, rot, scale);
+            float3x3 rot33 = to_mat3x3(flip_z(rot));
+
             dst->m_position = pos;
-            dst->m_direction = to_mat3x3(rot) * float3 { 0.0f, 0.0f, -1.0f };
+            dst->m_direction = rot33 * float3 { 0.0f, 0.0f, -1.0f };
             dst->m_up = float3::up();
+            //dst->m_up = rot33 * float3{ 0.0f, 1.0f, 0.0f };
 
             float focal_length = (float)sample.getFocalLength();
             float aperture = (float)sample.getVerticalAperture() * 10.0f; // cm to mm
             dst->m_fov = compute_fov(aperture, focal_length);
+            //dst->m_fov = (float)sample.getFieldOfView();
+
             dst->m_near = std::max((float)sample.getNearClippingPlane(), 0.01f);
             dst->m_far = std::max((float)sample.getFarClippingPlane(), dst->m_near);
         }

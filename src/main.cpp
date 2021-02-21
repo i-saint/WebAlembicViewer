@@ -34,7 +34,9 @@ static double g_seek_time;
 static void Draw()
 {
     if (g_active_camera < 0) {
-        g_renderer->setCamera(g_camera_position, normalize(g_camera_target - g_camera_position), g_camera_fov, g_camera_near, g_camera_far);
+        float3 dir = normalize(g_camera_target - g_camera_position);
+        float3 up = float3::up();
+        g_renderer->setCamera(g_camera_position, dir, up, g_camera_fov, g_camera_near, g_camera_far);
     }
     else {
         g_renderer->setCamera(g_scene->getCameras()[g_active_camera]);

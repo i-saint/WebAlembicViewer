@@ -10,7 +10,7 @@ public:
     ~Renderer();
     void release() override;
     bool initialize(GLFWwindow* v) override;
-    void setCamera(float3 pos, float3 target, float fov, float near_, float far_) override;
+    void setCamera(float3 pos, float3 dir, float3 up, float fov, float near_, float far_) override;
     void setCamera(ICamera* cam) override;
     void setDrawPoints(bool v) override { m_draw_points = v; }
     void setDrawWireframe(bool v) override { m_draw_wireframe = v; }
@@ -39,7 +39,7 @@ private:
     float4 m_fill_color = { 0.0f, 0.0f, 0.0f, 1.0f };
     float m_point_size = 4.0f;
 
-    bool m_draw_points = true;
+    bool m_draw_points = false;
     bool m_draw_wireframe = true;
     bool m_draw_faces = true;
 };
@@ -144,7 +144,6 @@ void Renderer::beginDraw()
 {
     int w, h;
     glfwGetFramebufferSize(m_window, &w, &h);
-    float aspect = (float)w / (float)h;
 
     glViewport(0, 0, w, h);
     glClearColor(0.25f, 0.25f, 0.25f, 0.0f);
@@ -167,7 +166,7 @@ void Renderer::endDraw()
     glfwSwapBuffers(m_window);
 }
 
-void Renderer::setCamera(float3 pos, float3 dir, float fov, float near_, float far_)
+void Renderer::setCamera(float3 pos, float3 dir, float3 up, float fov, float near_, float far_)
 {
     int w, h;
     glfwGetFramebufferSize(m_window, &w, &h);
@@ -177,7 +176,7 @@ void Renderer::setCamera(float3 pos, float3 dir, float fov, float near_, float f
     float4x4 view = float4x4::identity();
     {
         float3 z = -dir;
-        float3 x = normalize(cross(float3::up(), z));
+        float3 x = normalize(cross(up, z));
         float3 y = cross(z, x);
         view[0] = { x.x, y.x, z.x, 0.0f };
         view[1] = { x.y, y.y, z.y, 0.0f };
@@ -200,7 +199,7 @@ void Renderer::setCamera(ICamera* cam)
 {
     if (!cam)
         return;
-    setCamera(cam->getPosition(), cam->getDirection(), cam->getFOV(), cam->getNearPlane(), cam->getFarPlane());
+    setCamera(cam->getPosition(), cam->getDirection(), cam->getUp(), cam->getFOV(), cam->getNearPlane(), cam->getFarPlane());
 }
 
 void Renderer::draw(IMesh* v)
