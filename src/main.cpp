@@ -30,60 +30,13 @@ static float g_camera_near = 0.01f;
 static float g_camera_far = 100.0f;
 static double g_seek_time;
 
-
-wabcAPI bool wabcLoadScene(std::string path)
-{
-    g_scene = wabc::CreateScene();
-    if (g_scene->load(path.c_str())) {
-        printf("wabcLoadScene(\"%s\"): succeeded\n", path.c_str());
-        return true;
-    }
-    else {
-        printf("wabcLoadScene(\"%s\"): failed\n", path.c_str());
-        return false;
-    }
-}
-
-wabcAPI double wabcGetStartTime()
-{
-    return g_scene ? std::get<0>(g_scene->getTimeRange()) : 0.0;
-}
-
-wabcAPI double wabcGetEndTime()
-{
-    return g_scene ? std::get<1>(g_scene->getTimeRange()) : 0.0;
-}
-
-wabcAPI void wabcSeek(double t)
-{
-    if (g_scene) {
-        g_seek_time = t;
-        g_scene->seek(g_seek_time);
-    }
-}
-
-wabcAPI void wabcSetFOV(float v)
-{
-    g_camera_fov = v;
-}
-
-#ifdef __EMSCRIPTEN__
-EMSCRIPTEN_BINDINGS(wabc) {
-    emscripten::function("wabcLoadScene", &wabcLoadScene);
-    emscripten::function("wabcGetStartTime", &wabcGetStartTime);
-    emscripten::function("wabcGetEndTime", &wabcGetEndTime);
-    emscripten::function("wabcSeek", &wabcSeek);
-
-    emscripten::function("wabcSetFOV", &wabcSetFOV);
-}
-#endif
-
 static void Draw()
 {
     g_renderer->setCamera(g_camera_position, g_camera_target, g_camera_fov, g_camera_near, g_camera_far);
 
     g_renderer->beginScene();
     g_renderer->draw(g_scene->getMesh());
+    g_renderer->draw(g_scene->getPoints());
     g_renderer->endScene();
 }
 
@@ -183,6 +136,60 @@ static void OnScroll(GLFWwindow* window, double x, double y)
         g_camera_position = g_camera_target + (dir * d);
     }
 }
+
+
+wabcAPI bool wabcLoadScene(std::string path)
+{
+    g_scene = wabc::CreateScene();
+    if (g_scene->load(path.c_str())) {
+        printf("wabcLoadScene(\"%s\"): succeeded\n", path.c_str());
+        return true;
+    }
+    else {
+        printf("wabcLoadScene(\"%s\"): failed\n", path.c_str());
+        return false;
+    }
+}
+
+wabcAPI double wabcGetStartTime()
+{
+    return g_scene ? std::get<0>(g_scene->getTimeRange()) : 0.0;
+}
+
+wabcAPI double wabcGetEndTime()
+{
+    return g_scene ? std::get<1>(g_scene->getTimeRange()) : 0.0;
+}
+
+wabcAPI void wabcSeek(double t)
+{
+    if (g_scene) {
+        g_seek_time = t;
+        g_scene->seek(g_seek_time);
+    }
+}
+
+wabcAPI void wabcSetFOV(float v)
+{
+    g_camera_fov = v;
+}
+
+wabcAPI void wabcDraw()
+{
+    Draw();
+}
+
+#ifdef __EMSCRIPTEN__
+EMSCRIPTEN_BINDINGS(wabc) {
+    emscripten::function("wabcLoadScene", &wabcLoadScene);
+    emscripten::function("wabcGetStartTime", &wabcGetStartTime);
+    emscripten::function("wabcGetEndTime", &wabcGetEndTime);
+    emscripten::function("wabcSeek", &wabcSeek);
+
+    emscripten::function("wabcSetFOV", &wabcSetFOV);
+    emscripten::function("wabcDraw", &wabcDraw);
+}
+#endif
 
 
 int main(int argc, char** argv)

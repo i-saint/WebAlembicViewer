@@ -15,6 +15,7 @@ public:
     void endScene() override;
     void setCamera(float3 pos, float3 target, float fov, float near_, float far_) override;
     void draw(IMesh* mesh) override;
+    void draw(IPoints* points) override;
 
 private:
     GLFWwindow* m_window{};
@@ -183,13 +184,16 @@ void Renderer::setCamera(float3 pos, float3 target, float fov, float near_, floa
     m_view_proj = (view * proj);
 }
 
-void Renderer::draw(IMesh* mesh)
+void Renderer::draw(IMesh* v)
 {
-    if (!mesh)
+    if (!v)
         return;
 
-    auto points = mesh->getPoints();
-    auto points_buffer = mesh->getPointBuffer();
+    auto points = v->getPoints();
+    if (points.empty())
+        return;
+
+    auto points_buffer = v->getPointBuffer();
     glBindBuffer(GL_ARRAY_BUFFER, points_buffer);
     glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float3), points.data(), GL_DYNAMIC_DRAW);
 
@@ -198,6 +202,25 @@ void Renderer::draw(IMesh* mesh)
 
     glDrawArrays(GL_POINTS, 0, points.size());
     glDrawArrays(GL_LINES, 0, points.size());
+}
+
+void Renderer::draw(IPoints* v)
+{
+    if (!v)
+        return;
+
+    auto points = v->getPoints();
+    if (points.empty())
+        return;
+
+    auto points_buffer = v->getPointBuffer();
+    glBindBuffer(GL_ARRAY_BUFFER, points_buffer);
+    glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float3), points.data(), GL_DYNAMIC_DRAW);
+
+    glEnableVertexAttribArray(m_attr_point);
+    glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
+
+    glDrawArrays(GL_POINTS, 0, points.size());
 }
 
 IRenderer* CreateRenderer_()

@@ -51,15 +51,32 @@ public:
     GLuint getPointBuffer() const override { return m_vb_points; }
     GLuint getNormalBuffer() const override { return m_vb_normals; }
     void clear();
+    void upload();
 
 public:
     std::vector<float3> m_points;
     std::vector<float3> m_normals;
-
     GLuint m_vb_points{};
     GLuint m_vb_normals{};
 };
 using MeshPtr = std::shared_ptr<Mesh>;
+
+
+class Points : public IPoints
+{
+public:
+    Points();
+    ~Points();
+    std::span<float3> getPoints() const override { return MakeSpan(m_points); }
+    GLuint getPointBuffer() const override { return m_vb_points; }
+    void clear();
+    void upload();
+
+public:
+    std::vector<float3> m_points;
+    GLuint m_vb_points{};
+};
+using PointsPtr = std::shared_ptr<Points>;
 
 
 class Scene : public IScene
@@ -86,6 +103,7 @@ public:
 
     double getTime() const override { return m_time; }
     IMesh* getMesh() override { return m_mono_mesh.get(); }
+    IPoints* getPoints() override { return m_mono_points.get(); }
 
 private:
     std::shared_ptr<std::fstream> m_stream;
@@ -96,6 +114,7 @@ private:
 
     double m_time = -1.0;
     MeshPtr m_mono_mesh;
+    PointsPtr m_mono_points;
 };
 
 
@@ -116,6 +135,38 @@ void Mesh::clear()
 {
     m_points.clear();
     m_normals.clear();
+}
+
+void Mesh::upload()
+{
+    if (!m_points.empty()) {
+        glBindBuffer(GL_ARRAY_BUFFER, m_vb_points);
+        glBufferData(GL_ARRAY_BUFFER, m_points.size() * sizeof(float3), m_points.data(), GL_DYNAMIC_DRAW);
+    }
+}
+
+
+Points::Points()
+{
+    glGenBuffers(1, &m_vb_points);
+}
+
+Points::~Points()
+{
+    glDeleteBuffers(1, &m_vb_points);
+}
+
+void Points::clear()
+{
+    m_points.clear();
+}
+
+void Points::upload()
+{
+    if (!m_points.empty()) {
+        glBindBuffer(GL_ARRAY_BUFFER, m_vb_points);
+        glBufferData(GL_ARRAY_BUFFER, m_points.size() * sizeof(float3), m_points.data(), GL_DYNAMIC_DRAW);
+    }
 }
 
 
@@ -170,6 +221,9 @@ bool Scene::load(const char* path)
     }
 
     if (m_archive) {
+        m_mono_mesh = std::make_shared<Mesh>();
+        m_mono_points = std::make_shared<Points>();
+
         ImportContext ctx;
         ctx.obj = m_archive.getTop();
         scanNodes(ctx);
@@ -232,6 +286,8 @@ void Scene::unload()
     m_time_range = {};
 
     m_time = -1.0;
+    m_mono_mesh = {};
+    m_mono_points = {};
 }
 
 std::tuple<double, double> Scene::getTimeRange() const
@@ -281,23 +337,16 @@ void Scene::seek(double time)
         return;
 
     m_time = time;
-    if (!m_mono_mesh)
-        m_mono_mesh = std::make_shared<Mesh>();
     m_mono_mesh->clear();
+    m_mono_points->clear();
 
     ImportContext ctx;
     ctx.obj = m_archive.getTop();
     ctx.time = time;
     seekImpl(ctx);
 
-    {
-        auto points = m_mono_mesh->getPoints();
-        glBindBuffer(GL_ARRAY_BUFFER, m_mono_mesh->m_vb_points);
-        glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float3), points.data(), GL_DYNAMIC_DRAW);
-    }
-    {
-        auto normals = m_mono_mesh->getNormals();
-    }
+    m_mono_mesh->upload();
+    m_mono_points->upload();
 }
 
 void Scene::seekImpl(ImportContext ctx)
@@ -316,6 +365,8 @@ void Scene::seekImpl(ImportContext ctx)
     }
     else if (AbcGeom::ICameraSchema::matches(metadata)) {
         auto schema = AbcGeom::ICamera(obj).getSchema();
+
+        // todo
     }
     else if (AbcGeom::IPolyMeshSchema::matches(metadata)) {
         auto schema = AbcGeom::IPolyMesh(obj).getSchema();
@@ -356,7 +407,16 @@ void Scene::seekImpl(ImportContext ctx)
     }
     else if (AbcGeom::IPointsSchema::matches(metadata)) {
         auto schema = AbcGeom::IPoints(obj).getSchema();
-        // todo
+
+        AbcGeom::IPointsSchema::Sample sample;
+        schema.get(sample, ss);
+
+        auto points_orig = MakeSpan(sample.getPositions());
+        size_t num_points = points_orig.size();
+
+        float3* points = Expand(m_mono_points->m_points, num_points);
+        for (size_t i = 0; i < num_points; ++i)
+            points[i] = mul_p(ctx.global_matrix, (float3&)points_orig[i]);
     }
 
     size_t n = obj.getNumChildren();

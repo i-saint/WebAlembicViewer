@@ -31,6 +31,13 @@ public:
     virtual GLuint getNormalBuffer() const = 0;
 };
 
+class IPoints : public IEntity
+{
+public:
+    virtual std::span<float3> getPoints() const = 0;
+    virtual GLuint getPointBuffer() const = 0;
+};
+
 class IScene
 {
 public:
@@ -44,7 +51,8 @@ public:
     virtual void seek(double time) = 0;
 
     virtual double getTime() const = 0;
-    virtual IMesh* getMesh() = 0; // monolithic mesh
+    virtual IMesh* getMesh() = 0;     // monolithic mesh
+    virtual IPoints* getPoints() = 0; // monolithic points
 };
 IScene* CreateScene_();
 using IScenePtr = std::shared_ptr<IScene>;
@@ -70,6 +78,7 @@ public:
     virtual void endScene() = 0;
     virtual void setCamera(float3 pos, float3 target, float fov, float near_, float far_) = 0;
     virtual void draw(IMesh* mesh) = 0;
+    virtual void draw(IPoints* points) = 0;
 };
 IRenderer* CreateRenderer_();
 using IRendererPtr = std::shared_ptr<IRenderer>;

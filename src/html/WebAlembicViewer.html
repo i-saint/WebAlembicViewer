@@ -263,6 +263,7 @@
 
         function onTimeChange() {
             Module.wabcSeek(parseFloat(timeSlider.value));
+            Module.wabcDraw();
         }
 
         //Module.noInitialRun = true;
@@ -270,7 +271,7 @@
             canvas.addEventListener('dragover', onDragOver, false);
             canvas.addEventListener('drop', onDrop, false);
 
-            timeSlider.addEventListener('change', onTimeChange);
+            timeSlider.addEventListener('input', onTimeChange);
         };
     </script>
     <script async type="text/javascript" src="WebAlembicViewer.js"></script>
