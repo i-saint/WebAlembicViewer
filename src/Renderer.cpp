@@ -28,8 +28,6 @@ private:
     GLuint m_loc_color{};
     GLuint m_attr_point{};
 
-    GLuint m_vb{};
-
     float4x4 m_view_proj = float4x4::identity();
     float4 m_color = {0.0f, 0.0f, 0.0f, 1.0f};
     float m_point_size = 4.0f;
@@ -87,8 +85,6 @@ Renderer::~Renderer()
     glDeleteShader(m_vs_fill);
     glDeleteShader(m_fs_fill);
     glDeleteProgram(m_shader_fill);
-
-    glDeleteBuffers(1, &m_vb);
 }
 
 bool Renderer::initialize(GLFWwindow* v)
@@ -117,16 +113,6 @@ bool Renderer::initialize(GLFWwindow* v)
 
     glEnableVertexAttribArray(m_attr_point);
     glVertexAttribPointer(m_attr_point, 3, GL_FLOAT, GL_FALSE, sizeof(float3), nullptr);
-
-    glGenBuffers(1, &m_vb);
-
-    //std::vector<float3> points{
-    //    float3{-0.6f, -0.4f, 0.0f} *1.0f,
-    //    float3{ 0.6f, -0.4f, 0.0f} *1.0f,
-    //    float3{ 0.0f,  0.6f, 0.0f} *1.0f,
-    //};
-    //glBindBuffer(GL_ARRAY_BUFFER, m_vb);
-    //glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float3), points.data(), GL_DYNAMIC_DRAW);
 
     m_view_proj = transpose(orthographic(-100.0f, 100.0f, -100.0f, 100.0f, 0.0f, 100.0f));
 
@@ -173,22 +159,17 @@ void Renderer::setCamera(float3 pos, float3 target, float fov, float near_, floa
     float4x4 proj = float4x4::identity();
     float4x4 view = float4x4::identity();
     {
-        float3 f(normalize(target - pos));
-        float3 s(normalize(cross(f, float3::up())));
-        float3 u(cross(s, f));
+        float3 f = normalize(target - pos);
+        float3 s = normalize(cross(f, float3::up()));
+        float3 u = cross(s, f);
 
-        view[0][0] = s.x;
-        view[1][0] = s.y;
-        view[2][0] = s.z;
-        view[0][1] = u.x;
-        view[1][1] = u.y;
-        view[2][1] = u.z;
-        view[0][2] = -f.x;
-        view[1][2] = -f.y;
-        view[2][2] = -f.z;
-        view[3][0] = -dot(s, pos);
-        view[3][1] = -dot(u, pos);
-        view[3][2] = dot(f, pos);
+        (float3&)view[0] = s;
+        (float3&)view[1] = u;
+        (float3&)view[2] = f;
+        view[0][3] = -dot(s, pos);
+        view[1][3] = -dot(u, pos);
+        view[2][3] = dot(f, pos);
+        view = transpose(view);
     }
     {
         float f = std::tan(fov * DegToRad / 2.0f);
@@ -208,7 +189,8 @@ void Renderer::draw(IMesh* mesh)
         return;
 
     auto points = mesh->getPoints();
-    glBindBuffer(GL_ARRAY_BUFFER, m_vb);
+    auto points_buffer = mesh->getPointBuffer();
+    glBindBuffer(GL_ARRAY_BUFFER, points_buffer);
     glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float3), points.data(), GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(m_attr_point);

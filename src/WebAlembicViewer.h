@@ -25,10 +25,10 @@ public:
 class IMesh : public IEntity
 {
 public:
-    virtual float4x4 getTransform() const = 0;
-    virtual std::span<int> getIndices() const = 0;
     virtual std::span<float3> getPoints() const = 0;
     virtual std::span<float3> getNormals() const = 0;
+    virtual GLuint getPointBuffer() const = 0;
+    virtual GLuint getNormalBuffer() const = 0;
 };
 
 class IScene

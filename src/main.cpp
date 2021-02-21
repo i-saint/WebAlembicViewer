@@ -12,6 +12,7 @@
 
 using wabc::float2;
 using wabc::float3;
+using wabc::float4;
 using wabc::float3x3;
 using wabc::float4x4;
 
@@ -19,6 +20,7 @@ static wabc::IScenePtr g_scene;
 static wabc::IRendererPtr g_renderer;
 static GLFWwindow* g_window;
 
+static int g_key_mod;
 static int g_mouse_button;
 static float2 g_mouse_pos;
 static float3 g_camera_position{ 0.0f, 0.0f, 10.0f };
@@ -26,6 +28,7 @@ static float3 g_camera_target{ 0.0f, 0.0f, 0.0f };
 static float g_camera_fov = 60.0f;
 static float g_camera_near = 0.01f;
 static float g_camera_far = 100.0f;
+static double g_seek_time;
 
 
 wabcAPI bool wabcLoadScene(std::string path)
@@ -54,8 +57,14 @@ wabcAPI double wabcGetEndTime()
 wabcAPI void wabcSeek(double t)
 {
     if (g_scene) {
-        g_scene->seek(t);
+        g_seek_time = t;
+        g_scene->seek(g_seek_time);
     }
+}
+
+wabcAPI void wabcSetFOV(float v)
+{
+    g_camera_fov = v;
 }
 
 #ifdef __EMSCRIPTEN__
@@ -64,6 +73,8 @@ EMSCRIPTEN_BINDINGS(wabc) {
     emscripten::function("wabcGetStartTime", &wabcGetStartTime);
     emscripten::function("wabcGetEndTime", &wabcGetEndTime);
     emscripten::function("wabcSeek", &wabcSeek);
+
+    emscripten::function("wabcSetFOV", &wabcSetFOV);
 }
 #endif
 
@@ -78,13 +89,38 @@ static void Draw()
 
 static void OnKey(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (action == GLFW_PRESS && key == GLFW_KEY_ESCAPE)
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    if (action == GLFW_PRESS) {
+        switch (key) {
+        case GLFW_KEY_ESCAPE:
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
+            break;
+
+        case GLFW_KEY_RIGHT_CONTROL:
+        case GLFW_KEY_LEFT_CONTROL:
+            g_key_mod |= GLFW_MOD_CONTROL;
+            break;
+
+        default:
+            break;
+        }
+    }
+    else if (action == GLFW_RELEASE) {
+        switch (key) {
+        case GLFW_KEY_RIGHT_CONTROL:
+        case GLFW_KEY_LEFT_CONTROL:
+            g_key_mod &= ~GLFW_MOD_CONTROL;
+            break;
+
+        default:
+            break;
+        }
+    }
 }
 
 static void OnMouseButton(GLFWwindow* window, int button, int action, int mod)
 {
     //printf("OnMouseButton() %d %d %d\n", button, action, mod);
+
     if (action == GLFW_PRESS)
         g_mouse_button |= (1 << button);
     else if (action == GLFW_RELEASE)
@@ -96,28 +132,37 @@ static void OnMouseMove(GLFWwindow* window, double x, double y)
     //printf("OnMouseMove() %lf %lf\n", x, y);
 
     using namespace wabc;
-
     float2 pos = float2{ (float)x, (float)y };
     float2 move = pos - g_mouse_pos;
     g_mouse_pos = pos;
 
-    if ((g_mouse_button & 1) != 0) {
-        // rotate
-        float3 axis = cross(normalize(g_camera_target - g_camera_position), float3::up());
-        g_camera_position = to_mat3x3(rotate_y(move.x * DegToRad * 0.1f)) * g_camera_position;
-        g_camera_position = to_mat3x3(rotate(axis, move.y * DegToRad * 0.1f)) * g_camera_position;
+    if (g_key_mod == 0) {
+        if ((g_mouse_button & 1) != 0) {
+            // rotate
+            float3 axis = cross(normalize(g_camera_target - g_camera_position), float3::up());
+            g_camera_position = to_mat3x3(rotate_y(-move.x * DegToRad * 0.1f)) * g_camera_position;
+            g_camera_position = to_mat3x3(rotate(axis, -move.y * DegToRad * 0.1f)) * g_camera_position;
+        }
+        else if ((g_mouse_button & 2) != 0) {
+            // move
+            float len = length(g_camera_target - g_camera_position);
+            float3 t = float3{ move.x, move.y, 0.0f } *0.001f * len;
+
+            float3 dir = normalize(g_camera_target - g_camera_position);
+            quatf rot = look_quat(dir, float3::up());
+            t = to_mat3x3(rot) * t;
+
+            g_camera_position += t;
+            g_camera_target += t;
+        }
     }
-    else if ((g_mouse_button & 2) != 0) {
-        // move
-        float len = length(g_camera_target - g_camera_position);
-        float3 t = float3{ move.x, move.y, 0.0f } *0.001f * len;
-
-        float3 dir = normalize(g_camera_target - g_camera_position);
-        quatf rot = look_quat(dir, float3::up());
-        t = to_mat3x3(rot) * t;
-
-        g_camera_position += t;
-        g_camera_target += t;
+    else if (g_key_mod & GLFW_MOD_CONTROL) {
+        if (g_scene) {
+            double t = move.x * 0.005;
+            auto range = g_scene->getTimeRange();
+            g_seek_time = clamp(g_seek_time + t, std::get<0>(range), std::get<1>(range));
+            g_scene->seek(g_seek_time);
+        }
     }
 }
 
@@ -126,7 +171,7 @@ static void OnScroll(GLFWwindow* window, double x, double y)
     //printf("OnScroll() %lf %lf\n", x, y);
 #ifdef __EMSCRIPTEN__
     x /= 125.0;
-    y /= 125.0;
+    y /= -125.0;
 #endif
 
     using namespace wabc;

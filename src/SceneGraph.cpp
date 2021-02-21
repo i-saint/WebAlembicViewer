@@ -44,17 +44,20 @@ private:
 class Mesh : public IMesh
 {
 public:
-    float4x4 getTransform() const override { return m_transform; }
-    std::span<int> getIndices() const override { return MakeSpan(m_indices); }
+    Mesh();
+    ~Mesh();
     std::span<float3> getPoints() const override { return MakeSpan(m_points); }
     std::span<float3> getNormals() const override { return MakeSpan(m_normals); }
+    GLuint getPointBuffer() const override { return m_vb_points; }
+    GLuint getNormalBuffer() const override { return m_vb_normals; }
     void clear();
 
 public:
-    float4x4 m_transform = float4x4::identity();
-    std::vector<int> m_indices;
     std::vector<float3> m_points;
     std::vector<float3> m_normals;
+
+    GLuint m_vb_points{};
+    GLuint m_vb_normals{};
 };
 using MeshPtr = std::shared_ptr<Mesh>;
 
@@ -91,15 +94,26 @@ private:
     std::map<void*, size_t> m_sample_counts;
     std::tuple<double, double> m_time_range;
 
-    double m_time = 0.0;
+    double m_time = -1.0;
     MeshPtr m_mono_mesh;
 };
 
 
+
+Mesh::Mesh()
+{
+    glGenBuffers(1, &m_vb_points);
+    glGenBuffers(1, &m_vb_normals);
+}
+
+Mesh::~Mesh()
+{
+    glDeleteBuffers(1, &m_vb_points);
+    glDeleteBuffers(1, &m_vb_normals);
+}
+
 void Mesh::clear()
 {
-    m_transform = float4x4::identity();
-    m_indices.clear();
     m_points.clear();
     m_normals.clear();
 }
@@ -217,7 +231,7 @@ void Scene::unload()
     m_sample_counts = {};
     m_time_range = {};
 
-    m_time = 0.0;
+    m_time = -1.0;
 }
 
 std::tuple<double, double> Scene::getTimeRange() const
@@ -263,7 +277,7 @@ void Scene::scanNodes(ImportContext ctx)
 
 void Scene::seek(double time)
 {
-    if (!m_archive)
+    if (!m_archive || time == m_time)
         return;
 
     m_time = time;
@@ -275,6 +289,15 @@ void Scene::seek(double time)
     ctx.obj = m_archive.getTop();
     ctx.time = time;
     seekImpl(ctx);
+
+    {
+        auto points = m_mono_mesh->getPoints();
+        glBindBuffer(GL_ARRAY_BUFFER, m_mono_mesh->m_vb_points);
+        glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(float3), points.data(), GL_DYNAMIC_DRAW);
+    }
+    {
+        auto normals = m_mono_mesh->getNormals();
+    }
 }
 
 void Scene::seekImpl(ImportContext ctx)
