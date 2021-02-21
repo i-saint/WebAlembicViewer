@@ -173,20 +173,16 @@ void Renderer::setCamera(float3 pos, float3 dir, float fov, float near_, float f
     glfwGetFramebufferSize(m_window, &w, &h);
     float aspect = (float)w / (float)h;
 
-    //quatf rot = look_quat(dir, float3::up());
-    //float4x4 view = invert(transform(pos, rot));
-    //float4x4 proj = perspective(fov, aspect, near_, far_);
-
     float4x4 proj = float4x4::identity();
     float4x4 view = float4x4::identity();
     {
-        float3 f = dir;
-        float3 s = normalize(cross(f, float3::up()));
-        float3 u = cross(s, f);
-        view[0] = { s.x, u.x, f.x, 0.0f };
-        view[1] = { s.y, u.y, f.y, 0.0f };
-        view[2] = { s.z, u.z, f.z, 0.0f };
-        view[3] = { -dot(s, pos), -dot(u, pos), dot(f, pos), 1.0f };
+        float3 z = -dir;
+        float3 x = normalize(cross(float3::up(), z));
+        float3 y = cross(z, x);
+        view[0] = { x.x, y.x, z.x, 0.0f };
+        view[1] = { x.y, y.y, z.y, 0.0f };
+        view[2] = { x.z, y.z, z.z, 0.0f };
+        view[3] = { -dot(x, pos), -dot(y, pos), -dot(z, pos), 1.0f };
     }
     {
         float f = std::tan(fov * DegToRad / 2.0f);

@@ -417,23 +417,24 @@ void Scene::seekImpl(ImportContext ctx)
         AbcGeom::CameraSample sample;
         schema.get(sample, ss);
 
-        const float lens_size_factor = 10.0f; // lens size is in cm
+        auto& dst = m_camera_table[obj.getFullName()];
+        if (dst) {
+            float3 pos, scale;
+            quatf rot;
+            extract_trs(ctx.global_matrix, pos, rot, scale);
+            dst->m_position = pos;
+            dst->m_direction = to_mat3x3(rot) * float3 { 0.0f, 0.0f, -1.0f };
+            dst->m_up = float3::up();
 
-        float focal_length = (float)sample.getFocalLength();
-        float2 sensor_size = {
-            (float)sample.getHorizontalAperture() * lens_size_factor,
-            (float)sample.getVerticalAperture() * lens_size_factor
-        };
-        float2 lens_shift = {
-            (float)sample.getHorizontalFilmOffset(),
-            (float)sample.getVerticalFilmOffset()
-        };
-
-        float fov = compute_fov(sensor_size.y, focal_length);
-        float near_plane = (float)sample.getNearClippingPlane();
-        float far_plane = (float)sample.getFarClippingPlane();
-        near_plane = std::max(near_plane, 0.01f);
-        far_plane = std::max(far_plane, near_plane);
+            float focal_length = (float)sample.getFocalLength();
+            float aperture = (float)sample.getVerticalAperture() * 10.0f; // cm to mm
+            dst->m_fov = compute_fov(aperture, focal_length);
+            dst->m_near = std::max((float)sample.getNearClippingPlane(), 0.01f);
+            dst->m_far = std::max((float)sample.getFarClippingPlane(), dst->m_near);
+        }
+        else {
+            // should not be here
+        }
     }
     else if (AbcGeom::IPolyMeshSchema::matches(metadata)) {
         auto schema = AbcGeom::IPolyMesh(obj).getSchema();

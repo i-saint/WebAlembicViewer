@@ -99,8 +99,8 @@ static void OnMouseMove(GLFWwindow* window, double x, double y)
         if ((g_mouse_button & 1) != 0) {
             // rotate
             float3 axis = cross(normalize(g_camera_target - g_camera_position), float3::up());
-            g_camera_position = to_mat3x3(rotate_y(-move.x * DegToRad * 0.1f)) * g_camera_position;
-            g_camera_position = to_mat3x3(rotate(axis, -move.y * DegToRad * 0.1f)) * g_camera_position;
+            g_camera_position = to_mat3x3(rotate_y(move.x * DegToRad * 0.1f)) * g_camera_position;
+            g_camera_position = to_mat3x3(rotate(axis, move.y * DegToRad * 0.1f)) * g_camera_position;
         }
         else if ((g_mouse_button & 2) != 0) {
             // move

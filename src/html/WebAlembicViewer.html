@@ -212,6 +212,7 @@
                 let cameraCount = Module.wabcGetCameraCount();
                 for (let i = 0; i < cameraCount; ++i)
                     addCamera(Module.wabcGetCameraPath(i), i);
+                Module.wabcSetActiveCamera(-1);
 
                 // load first frame
                 Module.wabcSeek(t);
