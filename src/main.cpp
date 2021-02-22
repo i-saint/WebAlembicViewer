@@ -29,7 +29,7 @@ static int g_active_camera = -1; // -1: free
 static wabc::IRenderer::FovType g_fov_type = wabc::IRenderer::FovType::Horizontal;
 static float g_camera_fov = 60.0f;
 static float g_camera_near = 0.01f;
-static float g_camera_far = 100.0f;
+static float g_camera_far = 1000.0f;
 static double g_seek_time;
 
 static void Draw()

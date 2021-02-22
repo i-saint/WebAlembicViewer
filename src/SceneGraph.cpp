@@ -421,15 +421,12 @@ void Scene::seekImpl(ImportContext ctx)
 
         auto& dst = m_camera_table[obj.getFullName()];
         if (dst) {
-            float3 pos, scale;
-            quatf rot;
-            extract_trs(ctx.global_matrix, pos, rot, scale);
-            float3x3 rot33 = to_mat3x3(flip_z(rot));
+            float3 pos = extract_position(ctx.global_matrix);
+            float3 dir = normalize(mul_v(ctx.global_matrix, float3{ 0.0f, 0.0f, -1.0f }));
 
             dst->m_position = pos;
-            dst->m_direction = rot33 * float3 { 0.0f, 0.0f, -1.0f };
+            dst->m_direction = dir;
             dst->m_up = float3::up();
-            //dst->m_up = rot33 * float3{ 0.0f, 1.0f, 0.0f };
 
             float focal_length = (float)sample.getFocalLength();
             float v_aperture = (float)sample.getVerticalAperture() * 10.0f; // cm to mm

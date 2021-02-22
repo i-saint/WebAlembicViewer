@@ -136,7 +136,6 @@
     </style>
 </head>
 <body>
-
     <div class="spinner" id='spinner'></div>
     <div class="emscripten" id="status">Downloading...</div>
 
@@ -145,6 +144,7 @@
 
     <div class="emscripten">
         <progress value="0" max="100" id="progress" hidden=1></progress>
+        <span id="description" hidden="1">Drop a .abc file to canvas, or <a href="javascript: loadSceneFromURL('example.abc')">load example</a>.</span>
     </div>
 
     <div class="emscripten_border">
@@ -188,12 +188,13 @@
         </div>
     </div>
 
-    <textarea id="output" rows="8"></textarea>
+    <textarea id="output" rows="8" style="display: none;"></textarea>
 
     <script type='text/javascript'>
         let statusElement = document.getElementById('status');
         let progressElement = document.getElementById('progress');
         let spinnerElement = document.getElementById('spinner');
+        let description = document.getElementById('description');
 
         let timeSlider = document.getElementById('timeSlider');
         let timeField = document.getElementById('timeField');
@@ -239,7 +240,7 @@
         }
 
         function loadSceneFromURL(url) {
-            fetch(url)
+            fetch(url, {mode: 'cors'})
                 .then(res => res.blob())
                 .then(blob => blob.arrayBuffer())
                 .then(data => {
@@ -396,6 +397,8 @@
             checkPoints.addEventListener('input', onCheckPoints);
             cameraList.addEventListener('change', onCameraChange);
             fovType.addEventListener('change', onFovTypeChange);
+
+            description.hidden = false;
         };
     </script>
     <script async type="text/javascript" src="WebAlembicViewer.js"></script>
