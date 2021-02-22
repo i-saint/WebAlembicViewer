@@ -25,6 +25,16 @@
         div.emscripten_border {
             border: 1px solid black;
         }
+
+        div.control {
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+
+        div.notes {
+            text-align: right;
+        }
+
         /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
         canvas.emscripten {
             border: 0px none;
@@ -152,12 +162,12 @@
     </div>
 
     <div style="margin-left: auto; margin-right: auto; width: 1270px;">
-        <div>
+        <div class="control">
             <label for="timeSlider">Time: </label>
             <input type="range" id="timeSlider" name="timeSlider" min="0" max="0" step="0.016" value="0" style="width: 1150px" />
             <input type="number" id="timeField" name="timeField" min="0" max="0" step="0.016" value="0" style="width: 50px" />
         </div>
-        <div>
+        <div class="control">
             <span>
                 Camera:
                 <select id="cameraList" name="cameraList">
@@ -173,7 +183,7 @@
                 </select>
             </span>
         </div>
-        <div>
+        <div class="control">
             <span>
                 Display:
                 <span>
@@ -189,6 +199,9 @@
                     <label for="drawPoints">Points</label>
                 </span>
             </span>
+        </div>
+        <div class="notes">
+            <span>source code on <a href="https://github.com/i-saint/WebAlembicViewer">github</a></span>
         </div>
     </div>
 
