@@ -159,6 +159,18 @@
         </div>
         <div>
             <span>
+                Camera:
+                <select id="cameraList" name="cameraList">
+                    <option value="-1">free</option>
+                </select>
+                <select id="fovType" style="display: none;">
+                    <option value="0">Horizontal FOV</option>
+                    <option value="1">Vertical FOV</option>
+                </select>
+            </span>
+        </div>
+        <div>
+            <span>
                 Display:
                 <span>
                     <input type="checkbox" id="drawFace" name="drawFace" checked />
@@ -172,18 +184,6 @@
                     <input type="checkbox" id="drawPoints" name="drawPoints" />
                     <label for="drawPoints">Points</label>
                 </span>
-            </span>
-        </div>
-        <div>
-            <span>
-                Camera:
-                <select id="cameraList" name="cameraList">
-                    <option value="-1">free</option>
-                </select>
-                <select id="fovType" style="display: none;">
-                    <option value="0">Horizontal FOV</option>
-                    <option value="1">Vertical FOV</option>
-                </select>
             </span>
         </div>
     </div>

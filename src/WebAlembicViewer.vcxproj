@@ -23,6 +23,11 @@
     <ClInclude Include="VectorMath.h" />
     <ClInclude Include="WebAlembicViewer.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="setup.vcxproj">
+      <Project>{1c5de91b-7ae9-4304-9fa1-0de1aba8c02d}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{9D1A9D96-7FFF-431A-BEFC-1D9DC317A736}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -46,7 +51,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <IncludePath>$(ProjectDir);$(ProjectDir)Externals\include;Externals\include\OpenEXR;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)Externals\lib;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
+    <LibraryPath>$(ProjectDir)Externals\lib_win64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)_out\$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_tmp\$(Platform)_$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
@@ -64,7 +69,7 @@
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>xcopy /D "$(ProjectDir)\Externals\lib\*.dll" "$(TargetDir)"</Command>
+      <Command>xcopy /D "$(ProjectDir)\Externals\lib_win64\*.dll" "$(TargetDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
