@@ -20,7 +20,8 @@ public:
     virtual float3 getPosition() const = 0;
     virtual float3 getDirection() const = 0;
     virtual float3 getUp() const = 0;
-    virtual float getFOV() const = 0;
+    virtual float getAspectRatio() const = 0;
+    virtual float2 getFOV() const = 0;
     virtual float getNearPlane() const = 0;
     virtual float getFarPlane() const = 0;
 };
@@ -70,19 +71,18 @@ inline IScenePtr CreateScene() { return IScenePtr(CreateScene_(), releaser<IScen
 class IRenderer
 {
 public:
-    enum class DrawType
+    enum class FovType
     {
-        Points,
-        Wireframe,
-        Faces,
+        Horizontal = 0,
+        Vertical = 1,
     };
 
     virtual ~IRenderer() {};
     virtual void release() = 0;
 
     virtual bool initialize(GLFWwindow* v) = 0;
-    virtual void setCamera(float3 pos, float3 dir, float3 up, float fov, float near_, float far_) = 0;
-    virtual void setCamera(ICamera* cam) = 0;
+    virtual void setCamera(float3 pos, float3 dir, float3 up, float fov, float znear, float zfar) = 0;
+    virtual void setCamera(ICamera* cam, FovType ft = FovType::Horizontal) = 0;
     virtual void setDrawPoints(bool v) = 0;
     virtual void setDrawWireframe(bool v) = 0;
     virtual void setDrawFaces(bool v) = 0;

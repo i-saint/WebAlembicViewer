@@ -150,36 +150,44 @@
     <div class="emscripten_border">
         <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
     </div>
-    <div>
-        <label for="timeSlider">Time: </label>
-        <input type="range" id="timeSlider" name="timeSlider" min="0" max="0" step="0.016" value="0" style="width: 900px" />
-        <input type="number" id="timeField" name="timeField" min="0" max="0" step="0.016" value="0" style="width: 50px" />
-    </div>
-    <div>
-        <span>
-            Display:
+
+    <div style="margin-left: auto; margin-right: auto; width: 1270px;">
+        <div>
+            <label for="timeSlider">Time: </label>
+            <input type="range" id="timeSlider" name="timeSlider" min="0" max="0" step="0.016" value="0" style="width: 1150px" />
+            <input type="number" id="timeField" name="timeField" min="0" max="0" step="0.016" value="0" style="width: 50px" />
+        </div>
+        <div>
             <span>
-                <input type="checkbox" id="drawFace" name="drawFace" checked />
-                <label for="drawFace">Face</label>
+                Display:
+                <span>
+                    <input type="checkbox" id="drawFace" name="drawFace" checked />
+                    <label for="drawFace">Face</label>
+                </span>
+                <span>
+                    <input type="checkbox" id="drawWireframe" name="drawWireframe" checked />
+                    <label for="drawWireframe">Wireframe</label>
+                </span>
+                <span>
+                    <input type="checkbox" id="drawPoints" name="drawPoints" />
+                    <label for="drawPoints">Points</label>
+                </span>
             </span>
+        </div>
+        <div>
             <span>
-                <input type="checkbox" id="drawWireframe" name="drawWireframe" checked />
-                <label for="drawWireframe">Wireframe</label>
+                Camera:
+                <select id="cameraList" name="cameraList">
+                    <option value="-1">free</option>
+                </select>
+                <select id="fovType" style="display: none;">
+                    <option value="0">Horizontal FOV</option>
+                    <option value="1">Vertical FOV</option>
+                </select>
             </span>
-            <span>
-                <input type="checkbox" id="drawPoints" name="drawPoints" />
-                <label for="drawPoints">Points</label>
-            </span>
-        </span>
+        </div>
     </div>
-    <div>
-        <span>
-            Camera:
-            <select id="cameraList" name="cameraList">
-                <option value="-1">free</option>
-            </select>
-        </span>
-    </div>
+
     <textarea id="output" rows="8"></textarea>
 
     <script type='text/javascript'>
@@ -193,6 +201,7 @@
         let checkWireframe = document.getElementById('drawWireframe');
         let checkPoints = document.getElementById('drawPoints');
         let cameraList = document.getElementById('cameraList');
+        let fovType = document.getElementById('fovType');
         let canvas = document.getElementById('canvas');
 
         function addCamera(n, v) {
@@ -218,6 +227,9 @@
                 let cameraCount = Module.wabcGetCameraCount();
                 for (let i = 0; i < cameraCount; ++i)
                     addCamera(Module.wabcGetCameraPath(i), i);
+
+                cameraList.value = -1;
+                fovType.style.display = 'none';
                 Module.wabcSetActiveCamera(-1);
 
                 // load first frame
@@ -289,7 +301,14 @@
         }
 
         function onCameraChange() {
-            Module.wabcSetActiveCamera(parseInt(cameraList.value));
+            let cam = parseInt(cameraList.value);
+            fovType.style.display = cam == -1 ? 'none' : '';
+            Module.wabcSetActiveCamera(cam);
+            Module.wabcDraw();
+        }
+
+        function onFovTypeChange() {
+            Module.wabcSetCameraFovType(parseInt(fovType.value));
             Module.wabcDraw();
         }
 
@@ -376,6 +395,7 @@
             checkWireframe.addEventListener('input', onCheckWireframe);
             checkPoints.addEventListener('input', onCheckPoints);
             cameraList.addEventListener('change', onCameraChange);
+            fovType.addEventListener('change', onFovTypeChange);
         };
     </script>
     <script async type="text/javascript" src="WebAlembicViewer.js"></script>

@@ -33,7 +33,8 @@ public:
     float3 getPosition() const override { return m_position; }
     float3 getDirection() const override { return m_direction; }
     float3 getUp() const override { return m_up; }
-    float getFOV() const override { return m_fov; }
+    float getAspectRatio() const override { return m_aspect; }
+    float2 getFOV() const override { return m_fov; }
     float getNearPlane() const override { return m_near; }
     float getFarPlane() const override { return m_far; }
 
@@ -42,7 +43,8 @@ public:
     float3 m_position{};
     float3 m_direction{ 0.0f, 0.0f, 1.0f };
     float3 m_up{ 0.0f, 1.0f, 0.0f };
-    float m_fov = 60.0f;
+    float m_aspect = 1.0f;
+    float2 m_fov{ 60.0f, 60.0f };
     float m_near = 0.01f;
     float m_far = 100.0f;
 };
@@ -430,9 +432,13 @@ void Scene::seekImpl(ImportContext ctx)
             //dst->m_up = rot33 * float3{ 0.0f, 1.0f, 0.0f };
 
             float focal_length = (float)sample.getFocalLength();
-            float aperture = (float)sample.getVerticalAperture() * 10.0f; // cm to mm
-            dst->m_fov = compute_fov(aperture, focal_length);
-            //dst->m_fov = (float)sample.getFieldOfView();
+            float v_aperture = (float)sample.getVerticalAperture() * 10.0f; // cm to mm
+            float h_aperture = (float)sample.getHorizontalAperture() * 10.0f; // cm to mm
+            dst->m_aspect = h_aperture / v_aperture;
+            dst->m_fov = {
+                compute_fov(h_aperture, focal_length),
+                compute_fov(v_aperture, focal_length)
+            };
 
             dst->m_near = std::max((float)sample.getNearClippingPlane(), 0.01f);
             dst->m_far = std::max((float)sample.getFarClippingPlane(), dst->m_near);

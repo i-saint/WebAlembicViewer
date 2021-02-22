@@ -26,6 +26,7 @@ static float2 g_mouse_pos;
 static float3 g_camera_position{ 0.0f, 0.0f, 10.0f };
 static float3 g_camera_target{ 0.0f, 0.0f, 0.0f };
 static int g_active_camera = -1; // -1: free
+static wabc::IRenderer::FovType g_fov_type = wabc::IRenderer::FovType::Horizontal;
 static float g_camera_fov = 60.0f;
 static float g_camera_near = 0.01f;
 static float g_camera_far = 100.0f;
@@ -39,7 +40,7 @@ static void Draw()
         g_renderer->setCamera(g_camera_position, dir, up, g_camera_fov, g_camera_near, g_camera_far);
     }
     else {
-        g_renderer->setCamera(g_scene->getCameras()[g_active_camera]);
+        g_renderer->setCamera(g_scene->getCameras()[g_active_camera], g_fov_type);
     }
 
     g_renderer->beginDraw();
@@ -194,6 +195,11 @@ wabcAPI void wabcSetActiveCamera(int v)
     g_active_camera = v;
 }
 
+wabcAPI void wabcSetCameraFovType(int v)
+{
+    g_fov_type = (wabc::IRenderer::FovType)v;
+}
+
 wabcAPI void wabcSetFOV(float v)
 {
     g_camera_fov = v;
@@ -233,6 +239,7 @@ EMSCRIPTEN_BINDINGS(wabc) {
     function("wabcGetCameraCount", &wabcGetCameraCount);
     function("wabcGetCameraPath", &wabcGetCameraPath, allow_raw_pointers());
     function("wabcSetActiveCamera", &wabcSetActiveCamera);
+    function("wabcSetCameraFovType", &wabcSetCameraFovType);
     function("wabcSetFOV", &wabcSetFOV);
 
     function("wabcSetDrawFaces", &wabcSetDrawFaces);

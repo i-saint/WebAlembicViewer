@@ -10,8 +10,8 @@ public:
     ~Renderer();
     void release() override;
     bool initialize(GLFWwindow* v) override;
-    void setCamera(float3 pos, float3 dir, float3 up, float fov, float near_, float far_) override;
-    void setCamera(ICamera* cam) override;
+    void setCamera(float3 pos, float3 dir, float3 up, float fov, float znear, float zfar) override;
+    void setCamera(ICamera* cam, FovType ft) override;
     void setDrawPoints(bool v) override { m_draw_points = v; }
     void setDrawWireframe(bool v) override { m_draw_wireframe = v; }
     void setDrawFaces(bool v) override { m_draw_faces = v; }
@@ -20,6 +20,8 @@ public:
     void endDraw() override;
     void draw(IMesh* mesh) override;
     void draw(IPoints* points) override;
+
+    float getScreenAspectRatio();
 
 private:
     GLFWwindow* m_window{};
@@ -35,9 +37,10 @@ private:
     GLuint m_ia_normal{};
 
     float4x4 m_view_proj = float4x4::identity();
-    float4 m_face_color = { 0.4f, 0.4f, 0.4f, 1.0f };
-    float4 m_fill_color = { 0.0f, 0.0f, 0.0f, 1.0f };
-    float m_point_size = 4.0f;
+    float4 m_clear_color{ 0.25f, 0.25f, 0.25f, 0.0f };
+    float4 m_face_color{ 0.4f, 0.4f, 0.4f, 1.0f };
+    float4 m_fill_color{ 0.0f, 0.0f, 0.0f, 1.0f };
+    float m_point_size{ 4.0f };
 
     bool m_draw_points = false;
     bool m_draw_wireframe = true;
@@ -140,13 +143,20 @@ void Renderer::release()
     delete this;
 }
 
-void Renderer::beginDraw()
+float Renderer::getScreenAspectRatio()
 {
     int w, h;
     glfwGetFramebufferSize(m_window, &w, &h);
+    return (float)w / (float)h;
+}
 
-    glViewport(0, 0, w, h);
-    glClearColor(0.25f, 0.25f, 0.25f, 0.0f);
+void Renderer::beginDraw()
+{
+    int sw, sh;
+    glfwGetFramebufferSize(m_window, &sw, &sh);
+
+    glViewport(0, 0, sw, sh);
+    glClearColor(m_clear_color.x, m_clear_color.y, m_clear_color.z, m_clear_color.w);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUseProgram(m_shader_fill);
@@ -166,13 +176,8 @@ void Renderer::endDraw()
     glfwSwapBuffers(m_window);
 }
 
-void Renderer::setCamera(float3 pos, float3 dir, float3 up, float fov, float near_, float far_)
+void Renderer::setCamera(float3 pos, float3 dir, float3 up, float fov, float znear, float zfar)
 {
-    int w, h;
-    glfwGetFramebufferSize(m_window, &w, &h);
-    float aspect = (float)w / (float)h;
-
-    float4x4 proj = float4x4::identity();
     float4x4 view = float4x4::identity();
     {
         float3 z = -dir;
@@ -183,23 +188,18 @@ void Renderer::setCamera(float3 pos, float3 dir, float3 up, float fov, float nea
         view[2] = { x.z, y.z, z.z, 0.0f };
         view[3] = { -dot(x, pos), -dot(y, pos), -dot(z, pos), 1.0f };
     }
-    {
-        float f = std::tan(fov * DegToRad / 2.0f);
-        proj[0][0] = 1.0f / (aspect * f);
-        proj[1][1] = 1.0f / (f);
-        proj[2][2] = -(far_ + near_) / (far_ - near_);
-        proj[2][3] = -1.0f;
-        proj[3][2] = -(2.0f * far_ * near_) / (far_ - near_);
-    }
+    float4x4 proj = transpose(perspective(fov, getScreenAspectRatio(), znear, zfar));
 
     m_view_proj = (view * proj);
 }
 
-void Renderer::setCamera(ICamera* cam)
+void Renderer::setCamera(ICamera* cam, FovType ft)
 {
     if (!cam)
         return;
-    setCamera(cam->getPosition(), cam->getDirection(), cam->getUp(), cam->getFOV(), cam->getNearPlane(), cam->getFarPlane());
+
+    float2 fov = cam->getFOV();
+    setCamera(cam->getPosition(), cam->getDirection(), cam->getUp(), ft == IRenderer::FovType::Vertical ? fov.y : fov.x, cam->getNearPlane(), cam->getFarPlane());
 }
 
 void Renderer::draw(IMesh* v)
