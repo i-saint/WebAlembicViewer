@@ -151,26 +151,30 @@
         <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
     </div>
     <div>
-        <input type="range" id="time" name="time" min="0" max="0" step="0.033" value="0" style="width: 500px" />
-        <label for="time">Time</label>
+        <label for="timeSlider">Time: </label>
+        <input type="range" id="timeSlider" name="timeSlider" min="0" max="0" step="0.016" value="0" style="width: 900px" />
+        <input type="number" id="timeField" name="timeField" min="0" max="0" step="0.016" value="0" style="width: 50px" />
     </div>
     <div>
         <span>
-            <input type="checkbox" id="drawFace" name="drawFace" checked />
-            <label for="drawFace">Face</label>
-        </span>
-        <span>
-            <input type="checkbox" id="drawWireframe" name="drawWireframe" checked />
-            <label for="drawWireframe">Wireframe</label>
-        </span>
-        <span>
-            <input type="checkbox" id="drawPoints" name="drawPoints" />
-            <label for="drawPoints">Points</label>
+            Display:
+            <span>
+                <input type="checkbox" id="drawFace" name="drawFace" checked />
+                <label for="drawFace">Face</label>
+            </span>
+            <span>
+                <input type="checkbox" id="drawWireframe" name="drawWireframe" checked />
+                <label for="drawWireframe">Wireframe</label>
+            </span>
+            <span>
+                <input type="checkbox" id="drawPoints" name="drawPoints" />
+                <label for="drawPoints">Points</label>
+            </span>
         </span>
     </div>
     <div>
         <span>
-            Camera
+            Camera:
             <select id="cameraList" name="cameraList">
                 <option value="-1">free</option>
             </select>
@@ -183,7 +187,8 @@
         let progressElement = document.getElementById('progress');
         let spinnerElement = document.getElementById('spinner');
 
-        let timeSlider = document.getElementById('time');
+        let timeSlider = document.getElementById('timeSlider');
+        let timeField = document.getElementById('timeField');
         let checkFaces = document.getElementById('drawFace');
         let checkWireframe = document.getElementById('drawWireframe');
         let checkPoints = document.getElementById('drawPoints');
@@ -202,8 +207,9 @@
             if (Module.wabcLoadScene(filename)) {
                 // update time slider
                 let t = Module.wabcGetStartTime();
-                timeSlider.min = timeSlider.value = t;
-                timeSlider.max = Module.wabcGetEndTime();
+                timeSlider.min = timeField.min = t;
+                timeSlider.max = timeField.min = Module.wabcGetEndTime();
+                setUITime(t);
 
                 // update camera list
                 while (cameraList.firstChild)
@@ -229,6 +235,11 @@
                 });
         }
 
+        function setUITime(t) {
+            timeField.value = parseFloat(t).toFixed(2);
+            timeSlider.value = t;
+        }
+
         function onDrop(evt) {
             evt.stopPropagation();
             evt.preventDefault();
@@ -248,7 +259,16 @@
             evt.dataTransfer.dropEffect = 'copy';
         }
 
-        function onTimeChange() {
+        function onTimeSliderChange() {
+            let t = parseFloat(timeSlider.value);
+            setUITime(t);
+            Module.wabcSeek(parseFloat(timeSlider.value));
+            Module.wabcDraw();
+        }
+
+        function onTimeFieldChange() {
+            let t = parseFloat(timeField.value);
+            setUITime(t);
             Module.wabcSeek(parseFloat(timeSlider.value));
             Module.wabcDraw();
         }
@@ -350,7 +370,8 @@
             canvas.addEventListener('dragover', onDragOver, false);
             canvas.addEventListener('drop', onDrop, false);
 
-            timeSlider.addEventListener('input', onTimeChange);
+            timeSlider.addEventListener('input', onTimeSliderChange);
+            timeField.addEventListener('change', onTimeFieldChange);
             checkFaces.addEventListener('input', onCheckFaces);
             checkWireframe.addEventListener('input', onCheckWireframe);
             checkPoints.addEventListener('input', onCheckPoints);
