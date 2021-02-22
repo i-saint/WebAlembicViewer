@@ -20,8 +20,9 @@ public:
     virtual float3 getPosition() const = 0;
     virtual float3 getDirection() const = 0;
     virtual float3 getUp() const = 0;
-    virtual float getAspectRatio() const = 0;
-    virtual float2 getFOV() const = 0;
+    virtual float getFocalLength() const = 0;
+    virtual float2 getAperture() const = 0;
+    virtual float2 getLensShift() const = 0;
     virtual float getNearPlane() const = 0;
     virtual float getFarPlane() const = 0;
 };
@@ -68,21 +69,22 @@ using IScenePtr = std::shared_ptr<IScene>;
 inline IScenePtr CreateScene() { return IScenePtr(CreateScene_(), releaser<IScene>()); }
 
 
+enum class SensorFitMode
+{
+    Auto = 0,
+    Horizontal = 1,
+    Vertical = 2,
+};
+
 class IRenderer
 {
 public:
-    enum class FovType
-    {
-        Horizontal = 0,
-        Vertical = 1,
-    };
-
     virtual ~IRenderer() {};
     virtual void release() = 0;
 
     virtual bool initialize(GLFWwindow* v) = 0;
-    virtual void setCamera(float3 pos, float3 dir, float3 up, float fov, float znear, float zfar) = 0;
-    virtual void setCamera(ICamera* cam, FovType ft = FovType::Horizontal) = 0;
+    virtual void setCamera(float3 pos, float3 dir, float3 up, float fov, float znear, float zfar, float2 shift = float2::zero()) = 0;
+    virtual void setCamera(ICamera* cam, SensorFitMode ft = SensorFitMode::Auto) = 0;
     virtual void setDrawPoints(bool v) = 0;
     virtual void setDrawWireframe(bool v) = 0;
     virtual void setDrawFaces(bool v) = 0;

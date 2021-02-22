@@ -10,8 +10,8 @@ public:
     ~Renderer();
     void release() override;
     bool initialize(GLFWwindow* v) override;
-    void setCamera(float3 pos, float3 dir, float3 up, float fov, float znear, float zfar) override;
-    void setCamera(ICamera* cam, FovType ft) override;
+    void setCamera(float3 pos, float3 dir, float3 up, float fov, float znear, float zfar, float2 shift) override;
+    void setCamera(ICamera* cam, SensorFitMode ft) override;
     void setDrawPoints(bool v) override { m_draw_points = v; }
     void setDrawWireframe(bool v) override { m_draw_wireframe = v; }
     void setDrawFaces(bool v) override { m_draw_faces = v; }
@@ -176,30 +176,67 @@ void Renderer::endDraw()
     glfwSwapBuffers(m_window);
 }
 
-void Renderer::setCamera(float3 pos, float3 dir, float3 up, float fov, float znear, float zfar)
+void Renderer::setCamera(float3 pos, float3 dir, float3 up, float fov, float znear, float zfar, float2 shift)
 {
-    float4x4 view = float4x4::identity();
+    float4x4 view{};
+    float4x4 proj{};
     {
-        float3 z = -dir;
-        float3 x = normalize(cross(up, z));
-        float3 y = cross(z, x);
-        view[0] = { x.x, y.x, z.x, 0.0f };
-        view[1] = { x.y, y.y, z.y, 0.0f };
-        view[2] = { x.z, y.z, z.z, 0.0f };
-        view[3] = { -dot(x, pos), -dot(y, pos), -dot(z, pos), 1.0f };
+        float3 z = dir;
+        float3 x = normalize(cross(z, up));
+        float3 y = cross(x, z);
+        view[0] = { x.x, y.x, -z.x, 0.0f };
+        view[1] = { x.y, y.y, -z.y, 0.0f };
+        view[2] = { x.z, y.z, -z.z, 0.0f };
+        view[3] = { -dot(x, pos), -dot(y, pos), dot(z, pos), 1.0f };
     }
-    float4x4 proj = transpose(perspective(fov, getScreenAspectRatio(), znear, zfar));
+    {
+        float aspect = getScreenAspectRatio();
+        float f = std::tan(fov * DegToRad / 2.0f);
+        proj[0][0] = 1.0f / (aspect * f);
+        proj[1][1] = 1.0f / f;
+        proj[2][2] = zfar / (znear - zfar);
+        proj[2][3] = -1.0f;
+        proj[3][2] = -(zfar * znear) / (zfar - znear);
+
+        proj[2][0] = shift.x * 2.0f;
+        proj[2][1] = shift.y * 2.0f;
+    }
 
     m_view_proj = (view * proj);
 }
 
-void Renderer::setCamera(ICamera* cam, FovType ft)
+void Renderer::setCamera(ICamera* cam, SensorFitMode sfm)
 {
     if (!cam)
         return;
 
-    float2 fov = cam->getFOV();
-    setCamera(cam->getPosition(), cam->getDirection(), cam->getUp(), ft == IRenderer::FovType::Vertical ? fov.y : fov.x, cam->getNearPlane(), cam->getFarPlane());
+    float focal_length = cam->getFocalLength();
+    float2 aperture = cam->getAperture();
+    float2 lens_shift = cam->getLensShift();
+
+    float screen_aspect = getScreenAspectRatio();
+    const float ratio = screen_aspect * aperture.y / aperture.x;
+
+    if (sfm == SensorFitMode::Auto && ratio > 1.0f)
+        sfm = SensorFitMode::Horizontal;
+    else if (sfm == SensorFitMode::Auto && ratio < 1.0f)
+        sfm = SensorFitMode::Vertical;
+
+    float fov = 60.0f;
+    switch (sfm) {
+    case SensorFitMode::Vertical:
+        fov = compute_fov(aperture.y, focal_length);
+        lens_shift.x *= 1.0f / ratio;
+        break;
+    case SensorFitMode::Horizontal:
+        fov = compute_fov(aperture.x / screen_aspect, focal_length);
+        lens_shift.y *= ratio;
+        break;
+    default:
+        break;
+    }
+
+    setCamera(cam->getPosition(), cam->getDirection(), cam->getUp(), fov, cam->getNearPlane(), cam->getFarPlane(), lens_shift);
 }
 
 void Renderer::draw(IMesh* v)

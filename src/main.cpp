@@ -26,7 +26,7 @@ static float2 g_mouse_pos;
 static float3 g_camera_position{ 0.0f, 0.0f, 10.0f };
 static float3 g_camera_target{ 0.0f, 0.0f, 0.0f };
 static int g_active_camera = -1; // -1: free
-static wabc::IRenderer::FovType g_fov_type = wabc::IRenderer::FovType::Horizontal;
+static wabc::SensorFitMode g_sensor_fit_mode = wabc::SensorFitMode::Auto;
 static float g_camera_fov = 60.0f;
 static float g_camera_near = 0.01f;
 static float g_camera_far = 1000.0f;
@@ -40,7 +40,7 @@ static void Draw()
         g_renderer->setCamera(g_camera_position, dir, up, g_camera_fov, g_camera_near, g_camera_far);
     }
     else {
-        g_renderer->setCamera(g_scene->getCameras()[g_active_camera], g_fov_type);
+        g_renderer->setCamera(g_scene->getCameras()[g_active_camera], g_sensor_fit_mode);
     }
 
     g_renderer->beginDraw();
@@ -195,9 +195,9 @@ wabcAPI void wabcSetActiveCamera(int v)
     g_active_camera = v;
 }
 
-wabcAPI void wabcSetCameraFovType(int v)
+wabcAPI void wabcSetSensorFitMode(int v)
 {
-    g_fov_type = (wabc::IRenderer::FovType)v;
+    g_sensor_fit_mode = (wabc::SensorFitMode)v;
 }
 
 wabcAPI void wabcSetFOV(float v)
@@ -239,7 +239,7 @@ EMSCRIPTEN_BINDINGS(wabc) {
     function("wabcGetCameraCount", &wabcGetCameraCount);
     function("wabcGetCameraPath", &wabcGetCameraPath, allow_raw_pointers());
     function("wabcSetActiveCamera", &wabcSetActiveCamera);
-    function("wabcSetCameraFovType", &wabcSetCameraFovType);
+    function("wabcSetSensorFitMode", &wabcSetSensorFitMode);
     function("wabcSetFOV", &wabcSetFOV);
 
     function("wabcSetDrawFaces", &wabcSetDrawFaces);
@@ -282,6 +282,11 @@ int main(int argc, char** argv)
             auto time_range = g_scene->getTimeRange();
             printf("%s\n", argv[1]);
             printf("time range: %lf %lf\n", std::get<0>(time_range), std::get<1>(time_range));
+
+            auto cams = g_scene->getCameras();
+            if (!cams.empty()) {
+                g_active_camera = 0;
+            }
 
             g_scene->seek(0.0);
             auto mesh = g_scene->getMesh();
