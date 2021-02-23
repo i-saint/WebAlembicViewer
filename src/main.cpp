@@ -228,6 +228,29 @@ wabcAPI void wabcDraw()
     Draw();
 }
 
+using nanosec = uint64_t;
+static nanosec Now()
+{
+    using namespace std::chrono;
+    return duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count();
+}
+
+wabcAPI void wabcBenchmark()
+{
+    if (!g_scene)
+        return;
+
+    auto time_range = g_scene->getTimeRange();
+    nanosec t_begin = Now();
+    double step = 1.0 / 30.0;
+    for (double t = std::get<0>(time_range); t < std::get<1>(time_range); t += step) {
+        g_scene->seek(t);
+    }
+    nanosec t_end = Now();
+    printf("Benchmark: %lf\n", double(t_end - t_begin) / 1000000.0);
+}
+
+
 #ifdef __EMSCRIPTEN__
 EMSCRIPTEN_BINDINGS(wabc) {
     using namespace emscripten;
@@ -246,6 +269,8 @@ EMSCRIPTEN_BINDINGS(wabc) {
     function("wabcSetDrawWireframe", &wabcSetDrawWireframe);
     function("wabcSetDrawPoints", &wabcSetDrawPoints);
     function("wabcDraw", &wabcDraw);
+
+    function("wabcBenchmark", &wabcBenchmark);
 }
 #endif
 
@@ -279,6 +304,8 @@ int main(int argc, char** argv)
 
     if (argc >= 2) {
         if (g_scene->load(argv[1])) {
+            //wabcBenchmark();
+
             auto time_range = g_scene->getTimeRange();
             printf("%s\n", argv[1]);
             printf("time range: %lf %lf\n", std::get<0>(time_range), std::get<1>(time_range));

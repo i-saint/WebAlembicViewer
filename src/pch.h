@@ -10,6 +10,7 @@
 #include <memory>
 #include <fstream>
 #include <span>
+#include <chrono>
 
 #include <Alembic/AbcCoreAbstract/All.h>
 #include <Alembic/AbcCoreOgawa/All.h>
