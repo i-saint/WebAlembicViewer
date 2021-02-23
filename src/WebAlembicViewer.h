@@ -4,7 +4,7 @@
 namespace wabc {
 
 template<class T>
-struct releaser { void operator()(T* v) { v->release(); } };
+struct releaser { void operator()(T* v) { if (v) v->release(); } };
 
 
 class IEntity
@@ -34,17 +34,21 @@ public:
     virtual std::span<float3> getPointsEx() const = 0; // expanded (not indexed)
     virtual std::span<float3> getNormalsEx() const = 0; // expanded (not indexed)
     virtual std::span<int> getWireframeIndices() const = 0;
+#ifdef wabcWithGL
     virtual GLuint getPointsBuffer() const = 0;
     virtual GLuint getPointsExBuffer() const = 0;
     virtual GLuint getNormalsExBuffer() const = 0;
     virtual GLuint getWireframeIndicesBuffer() const = 0;
+#endif
 };
 
 class IPoints : public IEntity
 {
 public:
     virtual std::span<float3> getPoints() const = 0;
+#ifdef wabcWithGL
     virtual GLuint getPointBuffer() const = 0;
+#endif
 };
 
 class IScene

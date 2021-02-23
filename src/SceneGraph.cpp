@@ -61,10 +61,12 @@ public:
     std::span<float3> getPointsEx() const override { return MakeSpan(m_points_ex); }
     std::span<float3> getNormalsEx() const override { return MakeSpan(m_normals_ex); }
     std::span<int> getWireframeIndices() const override { return MakeSpan(m_wireframe_indices); }
+#ifdef wabcWithGL
     GLuint getPointsBuffer() const override { return m_buf_points; }
     GLuint getPointsExBuffer() const override { return m_buf_points_ex; }
     GLuint getNormalsExBuffer() const override { return m_buf_normals_ex; }
     GLuint getWireframeIndicesBuffer() const override { return m_buf_wireframe_indices; }
+#endif
 
     void clear();
     void upload();
@@ -74,13 +76,14 @@ public:
     std::vector<float3> m_points_ex;
     std::vector<float3> m_normals_ex;
     std::vector<int> m_wireframe_indices;
+#ifdef wabcWithGL
     GLuint m_buf_points{};
     GLuint m_buf_points_ex{};
     GLuint m_buf_normals_ex{};
     GLuint m_buf_wireframe_indices{};
+#endif
 };
 using MeshPtr = std::shared_ptr<Mesh>;
-
 
 class Points : public IPoints
 {
@@ -88,14 +91,18 @@ public:
     Points();
     ~Points() override;
     std::span<float3> getPoints() const override { return MakeSpan(m_points); }
+#ifdef wabcWithGL
     GLuint getPointBuffer() const override { return m_vb_points; }
+#endif
 
     void clear();
     void upload();
 
 public:
     std::vector<float3> m_points;
+#ifdef wabcWithGL
     GLuint m_vb_points{};
+#endif
 };
 using PointsPtr = std::shared_ptr<Points>;
 
@@ -146,18 +153,22 @@ private:
 
 Mesh::Mesh()
 {
+#ifdef wabcWithGL
     glGenBuffers(1, &m_buf_points);
     glGenBuffers(1, &m_buf_points_ex);
     glGenBuffers(1, &m_buf_normals_ex);
     glGenBuffers(1, &m_buf_wireframe_indices);
+#endif
 }
 
 Mesh::~Mesh()
 {
+#ifdef wabcWithGL
     glDeleteBuffers(1, &m_buf_points);
     glDeleteBuffers(1, &m_buf_points_ex);
     glDeleteBuffers(1, &m_buf_normals_ex);
     glDeleteBuffers(1, &m_buf_wireframe_indices);
+#endif
 }
 
 void Mesh::clear()
@@ -170,6 +181,7 @@ void Mesh::clear()
 
 void Mesh::upload()
 {
+#ifdef wabcWithGL
     if (!m_points.empty()) {
         glBindBuffer(GL_ARRAY_BUFFER, m_buf_points);
         glBufferData(GL_ARRAY_BUFFER, m_points.size() * sizeof(float3), m_points.data(), GL_STREAM_DRAW);
@@ -186,17 +198,22 @@ void Mesh::upload()
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_buf_wireframe_indices);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_wireframe_indices.size() * sizeof(int), m_wireframe_indices.data(), GL_STREAM_DRAW);
     }
+#endif
 }
 
 
 Points::Points()
 {
+#ifdef wabcWithGL
     glGenBuffers(1, &m_vb_points);
+#endif
 }
 
 Points::~Points()
 {
+#ifdef wabcWithGL
     glDeleteBuffers(1, &m_vb_points);
+#endif
 }
 
 void Points::clear()
@@ -206,10 +223,12 @@ void Points::clear()
 
 void Points::upload()
 {
+#ifdef wabcWithGL
     if (!m_points.empty()) {
         glBindBuffer(GL_ARRAY_BUFFER, m_vb_points);
         glBufferData(GL_ARRAY_BUFFER, m_points.size() * sizeof(float3), m_points.data(), GL_DYNAMIC_DRAW);
     }
+#endif
 }
 
 

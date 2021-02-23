@@ -2,6 +2,7 @@
 #include "WebAlembicViewer.h"
 
 namespace wabc {
+#ifdef wabcWithGL
 
 class Renderer : public IRenderer
 {
@@ -334,10 +335,15 @@ void Renderer::draw(IPoints* v)
         glDepthMask(GL_TRUE);
     }
 }
+#endif
 
 IRenderer* CreateRenderer_()
 {
+#ifdef wabcWithGL
     return new Renderer();
+#else
+    return nullptr;
+#endif
 }
 
 } // namespace wabc

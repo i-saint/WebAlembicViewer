@@ -32,8 +32,12 @@ static float g_camera_near = 0.01f;
 static float g_camera_far = 1000.0f;
 static double g_seek_time;
 
+#ifdef wabcWithGL
 static void Draw()
 {
+    if (!g_renderer)
+        return;
+
     if (g_active_camera < 0) {
         float3 dir = normalize(g_camera_target - g_camera_position);
         float3 up = float3::up();
@@ -145,6 +149,7 @@ static void OnScroll(GLFWwindow* window, double x, double y)
         g_camera_position = g_camera_target + (dir * d);
     }
 }
+#endif
 
 
 wabcAPI bool wabcLoadScene(std::string path)
@@ -225,7 +230,9 @@ wabcAPI void wabcSetDrawPoints(float v)
 
 wabcAPI void wabcDraw()
 {
+#ifdef wabcWithGL
     Draw();
+#endif
 }
 
 using nanosec = uint64_t;
@@ -277,6 +284,7 @@ EMSCRIPTEN_BINDINGS(wabc) {
 
 int main(int argc, char** argv)
 {
+#ifdef wabcWithGL
     if (!glfwInit()) {
         printf("glfwInit() failed\n");
         return 1;
@@ -297,14 +305,16 @@ int main(int argc, char** argv)
     glfwSetScrollCallback(g_window, OnScroll);
 
     glfwMakeContextCurrent(g_window);
+#endif
 
     g_scene = wabc::CreateScene();
     g_renderer = wabc::CreateRenderer();
-    g_renderer->initialize(g_window);
+    if (g_renderer)
+        g_renderer->initialize(g_window);
 
     if (argc >= 2) {
         if (g_scene->load(argv[1])) {
-            //wabcBenchmark();
+            wabcBenchmark();
 
             auto time_range = g_scene->getTimeRange();
             printf("%s\n", argv[1]);
@@ -321,6 +331,7 @@ int main(int argc, char** argv)
         }
     }
 
+#ifdef wabcWithGL
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(&Draw, 0, 1);
 #else
@@ -331,5 +342,6 @@ int main(int argc, char** argv)
     }
     glfwDestroyWindow(g_window);
     glfwTerminate();
+#endif
 #endif
 }
