@@ -27,13 +27,29 @@ public:
     virtual float getFarPlane() const = 0;
 };
 
+struct BoneWeight
+{
+    int bone_index{};
+    float bone_weight{};
+};
+
 class IMesh : public IEntity
 {
 public:
     virtual std::span<float3> getPoints() const = 0;
+    virtual std::span<float3> getNormals() const = 0;
     virtual std::span<float3> getPointsEx() const = 0; // expanded (not indexed)
     virtual std::span<float3> getNormalsEx() const = 0; // expanded (not indexed)
+    virtual std::span<int> getCounts() const = 0;
+    virtual std::span<int> getFaceIndices() const = 0;
     virtual std::span<int> getWireframeIndices() const = 0;
+
+    virtual bool isSkinned() const = 0;
+    virtual std::span<int> getBoneCounts() const = 0;
+    virtual std::span<BoneWeight> getBoneWeights() const = 0;
+    virtual void deformPoints(std::span<float3> dst, const std::span<float4x4> bones) const = 0;
+    virtual void deformNormals(std::span<float3> dst, const std::span<float4x4> bones) const = 0;
+
 #ifdef wabcWithGL
     virtual GLuint getPointsBuffer() const = 0;
     virtual GLuint getPointsExBuffer() const = 0;

@@ -58,9 +58,19 @@ public:
     Mesh();
     ~Mesh() override;
     std::span<float3> getPoints() const override { return MakeSpan(m_points); }
+    std::span<float3> getNormals() const override { return MakeSpan(m_normals); }
     std::span<float3> getPointsEx() const override { return MakeSpan(m_points_ex); }
     std::span<float3> getNormalsEx() const override { return MakeSpan(m_normals_ex); }
+    std::span<int> getCounts() const override { return MakeSpan(m_counts); }
+    std::span<int> getFaceIndices() const override { return MakeSpan(m_face_indices); }
     std::span<int> getWireframeIndices() const override { return MakeSpan(m_wireframe_indices); }
+
+    bool isSkinned() const override { return !m_bone_counts.empty(); }
+    std::span<int> getBoneCounts() const override { return MakeSpan(m_bone_counts); }
+    std::span<BoneWeight> getBoneWeights() const override { return MakeSpan(m_bone_weights); }
+    void deformPoints(std::span<float3> dst, const std::span<float4x4> bones) const override;
+    void deformNormals(std::span<float3> dst, const std::span<float4x4> bones) const override;
+
 #ifdef wabcWithGL
     GLuint getPointsBuffer() const override { return m_buf_points; }
     GLuint getPointsExBuffer() const override { return m_buf_points_ex; }
@@ -73,9 +83,17 @@ public:
 
 public:
     std::vector<float3> m_points;
+    std::vector<float3> m_normals;
     std::vector<float3> m_points_ex;
     std::vector<float3> m_normals_ex;
+
+    std::vector<int> m_counts;
+    std::vector<int> m_face_indices;
     std::vector<int> m_wireframe_indices;
+
+    std::vector<int> m_bone_counts;
+    std::vector<BoneWeight> m_bone_weights;
+
 #ifdef wabcWithGL
     GLuint m_buf_points{};
     GLuint m_buf_points_ex{};
@@ -175,8 +193,15 @@ void Mesh::clear()
 {
     m_points.clear();
     m_points_ex.clear();
+    m_normals.clear();
     m_normals_ex.clear();
+
+    m_counts.clear();
+    m_face_indices.clear();
     m_wireframe_indices.clear();
+
+    m_bone_counts.clear();
+    m_bone_weights.clear();
 }
 
 void Mesh::upload()
@@ -200,6 +225,41 @@ void Mesh::upload()
     }
 #endif
 }
+
+void Mesh::deformPoints(std::span<float3> dst, const std::span<float4x4> bones) const
+{
+    const BoneWeight* weights = m_bone_weights.data();
+    size_t nvertices = m_points.size();
+    for (size_t vi = 0; vi < nvertices; ++vi) {
+        float3 p = m_points[vi];
+        float3 r{};
+        int nbones = m_bone_counts[vi];
+        for (int bi = 0; bi < nbones; ++bi) {
+            BoneWeight w = weights[bi];
+            r += mul_p(bones[w.bone_index], p) * w.bone_weight;
+        }
+        dst[vi] = r;
+        weights += nbones;
+    }
+}
+
+void Mesh::deformNormals(std::span<float3> dst, const std::span<float4x4> bones) const
+{
+    const BoneWeight* weights = m_bone_weights.data();
+    size_t nvertices = m_normals.size();
+    for (size_t vi = 0; vi < nvertices; ++vi) {
+        float3 n = m_normals[vi];
+        float3 r{};
+        int nbones = m_bone_counts[vi];
+        for (int bi = 0; bi < nbones; ++bi) {
+            BoneWeight w = weights[bi];
+            r += mul_v(bones[w.bone_index], n) * w.bone_weight;
+        }
+        dst[vi] = r;
+        weights += nbones;
+    }
+}
+
 
 
 Points::Points()
@@ -473,14 +533,16 @@ void Scene::seekImpl(ImportContext ctx)
         schema.get(sample, ss);
         auto counts = MakeSpan(sample.getFaceCounts());
         auto indices = MakeSpan(sample.getFaceIndices());
-        auto points_orig = MakeSpan(sample.getPositions());
+        auto points = MakeSpan(sample.getPositions());
 
         // make points in global space
-        size_t num_points = points_orig.size();
+        int num_faces = (int)counts.size();
+        int num_indices = (int)indices.size();
+        int num_points = (int)points.size();
         int index_offset = (int)m_mono_mesh->m_points.size();
-        float3* points = Expand(m_mono_mesh->m_points, num_points);
-        for (size_t i = 0; i < num_points; ++i)
-            points[i] = mul_p(ctx.global_matrix, (float3&)points_orig[i]);
+        float3* dst_points = Expand(m_mono_mesh->m_points, num_points);
+        for (int i = 0; i < num_points; ++i)
+            dst_points[i] = mul_p(ctx.global_matrix, (float3&)points[i]);
 
         // count primitives and allocate space
         int num_lines = 0;
@@ -495,23 +557,33 @@ void Scene::seekImpl(ImportContext ctx)
             }
         }
 
-        float3* dst_points = Expand(m_mono_mesh->m_points_ex, num_triangles * 3);
-        int* dst_indices = Expand(m_mono_mesh->m_wireframe_indices, num_lines * 2);
-        const float3* src_points = points;
+ 
+        const float3* src_points = dst_points;
         const int* src_indices = indices.data();
+        int* dst_counts = Expand(m_mono_mesh->m_counts, num_faces);
+        int* dst_findices = Expand(m_mono_mesh->m_face_indices, num_indices);
+        int* dst_windices = Expand(m_mono_mesh->m_wireframe_indices, num_lines * 2);
+        float3* dst_points_ex = Expand(m_mono_mesh->m_points_ex, num_triangles * 3);
 
         // setup indices & vertices
+
+        for (int i = 0; i < num_faces; ++i)
+            dst_counts[i] = counts[i];
+
+        for (int i = 0; i < num_indices; ++i)
+            dst_findices[i] = src_indices[i] + index_offset;
+
         for (int c : counts) {
             if (c == 2) {
                 // add wire frame indices
-                *dst_indices++ = src_indices[0] + index_offset;
-                *dst_indices++ = src_indices[1] + index_offset;
+                *dst_windices++ = src_indices[0] + index_offset;
+                *dst_windices++ = src_indices[1] + index_offset;
             }
             else if (c > 2) {
                 // add wire frame indices
                 for (int fi = 0; fi < c; ++fi) {
-                    *dst_indices++ = src_indices[fi] + index_offset;
-                    *dst_indices++ = (fi == c - 1 ? src_indices[0] : src_indices[fi + 1]) + index_offset;
+                    *dst_windices++ = src_indices[fi] + index_offset;
+                    *dst_windices++ = (fi == c - 1 ? src_indices[0] : src_indices[fi + 1]) + index_offset;
                 }
 
                 // add triangle vertices
@@ -520,9 +592,9 @@ void Scene::seekImpl(ImportContext ctx)
                     int i0 = src_indices[0];
                     int i1 = src_indices[1 + fi];
                     int i2 = src_indices[2 + fi];
-                    *dst_points++ = src_points[i0];
-                    *dst_points++ = src_points[i1];
-                    *dst_points++ = src_points[i2];
+                    *dst_points_ex++ = src_points[i0];
+                    *dst_points_ex++ = src_points[i1];
+                    *dst_points_ex++ = src_points[i2];
                 }
             }
             src_indices += c;
