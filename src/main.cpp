@@ -267,7 +267,7 @@ EMSCRIPTEN_BINDINGS(wabc) {
     function("wabcSeek", &wabcSeek);
 
     function("wabcGetCameraCount", &wabcGetCameraCount);
-    function("wabcGetCameraPath", &wabcGetCameraPath, allow_raw_pointers());
+    function("wabcGetCameraPath", &wabcGetCameraPath);
     function("wabcSetActiveCamera", &wabcSetActiveCamera);
     function("wabcSetSensorFitMode", &wabcSetSensorFitMode);
     function("wabcSetFOV", &wabcSetFOV);
