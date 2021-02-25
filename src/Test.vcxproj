@@ -26,6 +26,9 @@
       <Project>{3c7d88e0-b0d0-4e63-9f3f-75530b2da797}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="SmallFBX\sfbx.natvis" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A369E5E1-3695-4AE0-8EBB-1826839687D1}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
