@@ -42,13 +42,13 @@ uint32_t Node::write(std::ostream& os, uint32_t start_offset)
 
     uint32_t property_size = 0;
     for (auto& prop : m_properties)
-        property_size += prop.getBytes();
+        property_size += prop.getSizeInBytes();
 
     uint32_t ret = 13 + m_name.length() + property_size;
     for (auto& child : m_children)
-        ret += child.getBytes();
+        ret += child.getSizeInBytes();
 
-    if (ret != getBytes())
+    if (ret != getSizeInBytes())
         throw std::runtime_error("bytes != getBytes()");
 
     write1(os, uint32_t(start_offset + ret));
@@ -84,19 +84,19 @@ void Node::addChild(Node&& child)
     m_children.push_back(child);
 }
 
-uint32_t Node::getBytes() const
-{
-    uint32_t ret = 13 + m_name.length();
-    for (auto& child : m_children)
-        ret += child.getBytes();
-    for (auto& prop : m_properties)
-        ret += prop.getBytes();
-    return ret;
-}
-
 const std::string& Node::getName() const
 {
     return m_name;
+}
+
+uint32_t Node::getSizeInBytes() const
+{
+    uint32_t ret = 13 + m_name.length();
+    for (auto& child : m_children)
+        ret += child.getSizeInBytes();
+    for (auto& prop : m_properties)
+        ret += prop.getSizeInBytes();
+    return ret;
 }
 
 const std::vector<Property>& Node::getProperties()

@@ -19,9 +19,9 @@ public:
     template<class T> void addProperty(const std::vector<T>& v) { addProperty(Property(v)); }
 
     void addChild(Node&& child);
-    uint32_t getBytes() const;
 
     const std::string& getName() const;
+    uint32_t getSizeInBytes() const;
     const std::vector<Property>& getProperties();
     const std::vector<Node>& getChildren();
 

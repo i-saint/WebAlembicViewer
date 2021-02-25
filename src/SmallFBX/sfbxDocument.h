@@ -1,4 +1,5 @@
 #pragma once
+
 #include "sfbxNode.h"
 
 namespace sfbx {
@@ -15,11 +16,11 @@ public:
 
     void createBasicStructure();
 
-    std::uint32_t getVersion();
+    uint32_t getVersion();
 
 public:
     std::vector<Node> m_nodes;
-    std::uint32_t m_version;
+    uint32_t m_version;
 };
 
 } // namespace sfbx
