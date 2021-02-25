@@ -1,7 +1,7 @@
 #pragma once
 #include <iostream>
 
-namespace fbx {
+namespace sfbx {
 
 template<class T>
 inline T read1(std::istream& is)
@@ -38,4 +38,4 @@ inline void writev(std::ostream& os, const void* src, size_t size)
     os.write((const char*)src, size);
 }
 
-} // namespace fbx
+} // namespace sfbx

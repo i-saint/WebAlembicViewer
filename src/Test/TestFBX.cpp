@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Test.h"
-#include "Fbx/fbxDocument.h"
+#include "SmallFBX/sfbxDocument.h"
 
 testCase(fbxRead)
 {

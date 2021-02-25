@@ -1,11 +1,11 @@
 #include "pch.h"
-#include "fbxProperty.h"
-#include "fbxUtil.h"
+#include "sfbxProperty.h"
+#include "sfbxUtil.h"
 
 #include <zlib.h>
 #pragma comment(lib, "zlib.lib")
 
-namespace fbx {
+namespace sfbx {
 
 static uint32_t GetArrayElementSize(PropertyType type)
 {
@@ -45,19 +45,19 @@ static inline void Assign(std::vector<char>& dst, const std::vector<T>& v)
     dst.assign((char*)v.data(), (char*)v.data() + s);
 }
 
-template<> void FBXProperty::operator=(const bool& v)    { m_type = PropertyType::Bool; Assign(m_data, (uint8_t)v); }
-template<> void FBXProperty::operator=(const int16_t& v) { m_type = PropertyType::Int16; Assign(m_data, v); }
-template<> void FBXProperty::operator=(const int32_t& v) { m_type = PropertyType::Int32; Assign(m_data, v); }
-template<> void FBXProperty::operator=(const int64_t& v) { m_type = PropertyType::Int64; Assign(m_data, v); }
-template<> void FBXProperty::operator=(const float& v)   { m_type = PropertyType::Float32; Assign(m_data, v); }
-template<> void FBXProperty::operator=(const double& v)  { m_type = PropertyType::Float64; Assign(m_data, v); }
+template<> void Property::operator=(const bool& v)    { m_type = PropertyType::Bool; Assign(m_data, (uint8_t)v); }
+template<> void Property::operator=(const int16_t& v) { m_type = PropertyType::Int16; Assign(m_data, v); }
+template<> void Property::operator=(const int32_t& v) { m_type = PropertyType::Int32; Assign(m_data, v); }
+template<> void Property::operator=(const int64_t& v) { m_type = PropertyType::Int64; Assign(m_data, v); }
+template<> void Property::operator=(const float& v)   { m_type = PropertyType::Float32; Assign(m_data, v); }
+template<> void Property::operator=(const double& v)  { m_type = PropertyType::Float64; Assign(m_data, v); }
 
-template<> void FBXProperty::operator=(const std::vector<int32_t>& v) { m_type = PropertyType::Int32Array; Assign(m_data, v); }
-template<> void FBXProperty::operator=(const std::vector<int64_t>& v) { m_type = PropertyType::Int64Array; Assign(m_data, v); }
-template<> void FBXProperty::operator=(const std::vector<float>& v)   { m_type = PropertyType::Float32Array; Assign(m_data, v); }
-template<> void FBXProperty::operator=(const std::vector<double>& v)  { m_type = PropertyType::Float32Array; Assign(m_data, v); }
+template<> void Property::operator=(const std::vector<int32_t>& v) { m_type = PropertyType::Int32Array; Assign(m_data, v); }
+template<> void Property::operator=(const std::vector<int64_t>& v) { m_type = PropertyType::Int64Array; Assign(m_data, v); }
+template<> void Property::operator=(const std::vector<float>& v)   { m_type = PropertyType::Float32Array; Assign(m_data, v); }
+template<> void Property::operator=(const std::vector<double>& v)  { m_type = PropertyType::Float32Array; Assign(m_data, v); }
 
-template<> void FBXProperty::operator=(const std::vector<bool>& v)
+template<> void Property::operator=(const std::vector<bool>& v)
 {
     // std::vector<bool> needs special care because it is actually a bit field.
     m_type = PropertyType::BoolArray;
@@ -67,12 +67,12 @@ template<> void FBXProperty::operator=(const std::vector<bool>& v)
         m_data[i] = (char)v[i];
 }
 
-template<> void FBXProperty::operator=(const std::string& v)
+template<> void Property::operator=(const std::string& v)
 {
     m_type = PropertyType::String;
     m_data.assign(v.begin(), v.end());
 }
-void FBXProperty::operator=(const char* v)
+void Property::operator=(const char* v)
 {
     m_type = PropertyType::String;
     m_data.clear();
@@ -81,31 +81,31 @@ void FBXProperty::operator=(const char* v)
 }
 
 
-template<class T> FBXProperty::FBXProperty(const T& v) { *this = v; }
-template FBXProperty::FBXProperty(const bool& v);
-template FBXProperty::FBXProperty(const int16_t& v);
-template FBXProperty::FBXProperty(const int32_t& v);
-template FBXProperty::FBXProperty(const int64_t& v);
-template FBXProperty::FBXProperty(const float& v);
-template FBXProperty::FBXProperty(const double& v);
-template FBXProperty::FBXProperty(const std::vector<int32_t>& v);
-template FBXProperty::FBXProperty(const std::vector<int64_t>& v);
-template FBXProperty::FBXProperty(const std::vector<float>& v);
-template FBXProperty::FBXProperty(const std::vector<double>& v);
-template FBXProperty::FBXProperty(const std::string& v);
-FBXProperty::FBXProperty(const char* v) { *this = v; }
+template<class T> Property::Property(const T& v) { *this = v; }
+template Property::Property(const bool& v);
+template Property::Property(const int16_t& v);
+template Property::Property(const int32_t& v);
+template Property::Property(const int64_t& v);
+template Property::Property(const float& v);
+template Property::Property(const double& v);
+template Property::Property(const std::vector<int32_t>& v);
+template Property::Property(const std::vector<int64_t>& v);
+template Property::Property(const std::vector<float>& v);
+template Property::Property(const std::vector<double>& v);
+template Property::Property(const std::string& v);
+Property::Property(const char* v) { *this = v; }
 
-FBXProperty::FBXProperty(PropertyType type, const std::vector<char>& data)
+Property::Property(PropertyType type, const std::vector<char>& data)
     : m_type(type)
     , m_data(data)
 {}
 
-FBXProperty::FBXProperty(std::istream& is)
+Property::Property(std::istream& is)
 {
     read(is);
 }
 
-void FBXProperty::read(std::istream& is)
+void Property::read(std::istream& is)
 {
     m_type = read1<PropertyType>(is);
     if (m_type == PropertyType::String || m_type == PropertyType::Raw) {
@@ -154,7 +154,7 @@ void FBXProperty::read(std::istream& is)
     }
 }
 
-void FBXProperty::write(std::ostream& os)
+void Property::write(std::ostream& os)
 {
     write1(os, m_type);
     if (m_type == PropertyType::Raw || m_type == PropertyType::String) {
@@ -186,37 +186,37 @@ static inline std::string Base16Number(uint8_t n)
     return std::string() + Base16Letter(n >> 4) + Base16Letter(n);
 }
 
-PropertyType FBXProperty::getType() const
+PropertyType Property::getType() const
 {
     return m_type;
 }
 
-bool FBXProperty::isArray() const
+bool Property::isArray() const
 {
     return (char)m_type > 'Z';
 }
 
-uint32_t FBXProperty::getArraySize() const
+uint32_t Property::getArraySize() const
 {
     return isArray() ? m_data.size() / GetArrayElementSize(m_type) : 1;
 }
 
-template<class T> T FBXProperty::getValue() const
+template<class T> T Property::getValue() const
 {
     return *(T*)m_data.data();
 }
 
-template<class T> std::span<T> FBXProperty::getArray() const
+template<class T> std::span<T> Property::getArray() const
 {
     return std::span<T>{ (T*)m_data.data(), m_data.size() / GetArrayElementSize(m_type) };
 }
 
-std::string FBXProperty::getString() const
+std::string Property::getString() const
 {
     return std::string(m_data.data(), m_data.size());
 }
 
-std::string FBXProperty::toString() const
+std::string Property::toString() const
 {
     switch (m_type) {
     case PropertyType::Bool: return getValue<bool>() ? "true" : "false";
@@ -287,7 +287,7 @@ std::string FBXProperty::toString() const
     return "";
 }
 
-uint32_t FBXProperty::getBytes() const
+uint32_t Property::getBytes() const
 {
     switch (m_type) {
     case PropertyType::Bool:
@@ -314,4 +314,4 @@ uint32_t FBXProperty::getBytes() const
     }
 }
 
-} // namespace fbx
+} // namespace sfbx

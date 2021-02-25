@@ -1,15 +1,15 @@
 #include "pch.h"
-#include "fbxNode.h"
-#include "fbxUtil.h"
+#include "sfbxNode.h"
+#include "sfbxUtil.h"
 
-namespace fbx {
+namespace sfbx {
 
-FBXNode::FBXNode(std::string name)
+Node::Node(std::string name)
     : m_name(name)
 {
 }
 
-uint32_t FBXNode::read(std::istream& is, uint32_t start_offset)
+uint32_t Node::read(std::istream& is, uint32_t start_offset)
 {
     uint32_t ret = 0;
 
@@ -21,18 +21,18 @@ uint32_t FBXNode::read(std::istream& is, uint32_t start_offset)
     ret += 13 + name_len;
 
     for (uint32_t i = 0; i < num_props; i++)
-        addProperty(FBXProperty(is));
+        addProperty(Property(is));
     ret += prop_size;
 
     while (start_offset + ret < end_offset) {
-        FBXNode child;
+        Node child;
         ret += child.read(is, start_offset + ret);
         addChild(std::move(child));
     }
     return ret;
 }
 
-uint32_t FBXNode::write(std::ostream& os, uint32_t start_offset)
+uint32_t Node::write(std::ostream& os, uint32_t start_offset)
 {
     if (isNull()) {
         for (int i = 0; i < 13; i++)
@@ -67,24 +67,24 @@ uint32_t FBXNode::write(std::ostream& os, uint32_t start_offset)
     return ret;
 }
 
-bool FBXNode::isNull()
+bool Node::isNull()
 {
     return m_children.size() == 0
             && m_properties.size() == 0
             && m_name.length() == 0;
 }
 
-void FBXNode::addProperty(FBXProperty&& v)
+void Node::addProperty(Property&& v)
 {
     m_properties.push_back(v);
 }
 
-void FBXNode::addChild(FBXNode&& child)
+void Node::addChild(Node&& child)
 {
     m_children.push_back(child);
 }
 
-uint32_t FBXNode::getBytes() const
+uint32_t Node::getBytes() const
 {
     uint32_t ret = 13 + m_name.length();
     for (auto& child : m_children)
@@ -94,19 +94,19 @@ uint32_t FBXNode::getBytes() const
     return ret;
 }
 
-const std::string& FBXNode::getName() const
+const std::string& Node::getName() const
 {
     return m_name;
 }
 
-const std::vector<FBXProperty>& FBXNode::getProperties()
+const std::vector<Property>& Node::getProperties()
 {
     return m_properties;
 }
 
-const std::vector<FBXNode>& FBXNode::getChildren()
+const std::vector<Node>& Node::getChildren()
 {
     return m_children;
 }
 
-} // namespace fbx
+} // namespace sfbx

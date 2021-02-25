@@ -1,15 +1,15 @@
 #include "pch.h"
-#include "fbxDocument.h"
-#include "fbxUtil.h"
+#include "sfbxDocument.h"
+#include "sfbxUtil.h"
 
-namespace fbx {
+namespace sfbx {
 
-FBXDocument::FBXDocument()
+Document::Document()
 {
     m_version = 7400;
 }
 
-void FBXDocument::read(const std::string& fname)
+void Document::read(const std::string& fname)
 {
     std::ifstream file;
     file.open(fname, std::ios::in | std::ios::binary);
@@ -22,7 +22,7 @@ void FBXDocument::read(const std::string& fname)
     file.close();
 }
 
-void FBXDocument::write(const std::string& fname)
+void Document::write(const std::string& fname)
 {
     std::ofstream file;
     file.open(fname, std::ios::out | std::ios::binary);
@@ -47,7 +47,7 @@ static bool checkMagic(std::istream& is)
     return true;
 }
 
-void FBXDocument::read(std::istream &is)
+void Document::read(std::istream &is)
 {
     is >> std::noskipws;
     if (!checkMagic(is))
@@ -61,7 +61,7 @@ void FBXDocument::read(std::istream &is)
 
     uint32_t start_offset = 27; // magic: 21+2, version: 4
     do {
-        FBXNode node;
+        Node node;
         start_offset += node.read(is, start_offset);
         if (node.isNull())
             break;
@@ -69,7 +69,7 @@ void FBXDocument::read(std::istream &is)
     } while (true);
 }
 
-void FBXDocument::write(std::ostream& os)
+void Document::write(std::ostream& os)
 {
     write1(os, "Kaydara FBX Binary  ");
     write1(os, (uint8_t)0);
@@ -81,7 +81,7 @@ void FBXDocument::write(std::ostream& os)
     for (auto& node : m_nodes)
         offset += node.write(os, offset);
 
-    FBXNode null_node;
+    Node null_node;
     offset += null_node.write(os, offset);
 
     uint8_t footer[] = {
@@ -101,20 +101,20 @@ void FBXDocument::write(std::ostream& os)
     writev(os, (char*)footer, std::size(footer));
 }
 
-void FBXDocument::createBasicStructure()
+void Document::createBasicStructure()
 {
-    auto addPropertyNode = [](FBXNode& node, const std::string& name, const auto& value) {
-        FBXNode c(name);
+    auto addPropertyNode = [](Node& node, const std::string& name, const auto& value) {
+        Node c(name);
         c.addProperty(value);
         node.addChild(std::move(c));
     };
 
-    FBXNode headerExtension("FBXHeaderExtension");
+    Node headerExtension("FBXHeaderExtension");
     addPropertyNode(headerExtension, "FBXHeaderVersion", (int32_t)1003);
     addPropertyNode(headerExtension, "FBXVersion", (int32_t)getVersion());
     addPropertyNode(headerExtension, "EncryptionType", (int32_t)0);
     {
-        FBXNode timestamp("CreationTimeStamp");
+        Node timestamp("CreationTimeStamp");
         addPropertyNode(timestamp, "Version", (int32_t)1000);
         addPropertyNode(timestamp, "Year", (int32_t)2017);
         addPropertyNode(timestamp, "Month", (int32_t)5);
@@ -127,14 +127,14 @@ void FBXDocument::createBasicStructure()
     }
     addPropertyNode(headerExtension, "Creator", std::string("SmallFBX 1.0.0"));
     {
-        FBXNode sceneInfo("SceneInfo");
+        Node sceneInfo("SceneInfo");
         sceneInfo.addProperty(PropertyType::String,
             std::vector<char>{'G', 'l', 'o', 'b', 'a', 'l', 'I', 'n', 'f', 'o', 0, 1, 'S', 'c', 'e', 'n', 'e', 'I', 'n', 'f', 'o'});
         sceneInfo.addProperty("UserData");
         addPropertyNode(sceneInfo, "Type", "UserData");
         addPropertyNode(sceneInfo, "Version", 100);
         {
-            FBXNode metadata("MetaData");
+            Node metadata("MetaData");
             addPropertyNode(metadata, "Version", 100);
             addPropertyNode(metadata, "Title", "");
             addPropertyNode(metadata, "Subject", "");
@@ -145,9 +145,9 @@ void FBXDocument::createBasicStructure()
             sceneInfo.addChild(std::move(metadata));
         }
         {
-            FBXNode properties("Properties70");
+            Node properties("Properties70");
             {
-                FBXNode p("P");
+                Node p("P");
                 p.addProperty("DocumentUrl");
                 p.addProperty("KString");
                 p.addProperty("Url");
@@ -156,7 +156,7 @@ void FBXDocument::createBasicStructure()
                 properties.addChild(std::move(p));
             }
             {
-                FBXNode p("P");
+                Node p("P");
                 p.addProperty("SrcDocumentUrl");
                 p.addProperty("KString");
                 p.addProperty("Url");
@@ -165,7 +165,7 @@ void FBXDocument::createBasicStructure()
                 properties.addChild(std::move(p));
             }
             {
-                FBXNode p("P");
+                Node p("P");
                 p.addProperty("Original");
                 p.addProperty("Compound");
                 p.addProperty("");
@@ -173,7 +173,7 @@ void FBXDocument::createBasicStructure()
                 properties.addChild(std::move(p));
             }
             {
-                FBXNode p("P");
+                Node p("P");
                 p.addProperty("Original|ApplicationVendor");
                 p.addProperty("KString");
                 p.addProperty("");
@@ -182,7 +182,7 @@ void FBXDocument::createBasicStructure()
                 properties.addChild(std::move(p));
             }
             {
-                FBXNode p("P");
+                Node p("P");
                 p.addProperty("Original|ApplicationName");
                 p.addProperty("KString");
                 p.addProperty("");
@@ -191,7 +191,7 @@ void FBXDocument::createBasicStructure()
                 properties.addChild(std::move(p));
             }
             {
-                FBXNode p("P");
+                Node p("P");
                 p.addProperty("Original|ApplicationVersion");
                 p.addProperty("KString");
                 p.addProperty("");
@@ -200,7 +200,7 @@ void FBXDocument::createBasicStructure()
                 properties.addChild(std::move(p));
             }
             {
-                FBXNode p("P");
+                Node p("P");
                 p.addProperty("Original|DateTime_GMT");
                 p.addProperty("DateTime");
                 p.addProperty("");
@@ -209,7 +209,7 @@ void FBXDocument::createBasicStructure()
                 properties.addChild(std::move(p));
             }
             {
-                FBXNode p("P");
+                Node p("P");
                 p.addProperty("Original|FileName");
                 p.addProperty("KString");
                 p.addProperty("");
@@ -218,7 +218,7 @@ void FBXDocument::createBasicStructure()
                 properties.addChild(std::move(p));
             }
             {
-                FBXNode p("P");
+                Node p("P");
                 p.addProperty("LastSaved");
                 p.addProperty("Compound");
                 p.addProperty("");
@@ -226,7 +226,7 @@ void FBXDocument::createBasicStructure()
                 properties.addChild(std::move(p));
             }
             {
-                FBXNode p("P");
+                Node p("P");
                 p.addProperty("LastSaved|ApplicationVendor");
                 p.addProperty("KString");
                 p.addProperty("");
@@ -235,7 +235,7 @@ void FBXDocument::createBasicStructure()
                 properties.addChild(std::move(p));
             }
             {
-                FBXNode p("P");
+                Node p("P");
                 p.addProperty("LastSaved|ApplicationName");
                 p.addProperty("KString");
                 p.addProperty("");
@@ -244,7 +244,7 @@ void FBXDocument::createBasicStructure()
                 properties.addChild(std::move(p));
             }
             {
-                FBXNode p("P");
+                Node p("P");
                 p.addProperty("LastSaved|DateTime_GMT");
                 p.addProperty("DateTime");
                 p.addProperty("");
@@ -261,9 +261,9 @@ void FBXDocument::createBasicStructure()
 
 }
 
-std::uint32_t FBXDocument::getVersion()
+std::uint32_t Document::getVersion()
 {
     return m_version;
 }
 
-} // namespace fbx
+} // namespace sfbx

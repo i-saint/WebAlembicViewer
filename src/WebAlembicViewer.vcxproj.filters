@@ -5,35 +5,35 @@
     <ClCompile Include="SceneGraph.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="FBX\fbxProperty.cpp">
-      <Filter>FBX</Filter>
+    <ClCompile Include="SmallFBX\sfbxProperty.cpp">
+      <Filter>SmallFBX</Filter>
     </ClCompile>
-    <ClCompile Include="FBX\fbxDocument.cpp">
-      <Filter>FBX</Filter>
+    <ClCompile Include="SmallFBX\sfbxDocument.cpp">
+      <Filter>SmallFBX</Filter>
     </ClCompile>
-    <ClCompile Include="FBX\fbxNode.cpp">
-      <Filter>FBX</Filter>
+    <ClCompile Include="SmallFBX\sfbxNode.cpp">
+      <Filter>SmallFBX</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="VectorMath.h" />
     <ClInclude Include="WebAlembicViewer.h" />
-    <ClInclude Include="FBX\fbxProperty.h">
-      <Filter>FBX</Filter>
+    <ClInclude Include="SmallFBX\sfbxProperty.h">
+      <Filter>SmallFBX</Filter>
     </ClInclude>
-    <ClInclude Include="FBX\fbxDocument.h">
-      <Filter>FBX</Filter>
+    <ClInclude Include="SmallFBX\sfbxUtil.h">
+      <Filter>SmallFBX</Filter>
     </ClInclude>
-    <ClInclude Include="FBX\fbxNode.h">
-      <Filter>FBX</Filter>
+    <ClInclude Include="SmallFBX\sfbxDocument.h">
+      <Filter>SmallFBX</Filter>
     </ClInclude>
-    <ClInclude Include="FBX\fbxUtil.h">
-      <Filter>FBX</Filter>
+    <ClInclude Include="SmallFBX\sfbxNode.h">
+      <Filter>SmallFBX</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="FBX">
+    <Filter Include="SmallFBX">
       <UniqueIdentifier>{704f8281-ff1a-4a99-9a47-0868269799d2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>

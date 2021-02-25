@@ -1,10 +1,9 @@
 #pragma once
 
-#include <memory>
 #include <iostream>
 #include <vector>
 
-namespace fbx {
+namespace sfbx {
 
 using int8 = int8_t;
 using int16 = int16_t;
@@ -35,13 +34,13 @@ enum class PropertyType : uint8_t
     Float64Array = 'd', // std::span<float64>
 };
 
-class FBXProperty
+class Property
 {
 public:
-    explicit FBXProperty(std::istream &is);
-    explicit FBXProperty(const char* v);
-    template<class T> explicit FBXProperty(const T& v);
-    FBXProperty(PropertyType type, const std::vector<char>& data);
+    explicit Property(std::istream &is);
+    explicit Property(const char* v);
+    template<class T> explicit Property(const T& v);
+    Property(PropertyType type, const std::vector<char>& data);
 
     void read(std::istream& input);
     void write(std::ostream& output);
@@ -64,4 +63,4 @@ private:
     std::vector<char> m_data;
 };
 
-} // namespace fbx
+} // namespace sfbx

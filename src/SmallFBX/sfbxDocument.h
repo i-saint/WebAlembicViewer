@@ -1,12 +1,12 @@
 #pragma once
-#include "fbxNode.h"
+#include "sfbxNode.h"
 
-namespace fbx {
+namespace sfbx {
 
-class FBXDocument
+class Document
 {
 public:
-    FBXDocument();
+    Document();
     void read(std::istream &input);
     void write(std::ostream& output);
 
@@ -18,8 +18,8 @@ public:
     std::uint32_t getVersion();
 
 public:
-    std::vector<FBXNode> m_nodes;
+    std::vector<Node> m_nodes;
     std::uint32_t m_version;
 };
 
-} // namespace fbx
+} // namespace sfbx
