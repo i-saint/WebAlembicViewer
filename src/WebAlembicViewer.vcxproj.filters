@@ -28,6 +28,9 @@
     <ClInclude Include="FBX\fbxNode.h">
       <Filter>FBX</Filter>
     </ClInclude>
+    <ClInclude Include="FBX\fbxUtil.h">
+      <Filter>FBX</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="FBX">

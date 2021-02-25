@@ -11,26 +11,25 @@ FBXNode::FBXNode(std::string name)
 
 uint32_t FBXNode::read(std::istream& is, uint32_t start_offset)
 {
-    uint32_t bytes = 0;
+    uint32_t ret = 0;
 
-    uint32_t endOffset = read1<uint32_t>(is);
-    uint32_t numProperties = read1<uint32_t>(is);
-    uint32_t propertyListLength = read1<uint32_t>(is);
-    uint8_t nameLength = read1<uint8_t>(is);
-    read_s(is, m_name, nameLength);
-    bytes += 13 + nameLength;
+    uint32_t end_offset = read1<uint32_t>(is);
+    uint32_t num_props = read1<uint32_t>(is);
+    uint32_t prop_size = read1<uint32_t>(is);
+    uint8_t name_len = read1<uint8_t>(is);
+    readv(is, m_name, name_len);
+    ret += 13 + name_len;
 
-    for (uint32_t i = 0; i < numProperties; i++) {
+    for (uint32_t i = 0; i < num_props; i++)
         addProperty(FBXProperty(is));
-    }
-    bytes += propertyListLength;
+    ret += prop_size;
 
-    while (start_offset + bytes < endOffset) {
+    while (start_offset + ret < end_offset) {
         FBXNode child;
-        bytes += child.read(is, start_offset + bytes);
+        ret += child.read(is, start_offset + ret);
         addChild(std::move(child));
     }
-    return bytes;
+    return ret;
 }
 
 uint32_t FBXNode::write(std::ostream& os, uint32_t start_offset)
@@ -41,26 +40,31 @@ uint32_t FBXNode::write(std::ostream& os, uint32_t start_offset)
         return 13;
     }
 
-    uint32_t propertyListLength = 0;
-    for (auto prop : m_properties) propertyListLength += prop.getBytes();
-    uint32_t bytes = 13 + m_name.length() + propertyListLength;
-    for (auto child : m_children) bytes += child.getBytes();
+    uint32_t property_size = 0;
+    for (auto& prop : m_properties)
+        property_size += prop.getBytes();
 
-    if (bytes != getBytes())
+    uint32_t ret = 13 + m_name.length() + property_size;
+    for (auto& child : m_children)
+        ret += child.getBytes();
+
+    if (ret != getBytes())
         throw std::runtime_error("bytes != getBytes()");
 
-    write1(os, start_offset + bytes); // endOffset
-    write1(os, (uint32_t)m_properties.size()); // numProperties
-    write1(os, propertyListLength); // propertyListLength
-    write1(os, (uint8_t)m_name.length());
+    write1(os, uint32_t(start_offset + ret));
+    write1(os, uint32_t(m_properties.size()));
+    write1(os, uint32_t(property_size));
+    write1(os, uint8_t(m_name.length()));
     write1(os, m_name);
 
-    bytes = 13 + m_name.length() + propertyListLength;
+    ret = 13 + m_name.length() + property_size;
 
-    for (auto prop : m_properties) prop.write(os);
-    for (auto child : m_children) bytes += child.write(os, start_offset + bytes);
+    for (auto& prop : m_properties)
+        prop.write(os);
+    for (auto& child : m_children)
+        ret += child.write(os, start_offset + ret);
 
-    return bytes;
+    return ret;
 }
 
 bool FBXNode::isNull()
@@ -70,26 +74,24 @@ bool FBXNode::isNull()
             && m_name.length() == 0;
 }
 
-void FBXNode::addProperty(const FBXProperty& v)
+void FBXNode::addProperty(FBXProperty&& v)
 {
     m_properties.push_back(v);
 }
 
-void FBXNode::addChild(FBXNode child)
+void FBXNode::addChild(FBXNode&& child)
 {
     m_children.push_back(child);
 }
 
 uint32_t FBXNode::getBytes() const
 {
-    uint32_t bytes = 13 + m_name.length();
-    for(auto& child : m_children) {
-        bytes += child.getBytes();
-    }
-    for(auto& prop : m_properties) {
-        bytes += prop.getBytes();
-    }
-    return bytes;
+    uint32_t ret = 13 + m_name.length();
+    for (auto& child : m_children)
+        ret += child.getBytes();
+    for (auto& prop : m_properties)
+        ret += prop.getBytes();
+    return ret;
 }
 
 const std::string& FBXNode::getName() const
