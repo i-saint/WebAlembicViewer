@@ -27,37 +27,25 @@ static uint32_t SizeOfElement(PropertyType type)
         return 8;
 
     default:
-        return 0;
+        return 1;
     }
 }
 
 template<class T>
-static inline void Assign(std::vector<char>& dst, const T& v)
-{
-    size_t s = sizeof(T);
-    dst.resize(s);
-    dst.assign((char*)&v, (char*)&v + s);
-}
-template<class T>
-static inline void Assign(std::vector<char>& dst, const span<T>& v)
+static inline void Assign(RawVector<char>& dst, const span<T>& v)
 {
     size_t s = sizeof(T) * v.size();
     dst.resize(s);
     dst.assign((char*)v.data(), (char*)v.data() + s);
 }
-template<class T>
-static inline void Assign(std::vector<char>& dst, const std::vector<T>& v)
-{
-    Assign(dst, make_span(v));
-}
 
-template<> void Property::operator=(const bool& v)    { m_type = PropertyType::Bool; Assign(m_data, (uint8_t)v); }
-template<> void Property::operator=(const int8& v)    { m_type = PropertyType::Int8; Assign(m_data, v); }
-template<> void Property::operator=(const int16& v)   { m_type = PropertyType::Int16; Assign(m_data, v); }
-template<> void Property::operator=(const int32& v)   { m_type = PropertyType::Int32; Assign(m_data, v); }
-template<> void Property::operator=(const int64& v)   { m_type = PropertyType::Int64; Assign(m_data, v); }
-template<> void Property::operator=(const float32& v) { m_type = PropertyType::Float32; Assign(m_data, v); }
-template<> void Property::operator=(const float64& v) { m_type = PropertyType::Float64; Assign(m_data, v); }
+template<> void Property::operator=(const bool& v)    { m_type = PropertyType::Bool; m_scalar.i8 = v; }
+template<> void Property::operator=(const int8& v)    { m_type = PropertyType::Int8; m_scalar.i8 = v; }
+template<> void Property::operator=(const int16& v)   { m_type = PropertyType::Int16; m_scalar.i16 = v; }
+template<> void Property::operator=(const int32& v)   { m_type = PropertyType::Int32; m_scalar.i32 = v; }
+template<> void Property::operator=(const int64& v)   { m_type = PropertyType::Int64; m_scalar.i64 = v; }
+template<> void Property::operator=(const float32& v) { m_type = PropertyType::Float32; m_scalar.f32 = v; }
+template<> void Property::operator=(const float64& v) { m_type = PropertyType::Float64; m_scalar.f64 = v; }
 
 template<> void Property::operator=(const span<bool>& v)    { m_type = PropertyType::BoolArray; Assign(m_data, v); }
 template<> void Property::operator=(const span<int8>& v)    { m_type = PropertyType::Int8Array; Assign(m_data, v); }
@@ -116,7 +104,7 @@ template Property::Property(const std::vector<float64>& v);
 template Property::Property(const std::string& v);
 Property::Property(const char* v) { *this = v; }
 
-Property::Property(PropertyType type, const std::vector<char>& data)
+Property::Property(PropertyType type, const RawVector<char>& data)
     : m_type(type)
     , m_data(data)
 {}
@@ -217,7 +205,7 @@ uint32_t Property::getArraySize() const
     return m_data.size() / SizeOfElement(m_type);
 }
 
-template<> bool    Property::getValue() const { return m_scalar.b; }
+template<> bool    Property::getValue() const { return m_scalar.i8; }
 template<> int8    Property::getValue() const { return m_scalar.i8; }
 template<> int16   Property::getValue() const { return m_scalar.i16; }
 template<> int32   Property::getValue() const { return m_scalar.i32; }

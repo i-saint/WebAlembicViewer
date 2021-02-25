@@ -6,17 +6,15 @@ namespace sfbx {
 class Node
 {
 public:
-    Node(std::string name = "");
+    Node(const std::string& name = "");
 
     std::uint32_t read(std::istream &input, uint32_t start_offset);
     std::uint32_t write(std::ostream &output, uint32_t start_offset);
     bool isNull();
 
     void addProperty(PropertyPtr v);
-    void addProperty(PropertyType t, const std::vector<char>& v) { addProperty(MakeProperty(t, v)); }
-    void addProperty(const char* v) { addProperty(MakeProperty(v)); }
-    template<class T> void addProperty(const T& v) { addProperty(MakeProperty(v)); }
-    template<class T> void addProperty(const std::vector<T>& v) { addProperty(MakeProperty(v)); }
+    template<class... T>
+    void addProperty(T&&... v) { addProperty(MakeProperty(std::forward<T>(v)...)); }
 
     void addChild(NodePtr child);
 

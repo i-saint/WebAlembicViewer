@@ -130,7 +130,7 @@ void Document::createBasicStructure()
     {
         NodePtr sceneInfo = MakeNode("SceneInfo");
         sceneInfo->addProperty(PropertyType::String,
-            std::vector<char>{'G', 'l', 'o', 'b', 'a', 'l', 'I', 'n', 'f', 'o', 0, 1, 'S', 'c', 'e', 'n', 'e', 'I', 'n', 'f', 'o'});
+            RawVector<char>{'G', 'l', 'o', 'b', 'a', 'l', 'I', 'n', 'f', 'o', 0, 1, 'S', 'c', 'e', 'n', 'e', 'I', 'n', 'f', 'o'});
         sceneInfo->addProperty("UserData");
         addPropertyNode(sceneInfo, "Type", "UserData");
         addPropertyNode(sceneInfo, "Version", 100);

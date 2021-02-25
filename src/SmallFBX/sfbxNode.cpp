@@ -4,7 +4,7 @@
 
 namespace sfbx {
 
-Node::Node(std::string name)
+Node::Node(const std::string& name)
     : m_name(name)
 {
 }

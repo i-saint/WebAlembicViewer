@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "sfbxTypes.h"
+#include "sfbxRawVector.h"
 
 namespace sfbx {
 
@@ -35,8 +36,9 @@ public:
     explicit Property(std::istream &is);
     explicit Property(const char* v);
     template<class T> explicit Property(const T& v);
-    Property(PropertyType type, const std::vector<char>& data);
+    Property(PropertyType type, const RawVector<char>& data);
 
+    // T: corresponding types with PropertyType (bool ... float64 and std::span<> & std::vector<>, std::string)
     template<class T> void operator=(const T& v);
     void operator=(const char* v);
 
@@ -57,7 +59,6 @@ public:
 private:
     PropertyType m_type;
     union {
-        bool b;
         int8 i8;
         int16 i16;
         int32 i32;
@@ -65,7 +66,7 @@ private:
         float32 f32;
         float64 f64;
     } m_scalar{};
-    std::vector<char> m_data;
+    RawVector<char> m_data;
 };
 
 template<class... T>

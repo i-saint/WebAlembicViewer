@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include "sfbxTypes.h"
+#include "sfbxRawVector.h"
 
 namespace sfbx {
 
@@ -39,6 +40,7 @@ inline void writev(std::ostream& os, const void* src, size_t size)
     os.write((const char*)src, size);
 }
 
+template<class T> inline span<T> make_span(const RawVector<T>& v) { return { (T*)v.data(), v.size() }; }
 template<class T> inline span<T> make_span(const std::vector<T>& v) { return { (T*)v.data(), v.size() }; }
 template<class T> inline span<T> make_span(const T* v, size_t n) { return { (T*)v, n }; }
 

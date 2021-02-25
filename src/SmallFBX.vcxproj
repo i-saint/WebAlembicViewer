@@ -25,6 +25,7 @@
     <ClInclude Include="SmallFBX\sfbxGeometry.h" />
     <ClInclude Include="SmallFBX\sfbxNode.h" />
     <ClInclude Include="SmallFBX\sfbxProperty.h" />
+    <ClInclude Include="SmallFBX\sfbxRawVector.h" />
     <ClInclude Include="SmallFBX\sfbxTypes.h" />
     <ClInclude Include="SmallFBX\sfbxUtil.h" />
     <ClInclude Include="SmallFBX\SmallFBX.h" />
