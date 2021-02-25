@@ -25,9 +25,9 @@ uint32_t Node::read(std::istream& is, uint32_t start_offset)
     ret += prop_size;
 
     while (start_offset + ret < end_offset) {
-        Node child;
-        ret += child.read(is, start_offset + ret);
-        addChild(std::move(child));
+        auto child = MakeNode();
+        ret += child->read(is, start_offset + ret);
+        addChild(child);
     }
     return ret;
 }
@@ -42,11 +42,11 @@ uint32_t Node::write(std::ostream& os, uint32_t start_offset)
 
     uint32_t property_size = 0;
     for (auto& prop : m_properties)
-        property_size += prop.getSizeInBytes();
+        property_size += prop->getSizeInBytes();
 
     uint32_t ret = 13 + m_name.length() + property_size;
     for (auto& child : m_children)
-        ret += child.getSizeInBytes();
+        ret += child->getSizeInBytes();
 
     if (ret != getSizeInBytes())
         throw std::runtime_error("bytes != getBytes()");
@@ -60,9 +60,9 @@ uint32_t Node::write(std::ostream& os, uint32_t start_offset)
     ret = 13 + m_name.length() + property_size;
 
     for (auto& prop : m_properties)
-        prop.write(os);
+        prop->write(os);
     for (auto& child : m_children)
-        ret += child.write(os, start_offset + ret);
+        ret += child->write(os, start_offset + ret);
 
     return ret;
 }
@@ -74,12 +74,12 @@ bool Node::isNull()
             && m_name.length() == 0;
 }
 
-void Node::addProperty(Property&& v)
+void Node::addProperty(PropertyPtr v)
 {
     m_properties.push_back(v);
 }
 
-void Node::addChild(Node&& child)
+void Node::addChild(NodePtr child)
 {
     m_children.push_back(child);
 }
@@ -93,18 +93,18 @@ uint32_t Node::getSizeInBytes() const
 {
     uint32_t ret = 13 + m_name.length();
     for (auto& child : m_children)
-        ret += child.getSizeInBytes();
+        ret += child->getSizeInBytes();
     for (auto& prop : m_properties)
-        ret += prop.getSizeInBytes();
+        ret += prop->getSizeInBytes();
     return ret;
 }
 
-const std::vector<Property>& Node::getProperties()
+const std::vector<PropertyPtr>& Node::getProperties()
 {
     return m_properties;
 }
 
-const std::vector<Node>& Node::getChildren()
+const std::vector<NodePtr>& Node::getChildren()
 {
     return m_children;
 }

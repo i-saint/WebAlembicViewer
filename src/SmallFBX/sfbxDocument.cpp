@@ -37,10 +37,11 @@ void Document::write(const std::string& fname)
 static bool checkMagic(std::istream& is)
 {
     const char magic[] = "Kaydara FBX Binary  ";
-    for (char c : magic) {
-        if (read1<char>(is) != c)
-            return false;
-    }
+    char buf[20];
+    readv(is, buf, 20);
+    if (memcmp(buf, magic, 20) != 0)
+        return false;
+
     if (read1<uint8_t>(is) != 0x00) return false;
     if (read1<uint8_t>(is) != 0x1A) return false;
     if (read1<uint8_t>(is) != 0x00) return false;
@@ -55,15 +56,15 @@ void Document::read(std::istream &is)
 
     uint32_t version = read1<uint32_t>(is);
 
-    uint32_t maxVersion = 7400;
-    if(version > maxVersion) throw "Unsupported FBX version "+std::to_string(version)
-                            + " latest supported version is "+std::to_string(maxVersion);
+    //uint32_t maxVersion = 7400;
+    //if(version > maxVersion) throw "Unsupported FBX version "+std::to_string(version)
+    //                        + " latest supported version is "+std::to_string(maxVersion);
 
     uint32_t start_offset = 27; // magic: 21+2, version: 4
     do {
-        Node node;
-        start_offset += node.read(is, start_offset);
-        if (node.isNull())
+        NodePtr node = MakeNode();
+        start_offset += node->read(is, start_offset);
+        if (node->isNull())
             break;
         m_nodes.push_back(node);
     } while (true);
@@ -79,7 +80,7 @@ void Document::write(std::ostream& os)
 
     uint32_t offset = 27; // magic: 21+2, version: 4
     for (auto& node : m_nodes)
-        offset += node.write(os, offset);
+        offset += node->write(os, offset);
 
     Node null_node;
     offset += null_node.write(os, offset);
@@ -103,18 +104,18 @@ void Document::write(std::ostream& os)
 
 void Document::createBasicStructure()
 {
-    auto addPropertyNode = [](Node& node, const std::string& name, const auto& value) {
-        Node c(name);
-        c.addProperty(value);
-        node.addChild(std::move(c));
+    auto addPropertyNode = [](NodePtr node, const std::string& name, const auto& value) {
+        auto child = MakeNode(name);
+        child->addProperty(value);
+        node->addChild(child);
     };
 
-    Node headerExtension("FBXHeaderExtension");
+    NodePtr headerExtension = MakeNode("FBXHeaderExtension");
     addPropertyNode(headerExtension, "FBXHeaderVersion", (int32_t)1003);
     addPropertyNode(headerExtension, "FBXVersion", (int32_t)getVersion());
     addPropertyNode(headerExtension, "EncryptionType", (int32_t)0);
     {
-        Node timestamp("CreationTimeStamp");
+        NodePtr timestamp = MakeNode("CreationTimeStamp");
         addPropertyNode(timestamp, "Version", (int32_t)1000);
         addPropertyNode(timestamp, "Year", (int32_t)2017);
         addPropertyNode(timestamp, "Month", (int32_t)5);
@@ -123,18 +124,18 @@ void Document::createBasicStructure()
         addPropertyNode(timestamp, "Minute", (int32_t)11);
         addPropertyNode(timestamp, "Second", (int32_t)46);
         addPropertyNode(timestamp, "Millisecond", (int32_t)917);
-        headerExtension.addChild(std::move(timestamp));
+        headerExtension->addChild(timestamp);
     }
     addPropertyNode(headerExtension, "Creator", std::string("SmallFBX 1.0.0"));
     {
-        Node sceneInfo("SceneInfo");
-        sceneInfo.addProperty(PropertyType::String,
+        NodePtr sceneInfo = MakeNode("SceneInfo");
+        sceneInfo->addProperty(PropertyType::String,
             std::vector<char>{'G', 'l', 'o', 'b', 'a', 'l', 'I', 'n', 'f', 'o', 0, 1, 'S', 'c', 'e', 'n', 'e', 'I', 'n', 'f', 'o'});
-        sceneInfo.addProperty("UserData");
+        sceneInfo->addProperty("UserData");
         addPropertyNode(sceneInfo, "Type", "UserData");
         addPropertyNode(sceneInfo, "Version", 100);
         {
-            Node metadata("MetaData");
+            NodePtr metadata = MakeNode("MetaData");
             addPropertyNode(metadata, "Version", 100);
             addPropertyNode(metadata, "Title", "");
             addPropertyNode(metadata, "Subject", "");
@@ -142,121 +143,121 @@ void Document::createBasicStructure()
             addPropertyNode(metadata, "Keywords", "");
             addPropertyNode(metadata, "Revision", "");
             addPropertyNode(metadata, "Comment", "");
-            sceneInfo.addChild(std::move(metadata));
+            sceneInfo->addChild(metadata);
         }
         {
-            Node properties("Properties70");
+            NodePtr properties = MakeNode("Properties70");
             {
-                Node p("P");
-                p.addProperty("DocumentUrl");
-                p.addProperty("KString");
-                p.addProperty("Url");
-                p.addProperty("");
-                p.addProperty("/foobar.fbx");
-                properties.addChild(std::move(p));
+                NodePtr p = MakeNode("P");
+                p->addProperty("DocumentUrl");
+                p->addProperty("KString");
+                p->addProperty("Url");
+                p->addProperty("");
+                p->addProperty("/foobar.fbx");
+                properties->addChild(p);
             }
             {
-                Node p("P");
-                p.addProperty("SrcDocumentUrl");
-                p.addProperty("KString");
-                p.addProperty("Url");
-                p.addProperty("");
-                p.addProperty("/foobar.fbx");
-                properties.addChild(std::move(p));
+                NodePtr p = MakeNode("P");
+                p->addProperty("SrcDocumentUrl");
+                p->addProperty("KString");
+                p->addProperty("Url");
+                p->addProperty("");
+                p->addProperty("/foobar.fbx");
+                properties->addChild(p);
             }
             {
-                Node p("P");
-                p.addProperty("Original");
-                p.addProperty("Compound");
-                p.addProperty("");
-                p.addProperty("");
-                properties.addChild(std::move(p));
+                NodePtr p = MakeNode("P");
+                p->addProperty("Original");
+                p->addProperty("Compound");
+                p->addProperty("");
+                p->addProperty("");
+                properties->addChild(p);
             }
             {
-                Node p("P");
-                p.addProperty("Original|ApplicationVendor");
-                p.addProperty("KString");
-                p.addProperty("");
-                p.addProperty("");
-                p.addProperty("i-saint");
-                properties.addChild(std::move(p));
+                NodePtr p = MakeNode("P");
+                p->addProperty("Original|ApplicationVendor");
+                p->addProperty("KString");
+                p->addProperty("");
+                p->addProperty("");
+                p->addProperty("i-saint");
+                properties->addChild(p);
             }
             {
-                Node p("P");
-                p.addProperty("Original|ApplicationName");
-                p.addProperty("KString");
-                p.addProperty("");
-                p.addProperty("");
-                p.addProperty("SmallFBX");
-                properties.addChild(std::move(p));
+                NodePtr p = MakeNode("P");
+                p->addProperty("Original|ApplicationName");
+                p->addProperty("KString");
+                p->addProperty("");
+                p->addProperty("");
+                p->addProperty("SmallFBX");
+                properties->addChild(p);
             }
             {
-                Node p("P");
-                p.addProperty("Original|ApplicationVersion");
-                p.addProperty("KString");
-                p.addProperty("");
-                p.addProperty("");
-                p.addProperty("1.0.0");
-                properties.addChild(std::move(p));
+                NodePtr p = MakeNode("P");
+                p->addProperty("Original|ApplicationVersion");
+                p->addProperty("KString");
+                p->addProperty("");
+                p->addProperty("");
+                p->addProperty("1.0.0");
+                properties->addChild(p);
             }
             {
-                Node p("P");
-                p.addProperty("Original|DateTime_GMT");
-                p.addProperty("DateTime");
-                p.addProperty("");
-                p.addProperty("");
-                p.addProperty("01/01/1970 00:00:00.000");
-                properties.addChild(std::move(p));
+                NodePtr p = MakeNode("P");
+                p->addProperty("Original|DateTime_GMT");
+                p->addProperty("DateTime");
+                p->addProperty("");
+                p->addProperty("");
+                p->addProperty("01/01/1970 00:00:00.000");
+                properties->addChild(p);
             }
             {
-                Node p("P");
-                p.addProperty("Original|FileName");
-                p.addProperty("KString");
-                p.addProperty("");
-                p.addProperty("");
-                p.addProperty("/foobar.fbx");
-                properties.addChild(std::move(p));
+                NodePtr p = MakeNode("P");
+                p->addProperty("Original|FileName");
+                p->addProperty("KString");
+                p->addProperty("");
+                p->addProperty("");
+                p->addProperty("/foobar.fbx");
+                properties->addChild(p);
             }
             {
-                Node p("P");
-                p.addProperty("LastSaved");
-                p.addProperty("Compound");
-                p.addProperty("");
-                p.addProperty("");
-                properties.addChild(std::move(p));
+                NodePtr p = MakeNode("P");
+                p->addProperty("LastSaved");
+                p->addProperty("Compound");
+                p->addProperty("");
+                p->addProperty("");
+                properties->addChild(p);
             }
             {
-                Node p("P");
-                p.addProperty("LastSaved|ApplicationVendor");
-                p.addProperty("KString");
-                p.addProperty("");
-                p.addProperty("");
-                p.addProperty("Blender Foundation");
-                properties.addChild(std::move(p));
+                NodePtr p = MakeNode("P");
+                p->addProperty("LastSaved|ApplicationVendor");
+                p->addProperty("KString");
+                p->addProperty("");
+                p->addProperty("");
+                p->addProperty("Blender Foundation");
+                properties->addChild(p);
             }
             {
-                Node p("P");
-                p.addProperty("LastSaved|ApplicationName");
-                p.addProperty("KString");
-                p.addProperty("");
-                p.addProperty("");
-                p.addProperty("Blender (stable FBX IO)");
-                properties.addChild(std::move(p));
+                NodePtr p = MakeNode("P");
+                p->addProperty("LastSaved|ApplicationName");
+                p->addProperty("KString");
+                p->addProperty("");
+                p->addProperty("");
+                p->addProperty("Blender (stable FBX IO)");
+                properties->addChild(p);
             }
             {
-                Node p("P");
-                p.addProperty("LastSaved|DateTime_GMT");
-                p.addProperty("DateTime");
-                p.addProperty("");
-                p.addProperty("");
-                p.addProperty("01/01/1970 00:00:00.000");
-                properties.addChild(std::move(p));
+                NodePtr p = MakeNode("P");
+                p->addProperty("LastSaved|DateTime_GMT");
+                p->addProperty("DateTime");
+                p->addProperty("");
+                p->addProperty("");
+                p->addProperty("01/01/1970 00:00:00.000");
+                properties->addChild(p);
             }
-            sceneInfo.addChild(std::move(properties));
+            sceneInfo->addChild(properties);
         }
-        headerExtension.addChild(std::move(sceneInfo));
+        headerExtension->addChild(sceneInfo);
     }
-    m_nodes.push_back(std::move(headerExtension));
+    m_nodes.push_back(headerExtension);
 
 
 }

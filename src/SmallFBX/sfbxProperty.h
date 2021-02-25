@@ -18,7 +18,7 @@ enum class PropertyType : uint8_t
     Float64 = 'D',  // float64
 
     String = 'S',   // std::string
-    Raw = 'R',      // std::span<char>
+    Raw = 'R',      // span<char>
 
     BoolArray = 'b',    // span<bool>
     Int8Array = 'c',    // span<int8>
@@ -56,7 +56,22 @@ public:
 
 private:
     PropertyType m_type;
+    union {
+        bool b;
+        int8 i8;
+        int16 i16;
+        int32 i32;
+        int64 i64;
+        float32 f32;
+        float64 f64;
+    } m_scalar{};
     std::vector<char> m_data;
 };
+
+template<class... T>
+inline PropertyPtr MakeProperty(T&&... v)
+{
+    return std::make_shared<Property>(std::forward<T>(v)...);
+}
 
 } // namespace sfbx

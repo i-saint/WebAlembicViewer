@@ -5,9 +5,10 @@
 #include <zlib.h>
 #pragma comment(lib, "zlib.lib")
 
+
 namespace sfbx {
 
-static uint32_t GetArrayElementSize(PropertyType type)
+static uint32_t SizeOfElement(PropertyType type)
 {
     switch (type) {
     case PropertyType::BoolArray:
@@ -133,20 +134,15 @@ void Property::read(std::istream& is)
         m_data.resize(length);
         is.read(m_data.data(), length);
     }
-    else if ((char)m_type <= 'Z') {
-        auto do_read = [&](size_t s) {
-            m_data.resize(s);
-            is.read(m_data.data(), s);
-        };
-
+    else if (!isArray()) {
         if (m_type == PropertyType::Bool || m_type == PropertyType::Int8)
-            do_read(sizeof(uint8_t));
+            m_scalar.i8 = read1<int8>(is);
         else if (m_type == PropertyType::Int16)
-            do_read(sizeof(int16_t));
+            m_scalar.i16 = read1<int16>(is);
         else if (m_type == PropertyType::Int32 || m_type == PropertyType::Float32)
-            do_read(sizeof(int32_t));
+            m_scalar.i32 = read1<int32>(is);
         else if (m_type == PropertyType::Int64 || m_type == PropertyType::Float64)
-            do_read(sizeof(int64_t));
+            m_scalar.i64 = read1<int64>(is);
         else
             throw std::runtime_error(std::string("Unsupported property type ") + std::to_string((char)m_type));
     }
@@ -155,7 +151,7 @@ void Property::read(std::istream& is)
         uint32_t encoding = read1<uint32_t>(is); // 0 .. uncompressed, 1 .. zlib-compressed
 
         uLong src_size = read1<uint32_t>(is);
-        uLong dest_size = GetArrayElementSize(m_type) * array_size;
+        uLong dest_size = SizeOfElement(m_type) * array_size;
         m_data.resize(dest_size);
 
         if (encoding) {
@@ -218,18 +214,24 @@ bool Property::isArray() const
 
 uint32_t Property::getArraySize() const
 {
-    return isArray() ? m_data.size() / GetArrayElementSize(m_type) : 1;
+    return m_data.size() / SizeOfElement(m_type);
 }
 
-template<class T> T Property::getValue() const
-{
-    return *(T*)m_data.data();
-}
+template<> bool    Property::getValue() const { return m_scalar.b; }
+template<> int8    Property::getValue() const { return m_scalar.i8; }
+template<> int16   Property::getValue() const { return m_scalar.i16; }
+template<> int32   Property::getValue() const { return m_scalar.i32; }
+template<> int64   Property::getValue() const { return m_scalar.i64; }
+template<> float32 Property::getValue() const { return m_scalar.f32; }
+template<> float64 Property::getValue() const { return m_scalar.f64; }
 
-template<class T> span<T> Property::getArray() const
-{
-    return span<T>{ (T*)m_data.data(), m_data.size() / GetArrayElementSize(m_type) };
-}
+template<> span<bool>    Property::getArray() const { return make_span((bool*)m_data.data(), getArraySize()); }
+template<> span<int8>    Property::getArray() const { return make_span((int8*)m_data.data(), getArraySize()); }
+template<> span<int16>   Property::getArray() const { return make_span((int16*)m_data.data(), getArraySize()); }
+template<> span<int32>   Property::getArray() const { return make_span((int32*)m_data.data(), getArraySize()); }
+template<> span<int64>   Property::getArray() const { return make_span((int64*)m_data.data(), getArraySize()); }
+template<> span<float32> Property::getArray() const { return make_span((float32*)m_data.data(), getArraySize()); }
+template<> span<float64> Property::getArray() const { return make_span((float64*)m_data.data(), getArraySize()); }
 
 std::string Property::getString() const
 {
@@ -238,71 +240,73 @@ std::string Property::getString() const
 
 std::string Property::toString() const
 {
-    switch (m_type) {
-    case PropertyType::Bool: return getValue<bool>() ? "true" : "false";
-    case PropertyType::Int8: return std::to_string(getValue<int8>());
-    case PropertyType::Int16: return std::to_string(getValue<int16>());
-    case PropertyType::Int32: return std::to_string(getValue<int32>());
-    case PropertyType::Int64: return std::to_string(getValue<int64>());
-    case PropertyType::Float32: return std::to_string(getValue<float32>());
-    case PropertyType::Float64: return std::to_string(getValue<float64>());
-
-    case PropertyType::Raw:
-    {
-        std::string s;
-        s += "\"";
-        for (char c : m_data)
-            s += std::to_string(uint8_t(c)) + " ";
-        s += "\"";
-        return s;
-    }
-    case PropertyType::String:
-    {
-        std::string s;
-        s += "\"";
-        for (char c : m_data) {
-            if (c == '\\') {
-                s += "\\\\";
+    if (isArray()) {
+        auto toS = [](const auto& span) {
+            std::string s;
+            s += "[";
+            bool first = true;
+            for (auto v : span) {
+                if (!first)
+                    s += ", ";
+                s += std::to_string(v);
+                first = false;
             }
-            else if (c >= 32 && c <= 126) {
-                s += c;
-            }
-            else {
-                s += "\\u00";
-                s += Base16Number(c);
-            }
+            s += "]";
+            return s;
+        };
+        switch (m_type) {
+        case PropertyType::BoolArray: return toS(getArray<bool>());
+        case PropertyType::Int8Array: return toS(getArray<int8>());
+        case PropertyType::Int16Array: return toS(getArray<int16>());
+        case PropertyType::Int32Array: return toS(getArray<int32>());
+        case PropertyType::Int64Array: return toS(getArray<int64>());
+        case PropertyType::Float32Array: return toS(getArray<float32>());
+        case PropertyType::Float64Array: return toS(getArray<float64>());
+        default: break;
         }
-        s += "\"";
-        return s;
     }
+    else {
+        switch (m_type) {
+        case PropertyType::Bool: return getValue<bool>() ? "true" : "false";
+        case PropertyType::Int8: return std::to_string(getValue<int8>());
+        case PropertyType::Int16: return std::to_string(getValue<int16>());
+        case PropertyType::Int32: return std::to_string(getValue<int32>());
+        case PropertyType::Int64: return std::to_string(getValue<int64>());
+        case PropertyType::Float32: return std::to_string(getValue<float32>());
+        case PropertyType::Float64: return std::to_string(getValue<float64>());
 
-    default:
-        break;
-    }
-
-
-    auto toS = [](const auto& span) {
-        std::string s;
-        s += "[";
-        bool first = true;
-        for (auto v : span) {
-            if (!first)
-                s += ", ";
-            s += std::to_string(v);
-            first = false;
+        case PropertyType::Raw:
+        {
+            std::string s;
+            s += "\"";
+            for (char c : m_data)
+                s += std::to_string(uint8_t(c)) + " ";
+            s += "\"";
+            return s;
         }
-        s += "]";
-        return s;
-    };
-    switch (m_type) {
-    case PropertyType::BoolArray: return toS(getArray<bool>());
-    case PropertyType::Int8Array: return toS(getArray<int8>());
-    case PropertyType::Int16Array: return toS(getArray<int16>());
-    case PropertyType::Int32Array: return toS(getArray<int32>());
-    case PropertyType::Int64Array: return toS(getArray<int64>());
-    case PropertyType::Float32Array: return toS(getArray<float32>());
-    case PropertyType::Float64Array: return toS(getArray<float64>());
-    default: break;
+        case PropertyType::String:
+        {
+            std::string s;
+            s += "\"";
+            for (char c : m_data) {
+                if (c == '\\') {
+                    s += "\\\\";
+                }
+                else if (c >= 32 && c <= 126) {
+                    s += c;
+                }
+                else {
+                    s += "\\u00";
+                    s += Base16Number(c);
+                }
+            }
+            s += "\"";
+            return s;
+        }
+
+        default:
+            break;
+        }
     }
     return "";
 }

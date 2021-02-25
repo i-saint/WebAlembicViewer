@@ -19,7 +19,7 @@ public:
     uint32_t getVersion();
 
 public:
-    std::vector<Node> m_nodes;
+    std::vector<NodePtr> m_nodes;
     uint32_t m_version;
 };
 
