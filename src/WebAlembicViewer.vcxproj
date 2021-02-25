@@ -11,6 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="FBX\fbxDocument.cpp" />
+    <ClCompile Include="FBX\fbxNode.cpp" />
+    <ClCompile Include="FBX\fbxProperty.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -19,6 +22,9 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FBX\fbxDocument.h" />
+    <ClInclude Include="FBX\fbxNode.h" />
+    <ClInclude Include="FBX\fbxProperty.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="VectorMath.h" />
     <ClInclude Include="WebAlembicViewer.h" />
