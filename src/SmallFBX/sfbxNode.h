@@ -18,10 +18,23 @@ public:
 
     void addChild(NodePtr child);
 
-    const std::string& getName() const;
     uint32_t getSizeInBytes() const;
-    const std::vector<PropertyPtr>& getProperties();
-    const std::vector<NodePtr>& getChildren();
+    const std::string& getName() const;
+    const std::vector<PropertyPtr>& getProperties() const;
+    const std::vector<NodePtr>& getChildren() const;
+
+    NodePtr findChild(const char* name) const;
+    NodePtr findChild(const std::string& name) const { return findChild(name.c_str()); }
+    PropertyPtr getProperty(size_t i);
+    PropertyPtr findChildProperty(const char* name, size_t i) const { return findChild(name)->getProperty(i); }
+    PropertyPtr findChildProperty(const std::string& name, size_t i) const { return findChildProperty(name.c_str(), i); }
+
+    template<class Body>
+    void eachChild(const Body& body)
+    {
+        for (auto& c : m_children)
+            body(c);
+    }
 
 private:
     std::string m_name;

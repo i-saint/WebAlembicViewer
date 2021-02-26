@@ -84,11 +84,6 @@ void Node::addChild(NodePtr child)
     m_children.push_back(child);
 }
 
-const std::string& Node::getName() const
-{
-    return m_name;
-}
-
 uint32_t Node::getSizeInBytes() const
 {
     uint32_t ret = 13 + m_name.length();
@@ -99,14 +94,35 @@ uint32_t Node::getSizeInBytes() const
     return ret;
 }
 
-const std::vector<PropertyPtr>& Node::getProperties()
+const std::string& Node::getName() const
+{
+    return m_name;
+}
+
+const std::vector<PropertyPtr>& Node::getProperties() const
 {
     return m_properties;
 }
 
-const std::vector<NodePtr>& Node::getChildren()
+const std::vector<NodePtr>& Node::getChildren() const
 {
     return m_children;
+}
+
+NodePtr Node::findChild(const char* name) const
+{
+    if (!this)
+        return nullptr;
+    auto it = std::find_if(m_children.begin(), m_children.end(),
+        [name](const NodePtr& p) { return p->getName() == name; });
+    return it != m_children.end() ? *it : nullptr;
+}
+
+PropertyPtr Node::getProperty(size_t i)
+{
+    if (this && i < m_properties.size())
+        return m_properties[i];
+    return nullptr;
 }
 
 } // namespace sfbx

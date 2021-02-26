@@ -68,6 +68,16 @@ void Document::read(std::istream &is)
             break;
         m_nodes.push_back(node);
     } while (true);
+
+    if (auto objects = findNode("Objects")) {
+        objects->eachChild([&](NodePtr& c) {
+            if (c->getName() == "Geometry") {
+                auto geom = MakeGeometry(c);
+                m_geometries.push_back(geom);
+            }
+
+            });
+    }
 }
 
 void Document::write(std::ostream& os)
@@ -100,6 +110,15 @@ void Document::write(std::ostream& os)
         0xde, 0xf5, 0xd9, 0x7e, 0xec, 0xe9, 0x0c, 0xe3, 0x75, 0x8f, 0x29, 0x0b
     };
     writev(os, (char*)footer, std::size(footer));
+}
+
+NodePtr Document::findNode(const char* name) const
+{
+    if (!this)
+        return nullptr;
+    auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
+        [name](const NodePtr& p) { return p->getName() == name; });
+    return it != m_nodes.end() ? *it : nullptr;
 }
 
 void Document::createBasicStructure()

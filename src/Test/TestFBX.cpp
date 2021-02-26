@@ -9,6 +9,8 @@ testCase(fbxRead)
     if (path.empty())
         return;
 
-    sfbx::Document doc;
-    doc.read(path);
+    sfbx::DocumentPtr doc = sfbx::MakeDocument();
+    doc->read(path);
+
+    auto obj = doc->findNode("Objects");
 }
