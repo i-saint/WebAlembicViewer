@@ -3,9 +3,10 @@
 
 namespace sfbx {
 
-enum class Objectype
+enum class ObjecType
 {
     Unknown,
+    Attribute,
     Model,
     Geometry,
     Deformer,
@@ -13,20 +14,54 @@ enum class Objectype
     Material,
 };
 
+enum class ObjectSubType
+{
+    Unknown,
+    Mesh,
+    Root,
+    LimbNode,
+    Skin,
+    Cluster,
+};
+
+ObjecType     GetFbxObjectType(const std::string& n);
+const char*   GetFbxObjectName(ObjecType t);
+ObjectSubType GetFbxObjectSubType(const std::string& n);
+const char*   GetFbxObjectSubName(ObjectSubType t);
+
+
 class Object
 {
 public:
     Object(NodePtr n = nullptr);
     virtual ~Object();
 
-    virtual Objectype getType() const;
-    uint64_t getID() const { return m_id; }
+    virtual ObjecType getType() const;
+    ObjectSubType getSubType() const;
+    int64 getID() const;
+    NodePtr getNode() const;
+
+    virtual void readDataFronNode();
+    virtual void createNodes();
 
 protected:
     NodePtr m_node;
     int64 m_id = 0;
     std::string m_name;
-    std::string m_type;
+    ObjectSubType m_subtype{};
+};
+
+
+class Attribute : public Object
+{
+using super = Object;
+public:
+    Attribute(NodePtr n = nullptr);
+    ObjecType getType() const override;
+
+    virtual void createNodes();
+
+protected:
 };
 
 
@@ -35,9 +70,11 @@ class Model : public Object
 using super = Object;
 public:
     Model(NodePtr n = nullptr);
-    Objectype getType() const override;
+    ObjecType getType() const override;
 
     void addAttribute(ObjectPtr v);
+
+    void createNodes() override;
 
 protected:
     std::vector<ObjectPtr> m_attributes;
@@ -49,13 +86,22 @@ class Geometry : public Object
 using super = Object;
 public:
     Geometry(NodePtr n = nullptr);
-    Objectype getType() const override;
+    ObjecType getType() const override;
+
+    void readDataFronNode() override;
+    void createNodes() override;
 
     span<int> getCounts() const;
     span<int> getIndices() const;
     span<float3> getPoints() const;
     span<float3> getNormals() const;
     span<float2> getUV() const;
+
+    void setCounts(span<int> v);
+    void setIndices(span<int> v);
+    void setPoints(span<float3> v);
+    void setNormals(span<float3> v);
+    void setUV(span<float2> v);
 
 protected:
     RawVector<int> m_counts;
@@ -71,11 +117,26 @@ class Deformer : public Object
 using super = Object;
 public:
     Deformer(NodePtr n = nullptr);
-    Objectype getType() const override;
+    ObjecType getType() const override;
+
+    void readDataFronNode() override;
+    void createNodes() override;
+
+    span<int> getIndices() const;
+    span<float> getWeights() const;
+    const float4x4& getTransform() const;
+    const float4x4& getTransformLink() const;
+
+    void setIndices(span<int> v);
+    void setWeights(span<float> v);
+    void getTransform(const float4x4& v);
+    void getTransformLink(const float4x4& v);
 
 protected:
     RawVector<int> m_indices;
     RawVector<float> m_weights;
+    float4x4 m_transform = float4x4::identity();
+    float4x4 m_transform_link = float4x4::identity();
 };
 
 
@@ -84,7 +145,10 @@ class Pose : public Object
 using super = Object;
 public:
     Pose(NodePtr n = nullptr);
-    Objectype getType() const override;
+    ObjecType getType() const override;
+
+    void createNodes() override;
+
 
 protected:
 };
@@ -95,18 +159,22 @@ class Material : public Object
 using super = Object;
 public:
     Material(NodePtr n = nullptr);
-    Objectype getType() const override;
+    ObjecType getType() const override;
+
+    void createNodes() override;
+
 
 protected:
 };
 
 
 
-template<class... T> inline ObjectPtr   MakeObject(T&&... v)   { return std::make_shared<Object>(std::forward<T>(v)...); }
-template<class... T> inline ModelPtr    MakeModel(T&&... v)    { return std::make_shared<Model>(std::forward<T>(v)...); }
-template<class... T> inline GeometryPtr MakeGeometry(T&&... v) { return std::make_shared<Geometry>(std::forward<T>(v)...); }
-template<class... T> inline DeformerPtr MakeDeformer(T&&... v) { return std::make_shared<Deformer>(std::forward<T>(v)...); }
-template<class... T> inline PosePtr     MakePose(T&&... v)     { return std::make_shared<Pose>(std::forward<T>(v)...); }
-template<class... T> inline MaterialPtr MakeMaterial(T&&... v) { return std::make_shared<Material>(std::forward<T>(v)...); }
+template<class... T> inline ObjectPtr    MakeObject(T&&... v)    { return std::make_shared<Object>(std::forward<T>(v)...); }
+template<class... T> inline AttributePtr MakeAttribute(T&&... v) { return std::make_shared<Attribute>(std::forward<T>(v)...); }
+template<class... T> inline ModelPtr     MakeModel(T&&... v)     { return std::make_shared<Model>(std::forward<T>(v)...); }
+template<class... T> inline GeometryPtr  MakeGeometry(T&&... v)  { return std::make_shared<Geometry>(std::forward<T>(v)...); }
+template<class... T> inline DeformerPtr  MakeDeformer(T&&... v)  { return std::make_shared<Deformer>(std::forward<T>(v)...); }
+template<class... T> inline PosePtr      MakePose(T&&... v)      { return std::make_shared<Pose>(std::forward<T>(v)...); }
+template<class... T> inline MaterialPtr  MakeMaterial(T&&... v)  { return std::make_shared<Material>(std::forward<T>(v)...); }
 
 } // sfbx

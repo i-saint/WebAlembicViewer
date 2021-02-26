@@ -12,10 +12,10 @@ public:
     std::uint32_t write(std::ostream &output, uint32_t start_offset);
     bool isNull();
 
+    void setName(const std::string& v);
     void addProperty(PropertyPtr v);
     template<class... T>
     void addProperty(T&&... v) { addProperty(MakeProperty(std::forward<T>(v)...)); }
-
     void addChild(NodePtr child);
 
     uint32_t getSizeInBytes() const;
@@ -33,7 +33,8 @@ public:
     void eachChild(const Body& body)
     {
         for (auto& c : m_children)
-            body(c);
+            if (!c->isNull())
+                body(c);
     }
 
 private:

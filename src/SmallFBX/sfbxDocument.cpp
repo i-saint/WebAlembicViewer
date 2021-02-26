@@ -38,7 +38,7 @@ static const char g_fbx_magic[23]{
     'K', 'a', 'y', 'd', 'a', 'r', 'a', ' ', 'F', 'B', 'X', ' ', 'B', 'i', 'n', 'a', 'r', 'y', ' ', ' ', 0x00, 0x1A, 0x00,
 };
 
-void Document::read(std::istream &is)
+void Document::read(std::istream& is)
 {
     char magic[23];
     readv(is, magic, 23);
@@ -63,17 +63,28 @@ void Document::read(std::istream &is)
 
     if (auto objects = findNode("Objects")) {
         objects->eachChild([&](NodePtr& c) {
-            auto& n = c->getName();
-            if (n == "Model")
-                m_objects.push_back(MakeModel(c));
-            else if (n == "Geometry")
-                m_objects.push_back(MakeGeometry(c));
-            else if (n == "Deformer")
-                m_objects.push_back(MakeDeformer(c));
-            else if (n == "Pose")
-                m_objects.push_back(MakePose(c));
-            else if (n == "Material")
-                m_objects.push_back(MakeMaterial(c));
+            std::string n = c->getName();
+            ObjecType t = GetFbxObjectType(n);
+            switch (t) {
+            case ObjecType::Attribute: m_objects.push_back(MakeAttribute(c)); break;
+            case ObjecType::Model:     m_objects.push_back(MakeModel(c)); break;
+            case ObjecType::Geometry:  m_objects.push_back(MakeGeometry(c)); break;
+            case ObjecType::Deformer:  m_objects.push_back(MakeDeformer(c)); break;
+            case ObjecType::Pose:      m_objects.push_back(MakePose(c)); break;
+            case ObjecType::Material:  m_objects.push_back(MakeMaterial(c)); break;
+            default: printf("sfbx::Document::read(): unknown type \"%s\"\n", n.c_str()); break;
+            }
+            });
+
+        for (auto& obj : m_objects)
+            obj->readDataFronNode();
+    }
+
+    if (auto connections = findNode("Connections")) {
+        connections->eachChild([&](NodePtr& c) {
+            if (c->getName() == "C") {
+
+            }
             });
     }
 }
@@ -158,15 +169,15 @@ void Document::createBasicStructure()
         addPropertyNode(sceneInfo, "Type", "UserData");
         addPropertyNode(sceneInfo, "Version", 100);
         {
-            NodePtr metadata = MakeNode("MetaData");
-            addPropertyNode(metadata, "Version", 100);
-            addPropertyNode(metadata, "Title", "");
-            addPropertyNode(metadata, "Subject", "");
-            addPropertyNode(metadata, "Author", "");
-            addPropertyNode(metadata, "Keywords", "");
-            addPropertyNode(metadata, "Revision", "");
-            addPropertyNode(metadata, "Comment", "");
-            sceneInfo->addChild(metadata);
+            NodePtr p = MakeNode("MetaData");
+            addPropertyNode(p, "Version", 100);
+            addPropertyNode(p, "Title", "");
+            addPropertyNode(p, "Subject", "");
+            addPropertyNode(p, "Author", "");
+            addPropertyNode(p, "Keywords", "");
+            addPropertyNode(p, "Revision", "");
+            addPropertyNode(p, "Comment", "");
+            sceneInfo->addChild(p);
         }
         {
             NodePtr properties = MakeNode("Properties70");
@@ -176,7 +187,7 @@ void Document::createBasicStructure()
                 p->addProperty("KString");
                 p->addProperty("Url");
                 p->addProperty("");
-                p->addProperty("/foobar.fbx");
+                p->addProperty("a.fbx");
                 properties->addChild(p);
             }
             {
@@ -185,7 +196,7 @@ void Document::createBasicStructure()
                 p->addProperty("KString");
                 p->addProperty("Url");
                 p->addProperty("");
-                p->addProperty("/foobar.fbx");
+                p->addProperty("a.fbx");
                 properties->addChild(p);
             }
             {
@@ -202,7 +213,7 @@ void Document::createBasicStructure()
                 p->addProperty("KString");
                 p->addProperty("");
                 p->addProperty("");
-                p->addProperty("i-saint");
+                p->addProperty("");
                 properties->addChild(p);
             }
             {
@@ -211,7 +222,7 @@ void Document::createBasicStructure()
                 p->addProperty("KString");
                 p->addProperty("");
                 p->addProperty("");
-                p->addProperty("SmallFBX");
+                p->addProperty("");
                 properties->addChild(p);
             }
             {
@@ -220,7 +231,7 @@ void Document::createBasicStructure()
                 p->addProperty("KString");
                 p->addProperty("");
                 p->addProperty("");
-                p->addProperty("1.0.0");
+                p->addProperty("");
                 properties->addChild(p);
             }
             {
@@ -229,7 +240,7 @@ void Document::createBasicStructure()
                 p->addProperty("DateTime");
                 p->addProperty("");
                 p->addProperty("");
-                p->addProperty("01/01/1970 00:00:00.000");
+                p->addProperty("");
                 properties->addChild(p);
             }
             {
@@ -238,7 +249,7 @@ void Document::createBasicStructure()
                 p->addProperty("KString");
                 p->addProperty("");
                 p->addProperty("");
-                p->addProperty("/foobar.fbx");
+                p->addProperty("");
                 properties->addChild(p);
             }
             {
@@ -255,7 +266,7 @@ void Document::createBasicStructure()
                 p->addProperty("KString");
                 p->addProperty("");
                 p->addProperty("");
-                p->addProperty("Blender Foundation");
+                p->addProperty("");
                 properties->addChild(p);
             }
             {
@@ -264,7 +275,7 @@ void Document::createBasicStructure()
                 p->addProperty("KString");
                 p->addProperty("");
                 p->addProperty("");
-                p->addProperty("Blender (stable FBX IO)");
+                p->addProperty("");
                 properties->addChild(p);
             }
             {
@@ -273,7 +284,7 @@ void Document::createBasicStructure()
                 p->addProperty("DateTime");
                 p->addProperty("");
                 p->addProperty("");
-                p->addProperty("01/01/1970 00:00:00.000");
+                p->addProperty("");
                 properties->addChild(p);
             }
             sceneInfo->addChild(properties);

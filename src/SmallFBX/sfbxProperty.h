@@ -81,8 +81,8 @@ public:
     bool isArray() const;
     uint32_t getArraySize() const;
 
-    template<class T, sfbxEnableIf(is_propery_pod<T>::value)> T getValue() const;
-    template<class T, sfbxEnableIf(is_propery_array<T>::value)> span<T> getArray() const;
+    template<class T> T getValue() const;
+    template<class T> span<T> getArray() const;
     std::string getString() const;
 
     std::string toString() const;

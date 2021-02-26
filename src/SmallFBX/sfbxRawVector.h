@@ -149,6 +149,19 @@ public:
     {
         assign(v.begin(), v.end());
     }
+    void assign(span<T> v)
+    {
+        resize(v.size());
+        memcpy(data(), v.data(), size_bytes());
+    }
+    template<class U>
+    void assign(span<U> v)
+    {
+        size_t n = v.size();
+        resize(n);
+        for (size_t i = 0; i < n; ++i)
+            m_data[i] = T(v[i]);
+    }
 
     template<class ForwardIter>
     void insert(iterator pos, ForwardIter first, ForwardIter last)

@@ -74,6 +74,11 @@ bool Node::isNull()
             && m_name.length() == 0;
 }
 
+void Node::setName(const std::string& v)
+{
+    m_name = v;
+}
+
 void Node::addProperty(PropertyPtr v)
 {
     m_properties.push_back(v);

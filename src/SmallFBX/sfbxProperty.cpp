@@ -242,6 +242,14 @@ template<> int64   Property::getValue() const { ReturnIfNull(); return m_scalar.
 template<> float32 Property::getValue() const { ReturnIfNull(); return m_scalar.f32; }
 template<> float64 Property::getValue() const { ReturnIfNull(); return m_scalar.f64; }
 
+template<> double4x4 Property::getValue() const
+{
+    ReturnIfNull();
+    double4x4 r;
+    r.assign((float64*)m_data.data());
+    return r;
+}
+
 template<> span<bool>    Property::getArray() const { ReturnIfNull(); return make_span((bool*)m_data.data(), getArraySize()); }
 template<> span<int8>    Property::getArray() const { ReturnIfNull(); return make_span((int8*)m_data.data(), getArraySize()); }
 template<> span<int16>   Property::getArray() const { ReturnIfNull(); return make_span((int16*)m_data.data(), getArraySize()); }

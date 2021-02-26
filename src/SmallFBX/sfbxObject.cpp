@@ -3,21 +3,118 @@
 
 namespace sfbx {
 
+ObjecType GetFbxObjectType(const std::string& n)
+{
+    if (n == "NodeAttribute")
+        return ObjecType::Attribute;
+    else if (n == "Model")
+        return ObjecType::Model;
+    else if (n == "Geometry")
+        return ObjecType::Geometry;
+    else if (n == "Deformer")
+        return ObjecType::Deformer;
+    else if (n == "Pose")
+        return ObjecType::Pose;
+    else if (n == "Material")
+        return ObjecType::Material;
+    return ObjecType::Unknown;
+}
+
+const char* GetFbxObjectName(ObjecType t)
+{
+    switch (t) {
+    case ObjecType::Attribute: return "NodeAtrribute";
+    case ObjecType::Model: return "Model";
+    case ObjecType::Geometry: return "Geometry";
+    case ObjecType::Deformer: return "Deformer";
+    case ObjecType::Pose: return "Pose";
+    case ObjecType::Material: return "Material";
+    default: return "";
+    }
+}
+
+
+ObjectSubType GetFbxObjectSubType(const std::string& n)
+{
+    if (n == "Mesh")
+        return ObjectSubType::Mesh;
+    else if (n == "Root")
+        return ObjectSubType::Root;
+    else if (n == "LimbNode")
+        return ObjectSubType::LimbNode;
+    else if (n == "Skin")
+        return ObjectSubType::Skin;
+    else if (n == "Cluster")
+        return ObjectSubType::Cluster;
+    return ObjectSubType::Unknown;
+}
+
+const char* GetFbxObjectSubName(ObjectSubType t)
+{
+    switch (t) {
+    case ObjectSubType::Mesh: return "Mesh";
+    case ObjectSubType::Root: return "Root";
+    case ObjectSubType::LimbNode: return "LimbNode";
+    case ObjectSubType::Skin: return "Skin";
+    case ObjectSubType::Cluster: return "Cluster";
+    default: return "";
+    }
+}
+
+
 Object::Object(NodePtr n)
     : m_node(n)
 {
-    m_id = n->getProperty(0)->getValue<int64>();
-    m_name = n->getProperty(1)->getString();
-    m_type = n->getProperty(2)->getString();
 }
 
 Object::~Object()
 {
 }
 
-Objectype Object::getType() const
+ObjecType Object::getType() const { return ObjecType::Unknown; }
+
+sfbx::ObjectSubType Object::getSubType() const
 {
-    return Objectype::Unknown;
+    return m_subtype;
+}
+
+int64     Object::getID() const   { return m_id; }
+NodePtr   Object::getNode() const { return m_node; }
+
+void Object::readDataFronNode()
+{
+    auto n = getNode();
+    if (n) {
+        m_id = n->getProperty(0)->getValue<int64>();
+        m_name = n->getProperty(1)->getString();
+        m_subtype = GetFbxObjectSubType(n->getProperty(2)->getString());
+    }
+}
+
+void Object::createNodes()
+{
+    m_node = MakeNode();
+    m_node->setName(GetFbxObjectName(getType()));
+    m_node->addProperty(m_id);
+    m_node->addProperty(m_name);
+    m_node->addProperty(GetFbxObjectSubName(m_subtype));
+}
+
+
+Attribute::Attribute(NodePtr n)
+    : super(n)
+{
+}
+
+ObjecType Attribute::getType() const
+{
+    return ObjecType::Attribute;
+}
+
+void Attribute::createNodes()
+{
+    super::createNodes();
+    // todo
 }
 
 
@@ -26,9 +123,9 @@ Model::Model(NodePtr n)
 {
 }
 
-Objectype Model::getType() const
+ObjecType Model::getType() const
 {
-    return Objectype::Model;
+    return ObjecType::Model;
 }
 
 void Model::addAttribute(ObjectPtr v)
@@ -37,9 +134,29 @@ void Model::addAttribute(ObjectPtr v)
 }
 
 
+void Model::createNodes()
+{
+    super::createNodes();
+    // todo
+}
+
 Geometry::Geometry(NodePtr n)
     : super(n)
 {
+}
+
+ObjecType Geometry::getType() const
+{
+    return ObjecType::Geometry;
+}
+
+void Geometry::readDataFronNode()
+{
+    super::readDataFronNode();
+    auto n = getNode();
+    if (!n)
+        return;
+
     // indices
     if (auto pindices = n->findChildProperty("PolygonVertexIndex", 0)) {
         auto src_indices = pindices->getArray<int>();
@@ -110,9 +227,10 @@ Geometry::Geometry(NodePtr n)
     }
 }
 
-Objectype Geometry::getType() const
+void Geometry::createNodes()
 {
-    return Objectype::Geometry;
+    super::createNodes();
+    // todo
 }
 
 span<int> Geometry::getCounts() const { return make_span(m_counts); }
@@ -121,17 +239,59 @@ span<float3> Geometry::getPoints() const { return make_span(m_points); }
 span<float3> Geometry::getNormals() const { return make_span(m_normals); }
 span<float2> Geometry::getUV() const { return make_span(m_uv); }
 
+void Geometry::setCounts(span<int> v) { m_counts.assign(v); }
+void Geometry::setIndices(span<int> v) { m_indices.assign(v); }
+void Geometry::setPoints(span<float3> v) { m_points.assign(v); }
+void Geometry::setNormals(span<float3> v) { m_normals.assign(v); }
+void Geometry::setUV(span<float2> v) { m_uv.assign(v); }
+
 
 Deformer::Deformer(NodePtr n)
     : super(n)
 {
 }
 
-Objectype Deformer::getType() const
+ObjecType Deformer::getType() const
 {
-    return Objectype::Deformer;
+    return ObjecType::Deformer;
 }
 
+void Deformer::readDataFronNode()
+{
+    super::readDataFronNode();
+    auto n = getNode();
+    if (!n)
+        return;
+
+    if (m_subtype == ObjectSubType::Cluster) {
+        auto indices = n->findChildProperty("Indexes", 0)->getArray<int>();
+        auto weights = n->findChildProperty("Weights", 0)->getArray<float64>();
+        size_t c = indices.size();
+        if (c != 0 && weights.size() == c) {
+            m_indices.assign(indices);
+            m_weights.assign(weights);
+        }
+
+        m_transform = n->findChildProperty("Transform", 0)->getValue<double4x4>();
+        m_transform_link = n->findChildProperty("TransformLink", 0)->getValue<double4x4>();
+    }
+}
+
+void Deformer::createNodes()
+{
+    super::createNodes();
+    // todo
+}
+
+span<int> Deformer::getIndices() const { return make_span(m_indices); }
+span<float> Deformer::getWeights() const { return make_span(m_weights); }
+const float4x4& Deformer::getTransform() const { return m_transform; }
+const float4x4& Deformer::getTransformLink() const { return m_transform_link; }
+
+void Deformer::setIndices(span<int> v) { m_indices.assign(v); }
+void Deformer::setWeights(span<float> v) { m_weights.assign(v); }
+void Deformer::getTransform(const float4x4& v) { m_transform = v; }
+void Deformer::getTransformLink(const float4x4& v) { m_transform_link = v; }
 
 
 Pose::Pose(NodePtr n)
@@ -139,11 +299,18 @@ Pose::Pose(NodePtr n)
 {
 }
 
-Objectype Pose::getType() const
+ObjecType Pose::getType() const
 {
-    return Objectype::Pose;
+    return ObjecType::Pose;
 }
 
+
+
+void Pose::createNodes()
+{
+    super::createNodes();
+    // todo
+}
 
 
 Material::Material(NodePtr n)
@@ -151,9 +318,15 @@ Material::Material(NodePtr n)
 {
 }
 
-Objectype Material::getType() const
+ObjecType Material::getType() const
 {
-    return Objectype::Material;
+    return ObjecType::Material;
+}
+
+void Material::createNodes()
+{
+    super::createNodes();
+    // todo
 }
 
 } // namespace sfbx
