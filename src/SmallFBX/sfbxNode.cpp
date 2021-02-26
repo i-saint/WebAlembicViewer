@@ -1,11 +1,13 @@
 #include "pch.h"
 #include "sfbxNode.h"
+#include "sfbxDocument.h"
 #include "sfbxUtil.h"
 
 namespace sfbx {
 
-Node::Node(const std::string& name)
-    : m_name(name)
+Node::Node(Document* doc, const std::string& name)
+    : m_document(doc)
+    , m_name(name)
 {
 }
 
@@ -20,14 +22,15 @@ uint32_t Node::read(std::istream& is, uint32_t start_offset)
     readv(is, m_name, name_len);
     ret += 13 + name_len;
 
-    for (uint32_t i = 0; i < num_props; i++)
-        addProperty(Property(is));
+    for (uint32_t i = 0; i < num_props; i++) {
+        auto p = createProperty();
+        p->read(is);
+    }
     ret += prop_size;
 
     while (start_offset + ret < end_offset) {
-        auto child = MakeNode();
+        auto child = createNode();
         ret += child->read(is, start_offset + ret);
-        addChild(child);
     }
     return ret;
 }
@@ -69,9 +72,7 @@ uint32_t Node::write(std::ostream& os, uint32_t start_offset)
 
 bool Node::isNull()
 {
-    return m_children.size() == 0
-            && m_properties.size() == 0
-            && m_name.length() == 0;
+    return m_name.empty() && m_children.empty() && m_properties.empty();
 }
 
 void Node::setName(const std::string& v)
@@ -79,14 +80,19 @@ void Node::setName(const std::string& v)
     m_name = v;
 }
 
-void Node::addProperty(PropertyPtr v)
+Property* Node::createProperty()
 {
-    m_properties.push_back(v);
+    auto p = m_document->createProperty();
+    m_properties.push_back(p);
+    return p;
 }
 
-void Node::addChild(NodePtr child)
+Node* Node::createNode(const char* name)
 {
-    m_children.push_back(child);
+    auto p = m_document->createChildNode(name);
+    m_children.push_back(p);
+    p->m_parent = this;
+    return p;
 }
 
 uint32_t Node::getSizeInBytes() const
@@ -104,26 +110,31 @@ const std::string& Node::getName() const
     return m_name;
 }
 
-const std::vector<PropertyPtr>& Node::getProperties() const
+span<Property*> Node::getProperties() const
 {
-    return m_properties;
+    return make_span(m_properties);
 }
 
-const std::vector<NodePtr>& Node::getChildren() const
+Node* Node::getParent() const
 {
-    return m_children;
+    return m_parent;
 }
 
-NodePtr Node::findChild(const char* name) const
+span<Node*> Node::getChildren() const
+{
+    return make_span(m_children);
+}
+
+Node* Node::findChild(const char* name) const
 {
     if (!this)
         return nullptr;
     auto it = std::find_if(m_children.begin(), m_children.end(),
-        [name](const NodePtr& p) { return p->getName() == name; });
+        [name](Node* p) { return p->getName() == name; });
     return it != m_children.end() ? *it : nullptr;
 }
 
-PropertyPtr Node::getProperty(size_t i)
+Property* Node::getProperty(size_t i)
 {
     if (this && i < m_properties.size())
         return m_properties[i];

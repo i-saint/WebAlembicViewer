@@ -15,16 +15,27 @@ public:
     void read(const std::string& fname);
     void write(const std::string& fname);
 
-    NodePtr findNode(const char* name) const;
-    NodePtr findNode(const std::string& name) const { return findNode(name.c_str()); }
-    ObjectPtr findObject(int64 id);
+    Property* createProperty();
+    template<class T>
+    Property* createProperty(const T& v) { auto p = createProperty(); *p = v; return p; }
+
+    Node* createNode(const char* name = "");
+    Node* createNode(const std::string& name) { return createNode(name.c_str()); }
+    Node* createChildNode(const char* name = "");
+    Node* createChildNode(const std::string& name) { return createChildNode(name.c_str()); }
+
+    Node* findNode(const char* name) const;
+    Node* findNode(const std::string& name) const { return findNode(name.c_str()); }
+    Object* findObject(int64 id);
 
     void createBasicStructure();
 
     uint32_t getVersion();
 
 public:
+    std::vector<PropertyPtr> m_properties;
     std::vector<NodePtr> m_nodes;
+    std::vector<Node*> m_top_nodes;
     std::vector<ObjectPtr> m_objects;
     uint32_t m_version;
 };

@@ -42,6 +42,12 @@ public:
         assign(v);
         return *this;
     }
+    template<class U>
+    RawVector& operator=(span<U> v)
+    {
+        assign(v);
+        return *this;
+    }
 
     ~RawVector()
     {

@@ -40,4 +40,37 @@ inline void writev(std::ostream& os, const void* src, size_t size)
     os.write((const char*)src, size);
 }
 
+
+template<class Values, class Body>
+void each(Values& val, const Body& body)
+{
+    for (auto& v : val)
+        body(v);
+}
+
+template<class Values, class Indices, class Body>
+void each_indexed(Values& val, Indices& idx, const Body& body)
+{
+    for (auto i : idx)
+        body(val[i]);
+}
+
+template<class Dst, class Src>
+void copy(Dst& dst, Src& src)
+{
+    dst.resize(src.size());
+    auto* d = dst.data();
+    for (const auto& v : src)
+        *d++ = v;
+}
+
+template<class Dst, class Src, class Indices>
+void copy_indexed(Dst& dst, Src& src, Indices& idx)
+{
+    dst.resize(idx.size());
+    auto* d = dst.data();
+    for (auto i : idx)
+        *d++ = src[i];
+}
+
 } // namespace sfbx

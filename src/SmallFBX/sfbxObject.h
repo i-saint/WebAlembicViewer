@@ -18,10 +18,13 @@ enum class ObjectSubType
 {
     Unknown,
     Mesh,
+    Shape,
     Root,
     LimbNode,
     Skin,
     Cluster,
+    BlendShape,
+    BlendShapeChannel,
 };
 
 ObjecType     GetFbxObjectType(const std::string& n);
@@ -32,31 +35,42 @@ const char*   GetFbxObjectSubName(ObjectSubType t);
 
 class Object
 {
+friend class Document;
 public:
-    Object(NodePtr n = nullptr);
+    Object(Node* n = nullptr);
     virtual ~Object();
 
     virtual ObjecType getType() const;
     ObjectSubType getSubType() const;
     int64 getID() const;
-    NodePtr getNode() const;
+    Node* getNode() const;
+    Object* getParent() const;
+    span<Object*> getChildren() const;
+
+    void setSubType(ObjectSubType v);
+    void setID(int16 v);
+    void setNode(Node* v);
 
     virtual void readDataFronNode();
     virtual void createNodes();
 
 protected:
-    NodePtr m_node;
-    int64 m_id = 0;
+    Node* m_node{};
+    int64 m_id{};
     std::string m_name;
     ObjectSubType m_subtype{};
+
+    Object* m_parent{};
+    std::vector<Object*> m_children;
 };
 
 
 class Attribute : public Object
 {
+friend class Document;
 using super = Object;
 public:
-    Attribute(NodePtr n = nullptr);
+    Attribute(Node* n = nullptr);
     ObjecType getType() const override;
 
     virtual void createNodes();
@@ -67,25 +81,24 @@ protected:
 
 class Model : public Object
 {
+friend class Document;
 using super = Object;
 public:
-    Model(NodePtr n = nullptr);
+    Model(Node* n = nullptr);
     ObjecType getType() const override;
-
-    void addAttribute(ObjectPtr v);
 
     void createNodes() override;
 
 protected:
-    std::vector<ObjectPtr> m_attributes;
 };
 
 
 class Geometry : public Object
 {
+friend class Document;
 using super = Object;
 public:
-    Geometry(NodePtr n = nullptr);
+    Geometry(Node* n = nullptr);
     ObjecType getType() const override;
 
     void readDataFronNode() override;
@@ -114,9 +127,10 @@ protected:
 
 class Deformer : public Object
 {
+friend class Document;
 using super = Object;
 public:
-    Deformer(NodePtr n = nullptr);
+    Deformer(Node* n = nullptr);
     ObjecType getType() const override;
 
     void readDataFronNode() override;
@@ -142,9 +156,10 @@ protected:
 
 class Pose : public Object
 {
+friend class Document;
 using super = Object;
 public:
-    Pose(NodePtr n = nullptr);
+    Pose(Node* n = nullptr);
     ObjecType getType() const override;
 
     void createNodes() override;
@@ -156,9 +171,10 @@ protected:
 
 class Material : public Object
 {
+friend class Document;
 using super = Object;
 public:
-    Material(NodePtr n = nullptr);
+    Material(Node* n = nullptr);
     ObjecType getType() const override;
 
     void createNodes() override;

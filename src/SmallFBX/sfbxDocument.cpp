@@ -34,6 +34,26 @@ void Document::write(const std::string& fname)
     file.close();
 }
 
+Property* Document::createProperty()
+{
+    auto p = MakeProperty();
+    m_properties.push_back(p);
+    return p.get();
+}
+
+Node* Document::createNode(const char* name)
+{
+    auto n = createChildNode(name);
+    m_top_nodes.push_back(n);
+    return n;
+}
+Node* Document::createChildNode(const char* name)
+{
+    auto n = MakeNode(this, name);
+    m_nodes.push_back(n);
+    return n.get();
+}
+
 static const char g_fbx_magic[23]{
     'K', 'a', 'y', 'd', 'a', 'r', 'a', ' ', 'F', 'B', 'X', ' ', 'B', 'i', 'n', 'a', 'r', 'y', ' ', ' ', 0x00, 0x1A, 0x00,
 };
@@ -54,25 +74,28 @@ void Document::read(std::istream& is)
 
     uint32_t start_offset = 27; // magic: 21+2, version: 4
     do {
-        NodePtr node = MakeNode();
+        auto node = createNode();
         start_offset += node->read(is, start_offset);
         if (node->isNull())
             break;
-        m_nodes.push_back(node);
     } while (true);
 
     if (auto objects = findNode("Objects")) {
-        objects->eachChild([&](NodePtr& c) {
-            std::string n = c->getName();
-            ObjecType t = GetFbxObjectType(n);
+        objects->eachChild([&](Node* c) {
+            auto add_object = [&](ObjectPtr p) {
+                p->setNode(c);
+                m_objects.push_back(p);
+            };
+
+            ObjecType t = GetFbxObjectType(c->getName());
             switch (t) {
-            case ObjecType::Attribute: m_objects.push_back(MakeAttribute(c)); break;
-            case ObjecType::Model:     m_objects.push_back(MakeModel(c)); break;
-            case ObjecType::Geometry:  m_objects.push_back(MakeGeometry(c)); break;
-            case ObjecType::Deformer:  m_objects.push_back(MakeDeformer(c)); break;
-            case ObjecType::Pose:      m_objects.push_back(MakePose(c)); break;
-            case ObjecType::Material:  m_objects.push_back(MakeMaterial(c)); break;
-            default: printf("sfbx::Document::read(): unknown type \"%s\"\n", n.c_str()); break;
+            case ObjecType::Attribute: add_object(MakeAttribute()); break;
+            case ObjecType::Model:     add_object(MakeModel()); break;
+            case ObjecType::Geometry:  add_object(MakeGeometry()); break;
+            case ObjecType::Deformer:  add_object(MakeDeformer()); break;
+            case ObjecType::Pose:      add_object(MakePose()); break;
+            case ObjecType::Material:  add_object(MakeMaterial()); break;
+            default: break;
             }
             });
 
@@ -81,9 +104,9 @@ void Document::read(std::istream& is)
     }
 
     if (auto connections = findNode("Connections")) {
-        connections->eachChild([&](NodePtr& c) {
+        connections->eachChild([&](Node* c) {
             if (c->getName() == "C") {
-
+                // todo
             }
             });
     }
@@ -118,38 +141,37 @@ void Document::write(std::ostream& os)
     writev(os, (char*)footer, std::size(footer));
 }
 
-NodePtr Document::findNode(const char* name) const
+Node* Document::findNode(const char* name) const
 {
     if (!this)
         return nullptr;
     auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
         [name](const NodePtr& p) { return p->getName() == name; });
-    return it != m_nodes.end() ? *it : nullptr;
+    return it != m_nodes.end() ? it->get() : nullptr;
 }
 
-ObjectPtr Document::findObject(int64 id)
+Object* Document::findObject(int64 id)
 {
     if (!this)
         return nullptr;
     auto it = std::find_if(m_objects.begin(), m_objects.end(),
         [id](const ObjectPtr& p) { return p->getID() == id; });
-    return it != m_objects.end() ? *it : nullptr;
+    return it != m_objects.end() ? it->get() : nullptr;
 }
 
 void Document::createBasicStructure()
 {
-    auto addPropertyNode = [](NodePtr node, const std::string& name, const auto& value) {
-        auto child = MakeNode(name);
+    auto addPropertyNode = [this](Node* node, const std::string& name, const auto& value) {
+        auto child = node->createNode(name);
         child->addProperty(value);
-        node->addChild(child);
     };
 
-    NodePtr headerExtension = MakeNode("FBXHeaderExtension");
+    auto headerExtension = createNode("FBXHeaderExtension");
     addPropertyNode(headerExtension, "FBXHeaderVersion", (int32_t)1003);
     addPropertyNode(headerExtension, "FBXVersion", (int32_t)getVersion());
     addPropertyNode(headerExtension, "EncryptionType", (int32_t)0);
     {
-        NodePtr timestamp = MakeNode("CreationTimeStamp");
+        auto timestamp = headerExtension->createNode("CreationTimeStamp");
         addPropertyNode(timestamp, "Version", (int32_t)1000);
         addPropertyNode(timestamp, "Year", (int32_t)2017);
         addPropertyNode(timestamp, "Month", (int32_t)5);
@@ -158,18 +180,17 @@ void Document::createBasicStructure()
         addPropertyNode(timestamp, "Minute", (int32_t)11);
         addPropertyNode(timestamp, "Second", (int32_t)46);
         addPropertyNode(timestamp, "Millisecond", (int32_t)917);
-        headerExtension->addChild(timestamp);
     }
     addPropertyNode(headerExtension, "Creator", std::string("SmallFBX 1.0.0"));
     {
-        NodePtr sceneInfo = MakeNode("SceneInfo");
+        auto sceneInfo = headerExtension->createNode("SceneInfo");
         sceneInfo->addProperty(PropertyType::String,
             RawVector<char>{'G', 'l', 'o', 'b', 'a', 'l', 'I', 'n', 'f', 'o', 0, 1, 'S', 'c', 'e', 'n', 'e', 'I', 'n', 'f', 'o'});
         sceneInfo->addProperty("UserData");
         addPropertyNode(sceneInfo, "Type", "UserData");
         addPropertyNode(sceneInfo, "Version", 100);
         {
-            NodePtr p = MakeNode("MetaData");
+            auto p = sceneInfo->createNode("MetaData");
             addPropertyNode(p, "Version", 100);
             addPropertyNode(p, "Title", "");
             addPropertyNode(p, "Subject", "");
@@ -177,123 +198,106 @@ void Document::createBasicStructure()
             addPropertyNode(p, "Keywords", "");
             addPropertyNode(p, "Revision", "");
             addPropertyNode(p, "Comment", "");
-            sceneInfo->addChild(p);
         }
         {
-            NodePtr properties = MakeNode("Properties70");
+            auto properties = sceneInfo->createNode("Properties70");
             {
-                NodePtr p = MakeNode("P");
+                //properties->createChild();
+                auto p = properties->createNode("P");
                 p->addProperty("DocumentUrl");
                 p->addProperty("KString");
                 p->addProperty("Url");
                 p->addProperty("");
                 p->addProperty("a.fbx");
-                properties->addChild(p);
             }
             {
-                NodePtr p = MakeNode("P");
+                auto p = properties->createNode("P");
                 p->addProperty("SrcDocumentUrl");
                 p->addProperty("KString");
                 p->addProperty("Url");
                 p->addProperty("");
                 p->addProperty("a.fbx");
-                properties->addChild(p);
             }
             {
-                NodePtr p = MakeNode("P");
+                auto p = properties->createNode("P");
                 p->addProperty("Original");
                 p->addProperty("Compound");
                 p->addProperty("");
                 p->addProperty("");
-                properties->addChild(p);
             }
             {
-                NodePtr p = MakeNode("P");
+                auto p = properties->createNode("P");
                 p->addProperty("Original|ApplicationVendor");
                 p->addProperty("KString");
                 p->addProperty("");
                 p->addProperty("");
                 p->addProperty("");
-                properties->addChild(p);
             }
             {
-                NodePtr p = MakeNode("P");
+                auto p = properties->createNode("P");
                 p->addProperty("Original|ApplicationName");
                 p->addProperty("KString");
                 p->addProperty("");
                 p->addProperty("");
                 p->addProperty("");
-                properties->addChild(p);
             }
             {
-                NodePtr p = MakeNode("P");
+                auto p = properties->createNode("P");
                 p->addProperty("Original|ApplicationVersion");
                 p->addProperty("KString");
                 p->addProperty("");
                 p->addProperty("");
                 p->addProperty("");
-                properties->addChild(p);
             }
             {
-                NodePtr p = MakeNode("P");
+                auto p = properties->createNode("P");
                 p->addProperty("Original|DateTime_GMT");
                 p->addProperty("DateTime");
                 p->addProperty("");
                 p->addProperty("");
                 p->addProperty("");
-                properties->addChild(p);
             }
             {
-                NodePtr p = MakeNode("P");
+                auto p = properties->createNode("P");
                 p->addProperty("Original|FileName");
                 p->addProperty("KString");
                 p->addProperty("");
                 p->addProperty("");
                 p->addProperty("");
-                properties->addChild(p);
             }
             {
-                NodePtr p = MakeNode("P");
+                auto p = properties->createNode("P");
                 p->addProperty("LastSaved");
                 p->addProperty("Compound");
                 p->addProperty("");
                 p->addProperty("");
-                properties->addChild(p);
             }
             {
-                NodePtr p = MakeNode("P");
+                auto p = properties->createNode("P");
                 p->addProperty("LastSaved|ApplicationVendor");
                 p->addProperty("KString");
                 p->addProperty("");
                 p->addProperty("");
                 p->addProperty("");
-                properties->addChild(p);
             }
             {
-                NodePtr p = MakeNode("P");
+                auto p = properties->createNode("P");
                 p->addProperty("LastSaved|ApplicationName");
                 p->addProperty("KString");
                 p->addProperty("");
                 p->addProperty("");
                 p->addProperty("");
-                properties->addChild(p);
             }
             {
-                NodePtr p = MakeNode("P");
+                auto p = properties->createNode("P");
                 p->addProperty("LastSaved|DateTime_GMT");
                 p->addProperty("DateTime");
                 p->addProperty("");
                 p->addProperty("");
                 p->addProperty("");
-                properties->addChild(p);
             }
-            sceneInfo->addChild(properties);
         }
-        headerExtension->addChild(sceneInfo);
     }
-    m_nodes.push_back(headerExtension);
-
-
 }
 
 std::uint32_t Document::getVersion()

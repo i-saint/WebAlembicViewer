@@ -51,27 +51,24 @@ enum class PropertyType : uint8_t
     Float32Array = 'f', // span<float32>
     Float64Array = 'd', // span<float64>
 };
+uint32_t SizeOfElement(PropertyType type);
 
 class Property
 {
+friend class Document;
 public:
-    explicit Property(std::istream &is);
-    explicit Property(const char* v);
-    template<class T> explicit Property(const T& v);
-
-    Property(PropertyType type, span<char> data);
-    Property(PropertyType type, const RawVector<char>& data) : Property(type, make_span(data)) {}
-    Property(PropertyType type, const std::vector<char>& data) : Property(type, make_span(data)) {}
+    Property();
 
     // T: corresponding types with PropertyType (bool ... float64 and span<> & std::vector<>, std::string)
-    template<class T, sfbxEnableIf(is_propery_pod<T>::value)> void operator=(T v);
-    template<class T, sfbxEnableIf(is_propery_array<T>::value)> void operator=(span<T> v);
-    template<class T> void operator=(const std::vector<T>& v) { operator=(make_span(v)); }
-    template<class T> void operator=(const RawVector<T>& v) { operator=(make_span(v)); }
+    template<class T, sfbxEnableIf(is_propery_pod<T>::value)> void assign(T v);
+    template<class T, sfbxEnableIf(is_propery_array<T>::value)> void assign(span<T> v);
+    template<class T> void assign(const std::vector<T>& v) { assign(make_span(v)); }
+    template<class T> void assign(const RawVector<T>& v) { assign(make_span(v)); }
     // std::vector<bool> needs special care because it is actually a bit field.
-    void operator=(const std::vector<bool>& v);
-    void operator=(const std::string& v);
-    void operator=(const char* v);
+    void assign(const std::vector<bool>& v);
+    void assign(const std::string& v);
+    void assign(const char* v);
+    void assign(PropertyType t, const RawVector<char>& v);
 
     void read(std::istream& input);
     void write(std::ostream& output);
@@ -88,7 +85,7 @@ public:
     std::string toString() const;
 
 private:
-    PropertyType m_type;
+    PropertyType m_type{};
     union {
         int8 i8;
         int16 i16;
