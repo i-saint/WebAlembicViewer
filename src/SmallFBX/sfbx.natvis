@@ -31,8 +31,8 @@
     <DisplayString Condition="m_type==PropertyType::Float32Array">{{ size={m_data.m_size/4} type={m_type} }}</DisplayString>
     <DisplayString Condition="m_type==PropertyType::Float64Array">{{ size={m_data.m_size/8} type={m_type} }}</DisplayString>
 
-    <DisplayString Condition="m_type==PropertyType::String">{{ {m_data.m_data,s} type={m_type} }}</DisplayString>
-    <DisplayString Condition="m_type==PropertyType::Raw">{{ {m_data.m_data,s} type={m_type} }}</DisplayString>
+    <DisplayString Condition="m_type==PropertyType::String">{{ value={m_data.m_data,s} type={m_type} }}</DisplayString>
+    <DisplayString Condition="m_type==PropertyType::Blob">{{ value={m_data.m_data,s} type={m_type} }}</DisplayString>
 
     <Expand>
       <Item Name="value" Condition="m_type==PropertyType::Bool">(bool)m_scalar.i8</Item>
@@ -85,8 +85,8 @@
         <ValuePointer>(char*)m_data.m_data</ValuePointer>
       </ArrayItems>
 
-      <Item Name="[size]" Condition="m_type==PropertyType::Raw">m_data.m_size</Item>
-      <ArrayItems Condition="m_type==PropertyType::Raw">
+      <Item Name="[size]" Condition="m_type==PropertyType::Blob">m_data.m_size</Item>
+      <ArrayItems Condition="m_type==PropertyType::Blob">
         <Size>m_data.m_size</Size>
         <ValuePointer>(char*)m_data.m_data</ValuePointer>
       </ArrayItems>

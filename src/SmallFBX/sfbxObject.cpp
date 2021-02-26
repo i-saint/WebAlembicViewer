@@ -1,10 +1,44 @@
 #include "pch.h"
-#include "sfbxGeometry.h"
+#include "sfbxObject.h"
 
 namespace sfbx {
 
-Geometry::Geometry(NodePtr n)
+Object::Object(NodePtr n)
     : m_node(n)
+{
+    m_id = n->getProperty(0)->getValue<int64>();
+    m_name = n->getProperty(1)->getString();
+    m_type = n->getProperty(2)->getString();
+}
+
+Object::~Object()
+{
+}
+
+Objectype Object::getType() const
+{
+    return Objectype::Unknown;
+}
+
+
+Model::Model(NodePtr n)
+    : super(n)
+{
+}
+
+Objectype Model::getType() const
+{
+    return Objectype::Model;
+}
+
+void Model::addAttribute(ObjectPtr v)
+{
+    m_attributes.push_back(v);
+}
+
+
+Geometry::Geometry(NodePtr n)
+    : super(n)
 {
     // indices
     if (auto pindices = n->findChildProperty("PolygonVertexIndex", 0)) {
@@ -76,10 +110,50 @@ Geometry::Geometry(NodePtr n)
     }
 }
 
+Objectype Geometry::getType() const
+{
+    return Objectype::Geometry;
+}
+
 span<int> Geometry::getCounts() const { return make_span(m_counts); }
 span<int> Geometry::getIndices() const { return make_span(m_indices); }
 span<float3> Geometry::getPoints() const { return make_span(m_points); }
 span<float3> Geometry::getNormals() const { return make_span(m_normals); }
 span<float2> Geometry::getUV() const { return make_span(m_uv); }
+
+
+Deformer::Deformer(NodePtr n)
+    : super(n)
+{
+}
+
+Objectype Deformer::getType() const
+{
+    return Objectype::Deformer;
+}
+
+
+
+Pose::Pose(NodePtr n)
+    : super(n)
+{
+}
+
+Objectype Pose::getType() const
+{
+    return Objectype::Pose;
+}
+
+
+
+Material::Material(NodePtr n)
+    : super(n)
+{
+}
+
+Objectype Material::getType() const
+{
+    return Objectype::Material;
+}
 
 } // namespace sfbx

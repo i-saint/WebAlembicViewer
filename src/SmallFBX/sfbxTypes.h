@@ -45,6 +45,15 @@ struct tvec4
     template<class U> operator tvec4<U>() const { return { (U)x, (U)y, (U)z, (U)w }; }
 };
 
+template<class T>
+struct tmat4x4
+{
+    tvec4<T> m[4];
+    tvec4<T>& operator[](int i) { return m[i]; }
+    const tvec4<T>& operator[](int i) const { return m[i]; }
+    template<class U> operator tmat4x4<U>() const { return { { tvec4<U>(m[0]), tvec4<U>(m[1]), tvec4<U>(m[2]), tvec4<U>(m[3]) } }; }
+};
+
 using int2 = tvec2<int>;
 using int3 = tvec3<int>;
 using int4 = tvec4<int>;
@@ -52,10 +61,14 @@ using int4 = tvec4<int>;
 using float2 = tvec2<float>;
 using float3 = tvec3<float>;
 using float4 = tvec4<float>;
+using quatf = tvec4<float>;
+using float4x4 = tmat4x4<float>;
 
 using double2 = tvec2<double>;
 using double3 = tvec3<double>;
 using double4 = tvec4<double>;
+using quatd = tvec4<double>;
+using double4x4 = tmat4x4<double>;
 
 #ifdef __cpp_lib_span
 
@@ -114,7 +127,14 @@ template<class T> inline span<T> make_span(const T* v, size_t n) { return { (T*)
 #define Decl(T) class T; using T##Ptr = std::shared_ptr<T>;
 Decl(Property)
 Decl(Node)
+
+Decl(Object)
+Decl(Model)
 Decl(Geometry)
+Decl(Deformer)
+Decl(Pose)
+Decl(Material)
+
 Decl(Document)
 #undef Decl
 

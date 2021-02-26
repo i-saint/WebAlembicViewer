@@ -34,25 +34,17 @@ void Document::write(const std::string& fname)
     file.close();
 }
 
-static bool checkMagic(std::istream& is)
-{
-    const char magic[] = "Kaydara FBX Binary  ";
-    char buf[20];
-    readv(is, buf, 20);
-    if (memcmp(buf, magic, 20) != 0)
-        return false;
-
-    if (read1<uint8_t>(is) != 0x00) return false;
-    if (read1<uint8_t>(is) != 0x1A) return false;
-    if (read1<uint8_t>(is) != 0x00) return false;
-    return true;
-}
+static const char g_fbx_magic[23]{
+    'K', 'a', 'y', 'd', 'a', 'r', 'a', ' ', 'F', 'B', 'X', ' ', 'B', 'i', 'n', 'a', 'r', 'y', ' ', ' ', 0x00, 0x1A, 0x00,
+};
 
 void Document::read(std::istream &is)
 {
-    is >> std::noskipws;
-    if (!checkMagic(is))
+    char magic[23];
+    readv(is, magic, 23);
+    if (memcmp(magic, g_fbx_magic, 23) != 0) {
         throw std::runtime_error("Not a FBX file");
+    }
 
     uint32_t version = read1<uint32_t>(is);
 
@@ -71,21 +63,24 @@ void Document::read(std::istream &is)
 
     if (auto objects = findNode("Objects")) {
         objects->eachChild([&](NodePtr& c) {
-            if (c->getName() == "Geometry") {
-                auto geom = MakeGeometry(c);
-                m_geometries.push_back(geom);
-            }
-
+            auto& n = c->getName();
+            if (n == "Model")
+                m_objects.push_back(MakeModel(c));
+            else if (n == "Geometry")
+                m_objects.push_back(MakeGeometry(c));
+            else if (n == "Deformer")
+                m_objects.push_back(MakeDeformer(c));
+            else if (n == "Pose")
+                m_objects.push_back(MakePose(c));
+            else if (n == "Material")
+                m_objects.push_back(MakeMaterial(c));
             });
     }
 }
 
 void Document::write(std::ostream& os)
 {
-    write1(os, "Kaydara FBX Binary  ");
-    write1(os, (uint8_t)0);
-    write1(os, (uint8_t)0x1A);
-    write1(os, (uint8_t)0);
+    writev(os, g_fbx_magic, 23);
     write1(os, m_version);
 
     uint32_t offset = 27; // magic: 21+2, version: 4
@@ -119,6 +114,15 @@ NodePtr Document::findNode(const char* name) const
     auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
         [name](const NodePtr& p) { return p->getName() == name; });
     return it != m_nodes.end() ? *it : nullptr;
+}
+
+ObjectPtr Document::findObject(int64 id)
+{
+    if (!this)
+        return nullptr;
+    auto it = std::find_if(m_objects.begin(), m_objects.end(),
+        [id](const ObjectPtr& p) { return p->getID() == id; });
+    return it != m_objects.end() ? *it : nullptr;
 }
 
 void Document::createBasicStructure()

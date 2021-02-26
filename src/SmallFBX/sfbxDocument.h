@@ -1,7 +1,7 @@
 #pragma once
 
 #include "sfbxNode.h"
-#include "sfbxGeometry.h"
+#include "sfbxObject.h"
 
 namespace sfbx {
 
@@ -17,6 +17,7 @@ public:
 
     NodePtr findNode(const char* name) const;
     NodePtr findNode(const std::string& name) const { return findNode(name.c_str()); }
+    ObjectPtr findObject(int64 id);
 
     void createBasicStructure();
 
@@ -24,7 +25,7 @@ public:
 
 public:
     std::vector<NodePtr> m_nodes;
-    std::vector<GeometryPtr> m_geometries;
+    std::vector<ObjectPtr> m_objects;
     uint32_t m_version;
 };
 
