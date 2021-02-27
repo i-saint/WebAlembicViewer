@@ -169,7 +169,7 @@ static inline std::string Base16Number(uint8_t n)
     return std::string() + Base16Letter(n >> 4) + Base16Letter(n);
 }
 
-uint32_t Property::getSizeInBytes() const
+uint64_t Property::getSizeInBytes() const
 {
     switch (m_type) {
     case PropertyType::Bool:
@@ -206,7 +206,7 @@ bool Property::isArray() const
     return (char)m_type > 'Z';
 }
 
-uint32_t Property::getArraySize() const
+uint64_t Property::getArraySize() const
 {
     return m_data.size() / SizeOfElement(m_type);
 }

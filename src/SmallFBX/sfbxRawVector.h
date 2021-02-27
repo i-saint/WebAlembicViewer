@@ -233,6 +233,4 @@ private:
     size_t m_capacity = 0;
 };
 
-template<class T> inline span<T> make_span(const RawVector<T>& v) { return { (T*)v.data(), v.size() }; }
-
 } // namespace sfbx

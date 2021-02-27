@@ -61,8 +61,11 @@ private:
 };
 #endif
 
-template<class T> inline span<T> make_span(const std::vector<T>& v) { return { (T*)v.data(), v.size() }; }
 template<class T> inline span<T> make_span(const T* v, size_t n) { return { (T*)v, n }; }
+
+// Container must have data(), size() and value_type. mainly intended to std::vector and sfbx::RawVector.
+template<class Container>
+inline span<typename Container::value_type> make_span(const Container& v) { return { (typename Container::value_type*)v.data(), v.size() }; }
 
 
 using int8 = int8_t;
@@ -157,13 +160,11 @@ using int4 = tvec4<int>;
 using float2 = tvec2<float>;
 using float3 = tvec3<float>;
 using float4 = tvec4<float>;
-using quatf = tvec4<float>;
 using float4x4 = tmat4x4<float>;
 
 using double2 = tvec2<double>;
 using double3 = tvec3<double>;
 using double4 = tvec4<double>;
-using quatd = tvec4<double>;
 using double4x4 = tmat4x4<double>;
 
 

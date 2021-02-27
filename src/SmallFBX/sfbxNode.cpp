@@ -9,16 +9,27 @@ Node::Node()
 {
 }
 
-uint32_t Node::read(std::istream& is, uint32_t start_offset)
+uint64_t Node::read(std::istream& is, uint64_t start_offset)
 {
-    uint32_t ret = 0;
+    uint64_t ret = 0;
 
-    uint32_t end_offset = read1<uint32_t>(is);
-    uint32_t num_props = read1<uint32_t>(is);
-    uint32_t prop_size = read1<uint32_t>(is);
+    uint64_t end_offset, num_props, prop_size;
+    if (getDocumentVersion() >= 7500) {
+        end_offset = read1<uint64_t>(is);
+        num_props = read1<uint64_t>(is);
+        prop_size = read1<uint64_t>(is);
+        ret += 24;
+    }
+    else {
+        end_offset = read1<uint32_t>(is);
+        num_props = read1<uint32_t>(is);
+        prop_size = read1<uint32_t>(is);
+        ret += 12;
+    }
+
     uint8_t name_len = read1<uint8_t>(is);
     readv(is, m_name, name_len);
-    ret += 13 + name_len;
+    ret += 1 + name_len;
 
     for (uint32_t i = 0; i < num_props; i++) {
         auto p = createProperty();
@@ -33,39 +44,43 @@ uint32_t Node::read(std::istream& is, uint32_t start_offset)
     return ret;
 }
 
-uint32_t Node::write(std::ostream& os, uint32_t start_offset)
+uint64_t Node::write(std::ostream& os, uint64_t start_offset)
 {
+    uint32_t header_size = getHeaderSize();
     if (isNull()) {
-        for (int i = 0; i < 13; i++)
+        for (int i = 0; i < header_size; i++)
             write1(os, (uint8_t)0);
-        return 13;
+        return header_size;
     }
 
-    uint32_t property_size = 0;
+    uint64_t property_size = 0;
     for (auto& prop : m_properties)
         property_size += prop->getSizeInBytes();
 
-    uint32_t ret = 13 + m_name.length() + property_size;
+    uint64_t pos = header_size + m_name.length() + property_size;
     for (auto& child : m_children)
-        ret += child->getSizeInBytes();
+        pos += child->getSizeInBytes();
 
-    if (ret != getSizeInBytes())
-        throw std::runtime_error("sfbx::Node::write1(): ret != getSizeInBytes()");
-
-    write1(os, uint32_t(start_offset + ret));
-    write1(os, uint32_t(m_properties.size()));
-    write1(os, uint32_t(property_size));
+    if (getDocumentVersion() >= 7500) {
+        write1(os, uint64_t(start_offset + pos));
+        write1(os, uint64_t(m_properties.size()));
+        write1(os, uint64_t(property_size));
+    }
+    else {
+        write1(os, uint32_t(start_offset + pos));
+        write1(os, uint32_t(m_properties.size()));
+        write1(os, uint32_t(property_size));
+    }
     write1(os, uint8_t(m_name.length()));
     write1(os, m_name);
 
-    ret = 13 + m_name.length() + property_size;
-
+    pos = header_size + m_name.length() + property_size;
     for (auto& prop : m_properties)
         prop->write(os);
     for (auto& child : m_children)
-        ret += child->write(os, start_offset + ret);
+        pos += child->write(os, start_offset + pos);
 
-    return ret;
+    return pos;
 }
 
 bool Node::isNull()
@@ -93,9 +108,9 @@ Node* Node::createNode(const char* name)
     return p;
 }
 
-uint32_t Node::getSizeInBytes() const
+uint64_t Node::getSizeInBytes() const
 {
-    uint32_t ret = 13 + m_name.length();
+    uint64_t ret = getHeaderSize() + m_name.length();
     for (auto& child : m_children)
         ret += child->getSizeInBytes();
     for (auto& prop : m_properties)
@@ -156,6 +171,23 @@ Node* Node::findChild(const char* name) const
     auto it = std::find_if(m_children.begin(), m_children.end(),
         [name](Node* p) { return p->getName() == name; });
     return it != m_children.end() ? *it : nullptr;
+}
+
+uint32_t Node::getDocumentVersion() const
+{
+    return m_document->getVersion();
+}
+
+uint32_t Node::getHeaderSize() const
+{
+    if (getDocumentVersion() >= 7500) {
+        // sizeof(uint64_t) * 3 + 1
+        return 25;
+    }
+    else {
+        // sizeof(uint32_t) * 3 + 1
+        return 13;
+    }
 }
 
 } // namespace sfbx

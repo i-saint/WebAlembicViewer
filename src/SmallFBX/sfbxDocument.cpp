@@ -46,19 +46,15 @@ void Document::read(std::istream& is)
         throw std::runtime_error("Not a FBX file");
     }
 
-    uint32_t version = read1<uint32_t>(is);
+    m_version = read1<uint32_t>(is);
 
-    //uint32_t maxVersion = 7400;
-    //if(version > maxVersion) throw "Unsupported FBX version "+std::to_string(version)
-    //                        + " latest supported version is "+std::to_string(maxVersion);
-
-    uint32_t start_offset = 27; // magic: 23, version: 4
-    do {
+    uint64_t pos = 27; // magic (23) + version (4)
+    for (;;) {
         auto node = createNode();
-        start_offset += node->read(is, start_offset);
+        pos += node->read(is, pos);
         if (node->isNull())
             break;
-    } while (true);
+    }
 
     if (auto objects = findNode(sfbxS_Objects)) {
         for (auto n : objects->getChildren()) {

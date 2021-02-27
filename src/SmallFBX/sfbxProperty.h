@@ -74,10 +74,10 @@ public:
     void read(std::istream& input);
     void write(std::ostream& output);
 
-    uint32_t getSizeInBytes() const;
+    uint64_t getSizeInBytes() const;
     PropertyType getType() const;
     bool isArray() const;
-    uint32_t getArraySize() const;
+    uint64_t getArraySize() const;
 
     template<class T> T getValue() const;
     template<class T> span<T> getArray() const;

@@ -22,10 +22,12 @@
   <ItemGroup>
     <ClInclude Include="SmallFBX\pch.h" />
     <ClInclude Include="SmallFBX\sfbxDocument.h" />
+    <ClInclude Include="SmallFBX\sfbxInternal.h" />
     <ClInclude Include="SmallFBX\sfbxNode.h" />
     <ClInclude Include="SmallFBX\sfbxObject.h" />
     <ClInclude Include="SmallFBX\sfbxProperty.h" />
     <ClInclude Include="SmallFBX\sfbxRawVector.h" />
+    <ClInclude Include="SmallFBX\sfbxSymbols.h" />
     <ClInclude Include="SmallFBX\sfbxTypes.h" />
     <ClInclude Include="SmallFBX\sfbxUtil.h" />
     <ClInclude Include="SmallFBX\SmallFBX.h" />

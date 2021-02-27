@@ -10,8 +10,8 @@ private:
     Node();
 
 public:
-    std::uint32_t read(std::istream &input, uint32_t start_offset);
-    std::uint32_t write(std::ostream &output, uint32_t start_offset);
+    uint64_t read(std::istream &input, uint64_t start_offset);
+    uint64_t write(std::ostream &output, uint64_t start_offset);
     bool isNull();
 
     void setName(const std::string& v);
@@ -24,7 +24,7 @@ public:
     template<class... T> void addPropertyNode(const char* name, T&&... v) { createNode(name)->addProperty(std::forward<T>(v)...);  }
     template<class... T> void addPropertyNode(const std::string& name, T&&... v) { createNode(name.c_str())->addProperty(std::forward<T>(v)...); }
 
-    uint32_t getSizeInBytes() const;
+    uint64_t getSizeInBytes() const;
     const std::string& getName() const;
 
     span<Property*> getProperties() const;
@@ -40,6 +40,9 @@ public:
     Property* findChildProperty(const std::string& name, size_t i = 0) const { return findChildProperty(name.c_str(), i); }
 
 private:
+    uint32_t getDocumentVersion() const;
+    uint32_t getHeaderSize() const;
+
     Document* m_document{};
     std::string m_name;
     std::vector<Property*> m_properties;
