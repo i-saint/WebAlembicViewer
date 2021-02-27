@@ -6,32 +6,6 @@ namespace sfbx {
 
 Document::Document()
 {
-    m_version = 7400;
-}
-
-void Document::read(const std::string& fname)
-{
-    std::ifstream file;
-    file.open(fname, std::ios::in | std::ios::binary);
-    if (file.is_open()) {
-        read(file);
-    }
-    else {
-        throw std::runtime_error("Cannot read from file: \"" + fname + "\"");
-    }
-    file.close();
-}
-
-void Document::write(const std::string& fname)
-{
-    std::ofstream file;
-    file.open(fname, std::ios::out | std::ios::binary);
-    if (file.is_open()) {
-        write(file);
-    } else {
-        throw std::runtime_error("Cannot write to file: \"" + fname + "\"");
-    }
-    file.close();
 }
 
 static const char g_fbx_magic[23]{
@@ -46,7 +20,7 @@ void Document::read(std::istream& is)
         throw std::runtime_error("Not a FBX file");
     }
 
-    m_version = read1<uint32_t>(is);
+    m_version = (FileVersion)read1<uint32_t>(is);
 
     uint64_t pos = 27; // magic (23) + version (4)
     for (;;) {
@@ -85,6 +59,19 @@ void Document::read(std::istream& is)
     }
 }
 
+void Document::read(const std::string& path)
+{
+    std::ifstream file;
+    file.open(path, std::ios::in | std::ios::binary);
+    if (file) {
+        read(file);
+    }
+    else {
+        throw std::runtime_error("Cannot read from file: \"" + path + "\"");
+    }
+}
+
+
 void Document::write(std::ostream& os)
 {
     writev(os, g_fbx_magic, 23);
@@ -114,12 +101,29 @@ void Document::write(std::ostream& os)
     writev(os, (char*)footer, std::size(footer));
 }
 
+void Document::write(const std::string& path)
+{
+    std::ofstream file;
+    file.open(path, std::ios::out | std::ios::binary);
+    if (file) {
+        write(file);
+    }
+    else {
+        throw std::runtime_error("Cannot write to file: \"" + path + "\"");
+    }
+}
 
-std::uint32_t Document::getVersion()
+
+FileVersion Document::getVersion()
 {
     return m_version;
 }
 
+
+void Document::setVersion(FileVersion v)
+{
+    m_version = v;
+}
 
 Property* Document::createProperty()
 {
@@ -129,13 +133,13 @@ Property* Document::createProperty()
 }
 
 
-Node* Document::createNode(const char* name)
+Node* Document::createNode(const std::string& name)
 {
     auto n = createChildNode(name);
     m_root_nodes.push_back(n);
     return n;
 }
-Node* Document::createChildNode(const char* name)
+Node* Document::createChildNode(const std::string& name)
 {
     auto r = new Node();
     r->m_document = this;
@@ -203,7 +207,7 @@ void Document::createHeaderExtention()
         std::time_t t = std::time(nullptr);   // get time now
         std::tm* now = std::localtime(&t);
 
-        auto timestamp = header_extension->createNode(sfbxS_CreationTimeStamp);
+        auto timestamp = header_extension->createChild(sfbxS_CreationTimeStamp);
         timestamp->addPropertyNode("Version", 1000);
         timestamp->addPropertyNode("Year", now->tm_year);
         timestamp->addPropertyNode("Month", now->tm_mon);
@@ -215,14 +219,14 @@ void Document::createHeaderExtention()
     }
     header_extension->addPropertyNode(sfbxS_Creator, "SmallFBX 1.0.0");
     {
-        auto sceneInfo = header_extension->createNode(sfbxS_SceneInfo);
+        auto sceneInfo = header_extension->createChild(sfbxS_SceneInfo);
         sceneInfo->addProperty(PropertyType::String,
             RawVector<char>{'G', 'l', 'o', 'b', 'a', 'l', 'I', 'n', 'f', 'o', 0, 1, 'S', 'c', 'e', 'n', 'e', 'I', 'n', 'f', 'o'});
         sceneInfo->addProperty("UserData");
         sceneInfo->addPropertyNode("Type", "UserData");
         sceneInfo->addPropertyNode("Version", 100);
         {
-            auto meta = sceneInfo->createNode(sfbxS_MetaData);
+            auto meta = sceneInfo->createChild(sfbxS_MetaData);
             meta->addPropertyNode("Version", 100);
             meta->addPropertyNode("Title", "");
             meta->addPropertyNode("Subject", "");
@@ -232,10 +236,10 @@ void Document::createHeaderExtention()
             meta->addPropertyNode("Comment", "");
         }
         {
-            auto properties = sceneInfo->createNode(sfbxS_Properties70);
+            auto properties = sceneInfo->createChild(sfbxS_Properties70);
             {
                 //properties->createChild();
-                auto p = properties->createNode(sfbxS_P);
+                auto p = properties->createChild(sfbxS_P);
                 p->addProperty("DocumentUrl");
                 p->addProperty("KString");
                 p->addProperty("Url");
@@ -243,7 +247,7 @@ void Document::createHeaderExtention()
                 p->addProperty("a.fbx");
             }
             {
-                auto p = properties->createNode(sfbxS_P);
+                auto p = properties->createChild(sfbxS_P);
                 p->addProperty("SrcDocumentUrl");
                 p->addProperty("KString");
                 p->addProperty("Url");
@@ -251,14 +255,14 @@ void Document::createHeaderExtention()
                 p->addProperty("a.fbx");
             }
             {
-                auto p = properties->createNode(sfbxS_P);
+                auto p = properties->createChild(sfbxS_P);
                 p->addProperty("Original");
                 p->addProperty("Compound");
                 p->addProperty("");
                 p->addProperty("");
             }
             {
-                auto p = properties->createNode(sfbxS_P);
+                auto p = properties->createChild(sfbxS_P);
                 p->addProperty("Original|ApplicationVendor");
                 p->addProperty("KString");
                 p->addProperty("");
@@ -266,7 +270,7 @@ void Document::createHeaderExtention()
                 p->addProperty("");
             }
             {
-                auto p = properties->createNode(sfbxS_P);
+                auto p = properties->createChild(sfbxS_P);
                 p->addProperty("Original|ApplicationName");
                 p->addProperty("KString");
                 p->addProperty("");
@@ -274,7 +278,7 @@ void Document::createHeaderExtention()
                 p->addProperty("");
             }
             {
-                auto p = properties->createNode(sfbxS_P);
+                auto p = properties->createChild(sfbxS_P);
                 p->addProperty("Original|ApplicationVersion");
                 p->addProperty("KString");
                 p->addProperty("");
@@ -282,7 +286,7 @@ void Document::createHeaderExtention()
                 p->addProperty("");
             }
             {
-                auto p = properties->createNode(sfbxS_P);
+                auto p = properties->createChild(sfbxS_P);
                 p->addProperty("Original|DateTime_GMT");
                 p->addProperty("DateTime");
                 p->addProperty("");
@@ -290,7 +294,7 @@ void Document::createHeaderExtention()
                 p->addProperty("");
             }
             {
-                auto p = properties->createNode(sfbxS_P);
+                auto p = properties->createChild(sfbxS_P);
                 p->addProperty("Original|FileName");
                 p->addProperty("KString");
                 p->addProperty("");
@@ -298,14 +302,14 @@ void Document::createHeaderExtention()
                 p->addProperty("");
             }
             {
-                auto p = properties->createNode(sfbxS_P);
+                auto p = properties->createChild(sfbxS_P);
                 p->addProperty("LastSaved");
                 p->addProperty("Compound");
                 p->addProperty("");
                 p->addProperty("");
             }
             {
-                auto p = properties->createNode(sfbxS_P);
+                auto p = properties->createChild(sfbxS_P);
                 p->addProperty("LastSaved|ApplicationVendor");
                 p->addProperty("KString");
                 p->addProperty("");
@@ -313,7 +317,7 @@ void Document::createHeaderExtention()
                 p->addProperty("");
             }
             {
-                auto p = properties->createNode(sfbxS_P);
+                auto p = properties->createChild(sfbxS_P);
                 p->addProperty("LastSaved|ApplicationName");
                 p->addProperty("KString");
                 p->addProperty("");
@@ -321,7 +325,7 @@ void Document::createHeaderExtention()
                 p->addProperty("");
             }
             {
-                auto p = properties->createNode(sfbxS_P);
+                auto p = properties->createChild(sfbxS_P);
                 p->addProperty("LastSaved|DateTime_GMT");
                 p->addProperty("DateTime");
                 p->addProperty("");

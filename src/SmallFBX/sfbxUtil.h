@@ -10,6 +10,7 @@ namespace sfbx {
 template<class T>
 inline T read1(std::istream& is)
 {
+    static_assert(std::is_pod_v<T>);
     T r;
     is.read((char*)&r, sizeof(T));
     return r;
@@ -29,12 +30,8 @@ inline void readv(std::istream& is, std::string& dst, size_t s)
 template<class T>
 inline void write1(std::ostream& os, T v)
 {
+    static_assert(std::is_pod_v<T>);
     os.write((const char*)&v, sizeof(T));
-}
-
-inline void write1(std::ostream& os, const char* s)
-{
-    os.write(s, std::strlen(s));
 }
 
 inline void writev(std::ostream& os, const void* src, size_t size)

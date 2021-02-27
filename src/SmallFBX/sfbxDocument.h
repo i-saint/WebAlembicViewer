@@ -5,24 +5,39 @@
 
 namespace sfbx {
 
+enum class FileVersion : int
+{
+    Unknown = 0,
+
+    Fbx2014 = 7400,
+    Fbx2015 = Fbx2014,
+
+    Fbx2016 = 7500,
+    Fbx2017 = Fbx2016,
+    Fbx2018 = Fbx2016,
+
+    Fbx2019 = 7600,
+    Fbx2020 = Fbx2019,
+
+    Default = Fbx2020,
+};
+
 class Document
 {
 public:
     Document();
     void read(std::istream &input);
+    void read(const std::string& path);
     void write(std::ostream& output);
+    void write(const std::string& path);
 
-    void read(const std::string& fname);
-    void write(const std::string& fname);
-
-    uint32_t getVersion();
+    FileVersion getVersion();
+    void setVersion(FileVersion v);
 
     Property* createProperty();
 
-    Node* createNode(const char* name = "");
-    Node* createNode(const std::string& name) { return createNode(name.c_str()); }
-    Node* createChildNode(const char* name = "");
-    Node* createChildNode(const std::string& name) { return createChildNode(name.c_str()); }
+    Node* createNode(const std::string& name = "");
+    Node* createChildNode(const std::string& name = "");
     Node* findNode(const char* name) const;
     Node* findNode(const std::string& name) const { return findNode(name.c_str()); }
     span<Node*> getRootNodes();
@@ -36,6 +51,8 @@ public:
 private:
     void createHeaderExtention();
 
+    FileVersion m_version = FileVersion::Default;
+
     std::vector<PropertyPtr> m_properties;
 
     std::vector<NodePtr> m_nodes;
@@ -43,8 +60,6 @@ private:
 
     std::vector<ObjectPtr> m_objects;
     std::vector<Object*> m_root_objects;
-
-    uint32_t m_version;
 };
 
 template<class... T>

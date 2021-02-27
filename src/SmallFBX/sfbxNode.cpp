@@ -14,7 +14,8 @@ uint64_t Node::read(std::istream& is, uint64_t start_offset)
     uint64_t ret = 0;
 
     uint64_t end_offset, num_props, prop_size;
-    if (getDocumentVersion() >= 7500) {
+    if (getDocumentVersion() >= sfbxI_FBX2016_FileVersion) {
+        // size records are 64bit since FBX 2016
         end_offset = read1<uint64_t>(is);
         num_props = read1<uint64_t>(is);
         prop_size = read1<uint64_t>(is);
@@ -29,7 +30,8 @@ uint64_t Node::read(std::istream& is, uint64_t start_offset)
 
     uint8_t name_len = read1<uint8_t>(is);
     readv(is, m_name, name_len);
-    ret += 1 + name_len;
+    ret += 1;
+    ret += name_len;
 
     for (uint32_t i = 0; i < num_props; i++) {
         auto p = createProperty();
@@ -38,7 +40,7 @@ uint64_t Node::read(std::istream& is, uint64_t start_offset)
     ret += prop_size;
 
     while (start_offset + ret < end_offset) {
-        auto child = createNode();
+        auto child = createChild();
         ret += child->read(is, start_offset + ret);
     }
     return ret;
@@ -48,7 +50,7 @@ uint64_t Node::write(std::ostream& os, uint64_t start_offset)
 {
     uint32_t header_size = getHeaderSize();
     if (isNull()) {
-        for (int i = 0; i < header_size; i++)
+        for (uint32_t i = 0; i < header_size; i++)
             write1(os, (uint8_t)0);
         return header_size;
     }
@@ -61,7 +63,8 @@ uint64_t Node::write(std::ostream& os, uint64_t start_offset)
     for (auto& child : m_children)
         pos += child->getSizeInBytes();
 
-    if (getDocumentVersion() >= 7500) {
+    if (getDocumentVersion() >= sfbxI_FBX2016_FileVersion) {
+        // size records are 64bit since FBX 2016
         write1(os, uint64_t(start_offset + pos));
         write1(os, uint64_t(m_properties.size()));
         write1(os, uint64_t(property_size));
@@ -71,8 +74,8 @@ uint64_t Node::write(std::ostream& os, uint64_t start_offset)
         write1(os, uint32_t(m_properties.size()));
         write1(os, uint32_t(property_size));
     }
-    write1(os, uint8_t(m_name.length()));
-    write1(os, m_name);
+    write1(os, uint8_t(m_name.size()));
+    writev(os, m_name.data(), m_name.size());
 
     pos = header_size + m_name.length() + property_size;
     for (auto& prop : m_properties)
@@ -100,7 +103,7 @@ Property* Node::createProperty()
     return p;
 }
 
-Node* Node::createNode(const char* name)
+Node* Node::createChild(const std::string& name)
 {
     auto p = m_document->createChildNode(name);
     m_children.push_back(p);
@@ -175,12 +178,12 @@ Node* Node::findChild(const char* name) const
 
 uint32_t Node::getDocumentVersion() const
 {
-    return m_document->getVersion();
+    return (uint32_t)m_document->getVersion();
 }
 
 uint32_t Node::getHeaderSize() const
 {
-    if (getDocumentVersion() >= 7500) {
+    if (getDocumentVersion() >= sfbxI_FBX2016_FileVersion) {
         // sizeof(uint64_t) * 3 + 1
         return 25;
     }

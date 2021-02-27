@@ -65,3 +65,10 @@
 #define sfbxI_BlendShapeChannelVersion  100
 #define sfbxI_MaterialVersion   102
 
+#define sfbxI_FBX2014_FileVersion 7400
+#define sfbxI_FBX2015_FileVersion 7400
+#define sfbxI_FBX2016_FileVersion 7500
+#define sfbxI_FBX2017_FileVersion 7500
+#define sfbxI_FBX2018_FileVersion 7500
+#define sfbxI_FBX2019_FileVersion 7700
+#define sfbxI_FBX2020_FileVersion 7700

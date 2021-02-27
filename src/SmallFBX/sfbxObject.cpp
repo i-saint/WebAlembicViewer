@@ -113,13 +113,13 @@ void Object::readDataFronNode()
 void Object::constructNodes()
 {
     auto objects = m_document->findNode(sfbxS_Objects);
-    m_node = objects->createNode(GetFbxObjectName(getType()));
+    m_node = objects->createChild(GetFbxObjectName(getType()));
     m_node->addProperty(m_id);
     m_node->addProperty(m_name);
     m_node->addProperty(GetFbxObjectSubName(m_subtype));
 
     auto connections = m_document->findNode(sfbxS_Connections);
-    auto c = connections->createNode(sfbxS_C);
+    auto c = connections->createChild(sfbxS_C);
     c->addProperty(sfbxS_OO);
     c->addProperty(m_id);
     c->addProperty(m_parent ? m_parent->getID() : 0);
@@ -134,6 +134,13 @@ span<Object*> Object::getChildren() const { return make_span(m_children); }
 void Object::setSubType(ObjectSubType v) { m_subtype = v; }
 void Object::setID(int64 id) { m_id = id; }
 void Object::setNode(Node* v) { m_node = v; }
+
+Object* Object::createChild(ObjectType type)
+{
+    auto ret = m_document->createObject(type);
+    addChild(ret);
+    return ret;
+}
 
 void Object::addChild(Object* v)
 {
@@ -227,13 +234,13 @@ void Model::constructNodes()
         return;
 
     // version
-    n->createNode(sfbxS_Version)->addProperty(sfbxI_ModelVersion);
+    n->createChild(sfbxS_Version)->addProperty(sfbxI_ModelVersion);
 
-    auto properties = n->createNode(sfbxS_Properties70);
+    auto properties = n->createChild(sfbxS_Properties70);
 
     // position
     if (m_position != float3::zero()) {
-        auto p = properties->createNode(sfbxS_P);
+        auto p = properties->createChild(sfbxS_P);
         p->addProperty(sfbxS_LclTranslation);
         p->addProperty(sfbxS_LclTranslation);
         p->addProperty(sfbxS_Empty);
@@ -246,7 +253,7 @@ void Model::constructNodes()
     // rotation
     if (m_rotation != float3::zero()) {
         {
-            auto p = properties->createNode(sfbxS_P);
+            auto p = properties->createChild(sfbxS_P);
             p->addProperty(sfbxS_RotationOrder);
             p->addProperty(sfbxS_RotationOrder);
             p->addProperty(sfbxS_Empty);
@@ -254,7 +261,7 @@ void Model::constructNodes()
             p->addProperty((int32)m_rotation_order);
         }
         {
-            auto p = properties->createNode(sfbxS_P);
+            auto p = properties->createChild(sfbxS_P);
             p->addProperty(sfbxS_LclRotation);
             p->addProperty(sfbxS_LclRotation);
             p->addProperty(sfbxS_Empty);
@@ -267,7 +274,7 @@ void Model::constructNodes()
 
     // scale
     if (m_scale!= float3::one()) {
-        auto p = properties->createNode(sfbxS_P);
+        auto p = properties->createChild(sfbxS_P);
         p->addProperty(sfbxS_LclScale);
         p->addProperty(sfbxS_LclScale);
         p->addProperty(sfbxS_Empty);
@@ -454,7 +461,7 @@ void Pose::readDataFronNode()
             if (c->getName() == sfbxS_PoseNode) {
                 auto nid = c->findChildProperty(sfbxS_Node)->getValue<int64>();
                 auto mat = c->findChildProperty(sfbxS_Marix)->getValue<double4x4>();
-                m_bindpose.push_back({ m_document->findObject(nid), float4x4(mat) });
+                m_joints.push_back({ m_document->findObject(nid), float4x4(mat) });
             }
         }
     }
@@ -466,9 +473,9 @@ void Pose::constructNodes()
     // todo
 }
 
-std::span<sfbx::Pose::BindPose> Pose::getBindPose() const
+std::span<sfbx::Pose::JointData> Pose::getJoints() const
 {
-    return make_span(m_bindpose);
+    return make_span(m_joints);
 }
 
 

@@ -63,6 +63,8 @@ public:
     void setSubType(ObjectSubType v);
     void setID(int64 v);
     void setNode(Node* v);
+
+    Object* createChild(ObjectType type);
     void addChild(Object* v);
 
 protected:
@@ -191,9 +193,9 @@ class Pose : public Object
 friend class Document;
 using super = Object;
 public:
-    struct BindPose
+    struct JointData
     {
-        Object* joint{};
+        Object* model{};
         float4x4 matrix = float4x4::identity();
     };
 
@@ -201,12 +203,12 @@ public:
     void readDataFronNode() override;
     void constructNodes() override;
 
-    span<BindPose> getBindPose() const;
+    span<JointData> getJoints() const;
 
 protected:
     Pose();
 
-    std::vector<BindPose> m_bindpose;
+    std::vector<JointData> m_joints;
 };
 
 
