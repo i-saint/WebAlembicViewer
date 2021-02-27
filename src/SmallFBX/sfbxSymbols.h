@@ -23,6 +23,7 @@
 #define sfbxS_P         "P"
 #define sfbxS_OO        "OO"
 #define sfbxS_Version   "Version"
+#define sfbxS_Name      "Name"
 
 #define sfbxS_Properties70    "Properties70"
 #define sfbxS_Visibility      "Visibility"
@@ -39,9 +40,12 @@
 #define sfbxS_NormalsIndex              "NormalsIndex"
 #define sfbxS_UV                        "UV"
 #define sfbxS_UVIndex                   "UVIndex"
+#define sfbxS_Colors                    "Colors"
+#define sfbxS_ColorIndex                "ColorIndex"
 #define sfbxS_PolygonVertexIndex        "PolygonVertexIndex"
 #define sfbxS_LayerElementNormal        "LayerElementNormal"
 #define sfbxS_LayerElementUV            "LayerElementUV"
+#define sfbxS_LayerElementColor         "LayerElementColor"
 #define sfbxS_MappingInformationType    "MappingInformationType"
 #define sfbxS_ReferenceInformationType  "ReferenceInformationType"
 

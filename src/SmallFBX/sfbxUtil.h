@@ -55,11 +55,18 @@ void each_indexed(Values& val, Indices& idx, const Body& body)
 }
 
 template<class Dst, class Src>
-void copy(Dst& dst, Src& src)
+void copy(Dst& dst, const Src& src)
 {
     dst.resize(src.size());
     auto* d = dst.data();
     for (const auto& v : src)
+        *d++ = v;
+}
+template<class T, class U>
+void copy(span<T> dst, const span<U> src)
+{
+    auto* d = dst.data();
+    for (const U& v : src)
         *d++ = v;
 }
 

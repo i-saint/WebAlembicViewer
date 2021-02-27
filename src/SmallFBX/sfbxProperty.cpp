@@ -33,66 +33,6 @@ uint32_t SizeOfElement(PropertyType type)
 
 Property::Property() {}
 
-template<class T>
-static inline void Assign(RawVector<char>& dst, const span<T>& v)
-{
-    size_t s = sizeof(T) * v.size();
-    dst.resize(s);
-    dst.assign((char*)v.data(), (char*)v.data() + s);
-}
-
-template<> void Property::assign(bool v)    { m_type = PropertyType::Bool; m_scalar.i8 = v; }
-template<> void Property::assign(int8 v)    { m_type = PropertyType::Int8; m_scalar.i8 = v; }
-template<> void Property::assign(int16 v)   { m_type = PropertyType::Int16; m_scalar.i16 = v; }
-template<> void Property::assign(int32 v)   { m_type = PropertyType::Int32; m_scalar.i32 = v; }
-template<> void Property::assign(int64 v)   { m_type = PropertyType::Int64; m_scalar.i64 = v; }
-template<> void Property::assign(float32 v) { m_type = PropertyType::Float32; m_scalar.f32 = v; }
-template<> void Property::assign(float64 v) { m_type = PropertyType::Float64; m_scalar.f64 = v; }
-
-template<> void Property::assign(span<bool> v)    { m_type = PropertyType::BoolArray; Assign(m_data, v); }
-template<> void Property::assign(span<int8> v)    { m_type = PropertyType::Int8Array; Assign(m_data, v); }
-template<> void Property::assign(span<int16> v)   { m_type = PropertyType::Int16Array; Assign(m_data, v); }
-template<> void Property::assign(span<int32> v)   { m_type = PropertyType::Int32Array; Assign(m_data, v); }
-template<> void Property::assign(span<int64> v)   { m_type = PropertyType::Int64Array; Assign(m_data, v); }
-template<> void Property::assign(span<float32> v) { m_type = PropertyType::Float32Array; Assign(m_data, v); }
-template<> void Property::assign(span<float64> v) { m_type = PropertyType::Float64Array; Assign(m_data, v); }
-
-template<> void Property::assign(span<float2> v)  { assign(span<float32>{ (float32*)v.data(), v.size() * 2 }); }
-template<> void Property::assign(span<float3> v)  { assign(span<float32>{ (float32*)v.data(), v.size() * 3 }); }
-template<> void Property::assign(span<float4> v)  { assign(span<float32>{ (float32*)v.data(), v.size() * 4 }); }
-template<> void Property::assign(span<double2> v) { assign(span<float64>{ (float64*)v.data(), v.size() * 2 }); }
-template<> void Property::assign(span<double3> v) { assign(span<float64>{ (float64*)v.data(), v.size() * 3 }); }
-template<> void Property::assign(span<double4> v) { assign(span<float64>{ (float64*)v.data(), v.size() * 4 }); }
-
-void Property::assign(const std::vector<bool>& v)
-{
-    m_type = PropertyType::BoolArray;
-    size_t s = v.size();
-    m_data.resize(s);
-    for (size_t i = 0; i < s; ++i)
-        m_data[i] = (int8)v[i];
-}
-
-void Property::assign(const std::string& v)
-{
-    m_type = PropertyType::String;
-    m_data.assign(v.begin(), v.end());
-}
-
-void Property::assign(const char* v)
-{
-    m_type = PropertyType::String;
-    m_data.clear();
-    if (v)
-        m_data.assign(v, v + std::strlen(v));
-}
-
-void Property::assign(PropertyType t, const RawVector<char>& v)
-{
-    m_type = t;
-    m_data = v;
-}
-
 void Property::read(std::istream& is)
 {
     m_type = read1<PropertyType>(is);
@@ -156,17 +96,97 @@ void Property::write(std::ostream& os)
     }
 }
 
-static inline char Base16Letter(uint8_t n)
+
+template<> span<int32> Property::allocateArray(size_t size)
 {
-    n %= 16;
-    if (n <= 9)
-        return n + '0';
-    return n + 'a' - 10;
+    m_type = PropertyType::Int32Array;
+    m_data.resize(size * sizeof(int32));
+    return make_span((int32*)m_data.data(), size);
 }
 
-static inline std::string Base16Number(uint8_t n)
+template<> span<float64> Property::allocateArray(size_t size)
 {
-    return std::string() + Base16Letter(n >> 4) + Base16Letter(n);
+    m_type = PropertyType::Float64Array;
+    m_data.resize(size * sizeof(float64));
+    return make_span((float64*)m_data.data(), size);
+}
+template<> span<double2> Property::allocateArray(size_t size)
+{
+    m_type = PropertyType::Float64Array;
+    m_data.resize(size * sizeof(double2));
+    return make_span((double2*)m_data.data(), size);
+}
+template<> span<double3> Property::allocateArray(size_t size)
+{
+    m_type = PropertyType::Float64Array;
+    m_data.resize(size * sizeof(double3));
+    return make_span((double3*)m_data.data(), size);
+}
+template<> span<double4> Property::allocateArray(size_t size)
+{
+    m_type = PropertyType::Float64Array;
+    m_data.resize(size * sizeof(double4));
+    return make_span((double4*)m_data.data(), size);
+}
+
+template<class T>
+static inline void Assign(RawVector<char>& dst, const span<T>& v)
+{
+    size_t s = sizeof(T) * v.size();
+    dst.resize(s);
+    dst.assign((char*)v.data(), (char*)v.data() + s);
+}
+
+template<> void Property::assign(bool v)    { m_type = PropertyType::Bool; m_scalar.i8 = v; }
+template<> void Property::assign(int8 v)    { m_type = PropertyType::Int8; m_scalar.i8 = v; }
+template<> void Property::assign(int16 v)   { m_type = PropertyType::Int16; m_scalar.i16 = v; }
+template<> void Property::assign(int32 v)   { m_type = PropertyType::Int32; m_scalar.i32 = v; }
+template<> void Property::assign(int64 v)   { m_type = PropertyType::Int64; m_scalar.i64 = v; }
+template<> void Property::assign(float32 v) { m_type = PropertyType::Float32; m_scalar.f32 = v; }
+template<> void Property::assign(float64 v) { m_type = PropertyType::Float64; m_scalar.f64 = v; }
+
+template<> void Property::assign(span<bool> v)    { m_type = PropertyType::BoolArray; Assign(m_data, v); }
+template<> void Property::assign(span<int8> v)    { m_type = PropertyType::Int8Array; Assign(m_data, v); }
+template<> void Property::assign(span<int16> v)   { m_type = PropertyType::Int16Array; Assign(m_data, v); }
+template<> void Property::assign(span<int32> v)   { m_type = PropertyType::Int32Array; Assign(m_data, v); }
+template<> void Property::assign(span<int64> v)   { m_type = PropertyType::Int64Array; Assign(m_data, v); }
+template<> void Property::assign(span<float32> v) { m_type = PropertyType::Float32Array; Assign(m_data, v); }
+template<> void Property::assign(span<float64> v) { m_type = PropertyType::Float64Array; Assign(m_data, v); }
+
+template<> void Property::assign(span<float2> v)  { assign(span<float32>{ (float32*)v.data(), v.size() * 2 }); }
+template<> void Property::assign(span<float3> v)  { assign(span<float32>{ (float32*)v.data(), v.size() * 3 }); }
+template<> void Property::assign(span<float4> v)  { assign(span<float32>{ (float32*)v.data(), v.size() * 4 }); }
+template<> void Property::assign(span<double2> v) { assign(span<float64>{ (float64*)v.data(), v.size() * 2 }); }
+template<> void Property::assign(span<double3> v) { assign(span<float64>{ (float64*)v.data(), v.size() * 3 }); }
+template<> void Property::assign(span<double4> v) { assign(span<float64>{ (float64*)v.data(), v.size() * 4 }); }
+
+void Property::assign(const std::vector<bool>& v)
+{
+    m_type = PropertyType::BoolArray;
+    size_t s = v.size();
+    m_data.resize(s);
+    for (size_t i = 0; i < s; ++i)
+        m_data[i] = (int8)v[i];
+}
+
+void Property::assign(const std::string& v)
+{
+    m_type = PropertyType::String;
+    m_data.assign(v.begin(), v.end());
+}
+
+void Property::assign(const char* v)
+{
+    m_type = PropertyType::String;
+    m_data.clear();
+    if (v)
+        m_data.assign(v, v + std::strlen(v));
+}
+
+void Property::assign(PropertyType t, const RawVector<char>& v)
+{
+    m_type = t;
+    m_data = v;
 }
 
 uint64_t Property::getSizeInBytes() const
@@ -243,6 +263,19 @@ std::string Property::getString() const
 {
     sfbxReturnIfNull();
     return std::string(m_data.data(), m_data.size());
+}
+
+static inline char Base16Letter(uint8_t n)
+{
+    n %= 16;
+    if (n <= 9)
+        return n + '0';
+    return n + 'a' - 10;
+}
+
+static inline std::string Base16Number(uint8_t n)
+{
+    return std::string() + Base16Letter(n >> 4) + Base16Letter(n);
 }
 
 std::string Property::toString() const

@@ -313,79 +313,188 @@ void Geometry::readDataFronNode()
     if (!n)
         return;
 
-    // vertices
-    m_points = n->findChildProperty(sfbxS_Vertices)->getArray<double3>();
+    auto handle_vertices = [this](Node* n) {
+        if (n->getName() != sfbxS_Vertices)
+            return false;
+        m_points = n->getProperty(0)->getArray<double3>();
+        return true;
+    };
+
+    auto handle_polygon_indices = [this](Node* n) {
+        if (n->getName() != sfbxS_PolygonVertexIndex)
+            return false;
+        auto src_indices = n->getProperty(0)->getArray<int>();
+        size_t cindices = src_indices.size();
+        m_counts.resize(cindices); // reserve
+        m_indices.resize(cindices);
+
+        const int* src = src_indices.data();
+        int* dst_counts = m_counts.data();
+        int* dst_indices = m_indices.data();
+        size_t cfaces = 0;
+        size_t cpoints = 0;
+        for (int i : src_indices) {
+            ++cpoints;
+            if (i < 0) { // negative value indicates the last index in the face
+                i = ~i;
+                dst_counts[cfaces++] = cpoints;
+                cpoints = 0;
+            }
+            *dst_indices++ = i;
+        }
+        m_counts.resize(cfaces); // fit to actual size
+        return true;
+    };
+
+    auto handle_normal_layer = [this](Node* n) {
+        if (n->getName() != sfbxS_LayerElementNormal)
+            return false;
+        //auto mapping = n->findChildProperty(sfbxS_MappingInformationType);
+        //auto ref = n->findChildProperty(sfbxS_ReferenceInformationType);
+        LayerElementF3 tmp;
+        tmp.name = n->findChildProperty(sfbxS_Name)->getString();
+        tmp.data = n->findChildProperty(sfbxS_Normals)->getArray<double3>();
+        tmp.indices = n->findChildProperty(sfbxS_NormalsIndex)->getArray<int>();
+        addNormalLayer(std::move(tmp));
+        return true;
+    };
+
+    auto handle_uv_layer = [this](Node* n) {
+        if (n->getName() != sfbxS_LayerElementUV)
+            return false;
+        LayerElementF2 tmp;
+        tmp.name = n->findChildProperty(sfbxS_Name)->getString();
+        tmp.data = n->findChildProperty(sfbxS_UV)->getArray<double2>();
+        tmp.indices = n->findChildProperty(sfbxS_UVIndex)->getArray<int>();
+        addUVLayer(std::move(tmp));
+        return true;
+    };
+
+    auto handle_color_layer = [this](Node* n) {
+        if (n->getName() != sfbxS_LayerElementColor)
+            return false;
+        LayerElementF4 tmp;
+        tmp.name = n->findChildProperty(sfbxS_Name)->getString();
+        tmp.data = n->findChildProperty(sfbxS_Colors)->getArray<double4>();
+        tmp.indices = n->findChildProperty(sfbxS_ColorIndex)->getArray<int>();
+        addColorLayer(std::move(tmp));
+        return true;
+    };
+
+    auto handle_shape_indices = [this](Node* n) {
+        if (n->getName() != sfbxS_Indexes)
+            return false;
+        m_indices = n->getProperty(0)->getArray<int>();
+        return true;
+    };
+
+    auto handle_shape_normals = [this](Node* n) {
+        if (n->getName() != sfbxS_Normals)
+            return false;
+        LayerElementF3 tmp;
+        tmp.data = n->getProperty(0)->getArray<double3>();
+        addNormalLayer(std::move(tmp));
+        return true;
+    };
+
 
     if (m_subtype == ObjectSubType::Mesh) {
-        // indices
-        if (auto pindices = n->findChildProperty(sfbxS_PolygonVertexIndex)) {
-            auto src_indices = pindices->getArray<int>();
-            size_t cindices = src_indices.size();
-            m_counts.resize(cindices); // reserve
-            m_indices.resize(cindices);
-
-            const int* src = src_indices.data();
-            int* dst_counts = m_counts.data();
-            int* dst_indices = m_indices.data();
-            size_t cfaces = 0;
-            size_t cpoints = 0;
-            for (int i : src_indices) {
-                ++cpoints;
-                if (i < 0) { // negative value indicates the last index in the face
-                    i = ~i;
-                    dst_counts[cfaces++] = cpoints;
-                    cpoints = 0;
-                }
-                *dst_indices++ = i;
-            }
-            m_counts.resize(cfaces); // fit to actual size
-        }
-
-        // normals
-        if (auto nnormals = n->findChild(sfbxS_LayerElementNormal)) {
-            auto mapping = nnormals->findChildProperty(sfbxS_MappingInformationType);
-            auto ref = nnormals->findChildProperty(sfbxS_ReferenceInformationType);
-
-            auto src_normals = nnormals->findChildProperty(sfbxS_Normals)->getArray<double3>();
-            m_normals = src_normals;
-        }
-
-        // uv
-        if (auto nuv = n->findChild(sfbxS_LayerElementUV)) {
-            auto mapping = nuv->findChildProperty(sfbxS_MappingInformationType);
-            auto ref = nuv->findChildProperty(sfbxS_ReferenceInformationType);
-
-            auto src_uv = nuv->findChildProperty(sfbxS_UV)->getArray<double2>();
-            m_uv = src_uv;
+        for (auto c : n->getChildren()) {
+            handle_vertices(c) ||
+                handle_polygon_indices(c) ||
+                handle_normal_layer(c) ||
+                handle_uv_layer(c) ||
+                handle_color_layer(c);
         }
     }
     else if (m_subtype == ObjectSubType::Shape) {
-        // indices
-        m_indices = n->findChildProperty(sfbxS_Indexes)->getArray<int>();
-
-        // normals
-        m_points = n->findChildProperty(sfbxS_Normals)->getArray<double3>();
+        for (auto c : n->getChildren()) {
+            handle_vertices(c) ||
+                handle_shape_indices(c) ||
+                handle_shape_normals(c);
+        }
     }
+}
 
+
+template<class D, class S>
+static inline void CreatePropertyAndCopy(Node* dst_node, span<S> src)
+{
+    auto dst_prop = dst_node->createProperty();
+    auto dst = dst_prop->allocateArray<D>(src.size());
+    copy(dst, src);
 }
 
 void Geometry::constructNodes()
 {
     super::constructNodes();
-    // todo
+
+    auto n = getNode();
+
+    // points
+    CreatePropertyAndCopy<double3>(n->createChild(sfbxS_Vertices), getPoints());
+
+    if (m_subtype == ObjectSubType::Mesh) {
+        // indices
+        {
+            auto indices = getIndices();
+            auto counts = getCounts().data();
+
+            auto dst_node = n->createChild(sfbxS_PolygonVertexIndex);
+            auto dst_prop = dst_node->createProperty();
+            auto dst_indices = dst_prop->allocateArray<int>(indices.size()).data();
+
+            size_t cpoints = 0;
+            for (int i : indices) {
+                if (++cpoints == *counts) {
+                    i = ~i; // negative value indicates the last index in the face
+                    cpoints = 0;
+                    ++counts;
+                }
+                *dst_indices++ = i;
+            }
+        }
+
+        // normal layers
+        for (auto& layer : m_normal_layers) {
+            auto normals_layer = n->createChild(sfbxS_LayerElementNormal);
+            // todo
+        }
+
+        // uv layers
+        for (auto& layer : m_uv_layers) {
+            auto uv_layer = n->createChild(sfbxS_LayerElementUV);
+            // todo
+        }
+
+        // color layers
+        for (auto& layer : m_color_layers) {
+            auto color_layer = n->createChild(sfbxS_LayerElementColor);
+            // todo
+        }
+    }
+    else if (m_subtype == ObjectSubType::Shape) {
+        //CreatePropertyAndCopy<int>(n->createChild(sfbxS_Indexes), getIndices());
+        //CreatePropertyAndCopy<double3>(n->createChild(sfbxS_Normals), getNormals());
+    }
 }
 
-span<int> Geometry::getCounts() const { return make_span(m_counts); }
-span<int> Geometry::getIndices() const { return make_span(m_indices); }
+span<int>    Geometry::getCounts() const { return make_span(m_counts); }
+span<int>    Geometry::getIndices() const { return make_span(m_indices); }
 span<float3> Geometry::getPoints() const { return make_span(m_points); }
-span<float3> Geometry::getNormals() const { return make_span(m_normals); }
-span<float2> Geometry::getUV() const { return make_span(m_uv); }
+span<LayerElementF3> Geometry::getNormalLayers() const { return make_span(m_normal_layers); }
+span<LayerElementF2> Geometry::getUVLayers() const { return make_span(m_uv_layers); }
+span<LayerElementF4> Geometry::getColorLayers() const { return make_span(m_color_layers); }
 
 void Geometry::setCounts(span<int> v) { m_counts = v; }
 void Geometry::setIndices(span<int> v) { m_indices = v; }
 void Geometry::setPoints(span<float3> v) { m_points = v; }
-void Geometry::setNormals(span<float3> v) { m_normals = v; }
-void Geometry::setUV(span<float2> v) { m_uv = v; }
+void Geometry::addNormalLayer(const LayerElementF3& v)  { m_normal_layers.push_back(v); }
+void Geometry::addNormalLayer(LayerElementF3&& v)       { m_normal_layers.push_back(std::move(v)); }
+void Geometry::addUVLayer(const LayerElementF2& v)      { m_uv_layers.push_back(v); }
+void Geometry::addUVLayer(LayerElementF2&& v)           { m_uv_layers.push_back(std::move(v)); }
+void Geometry::addColorLayer(const LayerElementF4& v)   { m_color_layers.push_back(v); }
+void Geometry::addColorLayer(LayerElementF4&& v)        { m_color_layers.push_back(std::move(v)); }
 
 
 Deformer::Deformer()

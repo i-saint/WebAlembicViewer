@@ -127,6 +127,19 @@ protected:
 };
 
 
+template<class T>
+struct LayerElement
+{
+    std::string name;
+    RawVector<T> data;
+    RawVector<int> indices; // can be empty. in that case, size of data must equal with vertex count or index count.
+};
+using LayerElementF2 = LayerElement<float2>;
+using LayerElementF3 = LayerElement<float3>;
+using LayerElementF4 = LayerElement<float4>;
+
+// if getSubType() == ObjectSubType::Mesh, Geometry is usual poly mesh data.
+// if getSubType() == ObjectSubType::Shape, it is blend shape target. in this case, points & normals are delta (deference from original).
 class Geometry : public Object
 {
 friend class Document;
@@ -139,14 +152,19 @@ public:
     span<int> getCounts() const;
     span<int> getIndices() const;
     span<float3> getPoints() const;
-    span<float3> getNormals() const;
-    span<float2> getUV() const;
+    span<LayerElementF3> getNormalLayers() const;
+    span<LayerElementF2> getUVLayers() const;
+    span<LayerElementF4> getColorLayers() const;
 
     void setCounts(span<int> v);
     void setIndices(span<int> v);
     void setPoints(span<float3> v);
-    void setNormals(span<float3> v);
-    void setUV(span<float2> v);
+    void addNormalLayer(const LayerElementF3& v);
+    void addNormalLayer(LayerElementF3&& v);
+    void addUVLayer(const LayerElementF2& v);
+    void addUVLayer(LayerElementF2&& v);
+    void addColorLayer(const LayerElementF4& v);
+    void addColorLayer(LayerElementF4&& v);
 
 protected:
     Geometry();
@@ -154,8 +172,9 @@ protected:
     RawVector<int> m_counts;
     RawVector<int> m_indices;
     RawVector<float3> m_points;
-    RawVector<float3> m_normals;
-    RawVector<float2> m_uv;
+    std::vector<LayerElementF3> m_normal_layers;
+    std::vector<LayerElementF2> m_uv_layers;
+    std::vector<LayerElementF4> m_color_layers;
 };
 
 

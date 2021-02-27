@@ -17,7 +17,7 @@ template<class T> using span = std::span<T>;
 
 #else
 
-// equivalent of std::span in C++20
+// equivalent of std::span in C++20 (with dynamic_extent)
 template<class T>
 class span
 {

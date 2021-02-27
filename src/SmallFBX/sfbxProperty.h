@@ -60,6 +60,11 @@ private:
     Property();
 
 public:
+    void read(std::istream& input);
+    void write(std::ostream& output);
+
+    template<class T> span<T> allocateArray(size_t size);
+
     // T: corresponding types with PropertyType (bool ... float64 and span<> & std::vector<>, std::string)
     template<class T, sfbxEnableIf(is_propery_pod<T>::value)> void assign(T v);
     template<class T, sfbxEnableIf(is_propery_array<T>::value)> void assign(span<T> v);
@@ -70,9 +75,6 @@ public:
     void assign(const std::string& v);
     void assign(const char* v);
     void assign(PropertyType t, const RawVector<char>& v);
-
-    void read(std::istream& input);
-    void write(std::ostream& output);
 
     uint64_t getSizeInBytes() const;
     PropertyType getType() const;
