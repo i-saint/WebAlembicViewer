@@ -6,9 +6,10 @@ namespace sfbx {
 class Node
 {
 friend class Document;
-public:
-    Node(Document* doc = nullptr, const std::string& name = "");
+private:
+    Node();
 
+public:
     std::uint32_t read(std::istream &input, uint32_t start_offset);
     std::uint32_t write(std::ostream &output, uint32_t start_offset);
     bool isNull();
@@ -51,11 +52,5 @@ private:
     Node* m_parent{};
     std::vector<Node*> m_children;
 };
-
-template<class... T>
-inline NodePtr MakeNode(T&&... v)
-{
-    return std::make_shared<Node>(std::forward<T>(v)...);
-}
 
 } // namespace sfbx

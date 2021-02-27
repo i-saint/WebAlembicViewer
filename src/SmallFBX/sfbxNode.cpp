@@ -5,9 +5,7 @@
 
 namespace sfbx {
 
-Node::Node(Document* doc, const std::string& name)
-    : m_document(doc)
-    , m_name(name)
+Node::Node()
 {
 }
 

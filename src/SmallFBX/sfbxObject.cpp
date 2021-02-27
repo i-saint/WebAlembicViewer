@@ -3,37 +3,37 @@
 
 namespace sfbx {
 
-ObjecType GetFbxObjectType(const std::string& n)
+ObjectType GetFbxObjectType(const std::string& n)
 {
     if (n.empty())
-        return ObjecType::Unknown;
+        return ObjectType::Unknown;
     else if (n == "NodeAttribute")
-        return ObjecType::Attribute;
+        return ObjectType::Attribute;
     else if (n == "Model")
-        return ObjecType::Model;
+        return ObjectType::Model;
     else if (n == "Geometry")
-        return ObjecType::Geometry;
+        return ObjectType::Geometry;
     else if (n == "Deformer")
-        return ObjecType::Deformer;
+        return ObjectType::Deformer;
     else if (n == "Pose")
-        return ObjecType::Pose;
+        return ObjectType::Pose;
     else if (n == "Material")
-        return ObjecType::Material;
+        return ObjectType::Material;
     else {
-        printf("sfbx::GetFbxObjectType(): unknown type \"%s\"\n", n.c_str());
-        return ObjecType::Unknown;
+        printf("GetFbxObjectType(): unknown type \"%s\"\n", n.c_str());
+        return ObjectType::Unknown;
     }
 }
 
-const char* GetFbxObjectName(ObjecType t)
+const char* GetFbxObjectName(ObjectType t)
 {
     switch (t) {
-    case ObjecType::Attribute: return "NodeAtrribute";
-    case ObjecType::Model: return "Model";
-    case ObjecType::Geometry: return "Geometry";
-    case ObjecType::Deformer: return "Deformer";
-    case ObjecType::Pose: return "Pose";
-    case ObjecType::Material: return "Material";
+    case ObjectType::Attribute: return "NodeAtrribute";
+    case ObjectType::Model: return "Model";
+    case ObjectType::Geometry: return "Geometry";
+    case ObjectType::Deformer: return "Deformer";
+    case ObjectType::Pose: return "Pose";
+    case ObjectType::Material: return "Material";
     default: return "";
     }
 }
@@ -60,7 +60,7 @@ ObjectSubType GetFbxObjectSubType(const std::string& n)
     else if (n == "BlendShapeChannel")
         return ObjectSubType::BlendShapeChannel;
     else {
-        printf("sfbx::GetFbxObjectSubType(): unknown subtype \"%s\"\n", n.c_str());
+        printf("GetFbxObjectSubType(): unknown subtype \"%s\"\n", n.c_str());
         return ObjectSubType::Unknown;
     }
 }
@@ -81,8 +81,7 @@ const char* GetFbxObjectSubName(ObjectSubType t)
 }
 
 
-Object::Object(Node* n)
-    : m_node(n)
+Object::Object()
 {
 }
 
@@ -90,15 +89,25 @@ Object::~Object()
 {
 }
 
-ObjecType Object::getType() const { return ObjecType::Unknown; }
+ObjectType Object::getType() const { return ObjectType::Unknown; }
 
-sfbx::ObjectSubType Object::getSubType() const { return m_subtype; }
-int64 Object::getID() const   { return m_id; }
+ObjectSubType Object::getSubType() const { return m_subtype; }
+int64 Object::getID() const { return m_id; }
 Node* Object::getNode() const { return m_node; }
+Object* Object::getParent() const { return m_parent; }
+span<Object*> Object::getChildren() const { return make_span(m_children); }
 
 void Object::setSubType(ObjectSubType v) { m_subtype = v; }
-void Object::setID(int16 id) { m_id = id; }
+void Object::setID(int64 id) { m_id = id; }
 void Object::setNode(Node* v) { m_node = v; }
+
+void Object::addChild(Object* v)
+{
+    if (v) {
+        m_children.push_back(v);
+        v->m_parent = this;
+    }
+}
 
 void Object::readDataFronNode()
 {
@@ -110,7 +119,7 @@ void Object::readDataFronNode()
     }
 }
 
-void Object::createNodes()
+void Object::createNode()
 {
     //m_node = MakeNode();
     //m_node->setName(GetFbxObjectName(getType()));
@@ -120,48 +129,45 @@ void Object::createNodes()
 }
 
 
-Attribute::Attribute(Node* n)
-    : super(n)
+Attribute::Attribute()
 {
 }
 
-ObjecType Attribute::getType() const
+ObjectType Attribute::getType() const
 {
-    return ObjecType::Attribute;
+    return ObjectType::Attribute;
 }
 
 void Attribute::createNodes()
 {
-    super::createNodes();
+    super::createNode();
     // todo
 }
 
 
-Model::Model(Node* n)
-    : super(n)
+Model::Model()
 {
 }
 
-ObjecType Model::getType() const
+ObjectType Model::getType() const
 {
-    return ObjecType::Model;
+    return ObjectType::Model;
 }
 
 
-void Model::createNodes()
+void Model::createNode()
 {
-    super::createNodes();
+    super::createNode();
     // todo
 }
 
-Geometry::Geometry(Node* n)
-    : super(n)
+Geometry::Geometry()
 {
 }
 
-ObjecType Geometry::getType() const
+ObjectType Geometry::getType() const
 {
-    return ObjecType::Geometry;
+    return ObjectType::Geometry;
 }
 
 void Geometry::readDataFronNode()
@@ -227,9 +233,9 @@ void Geometry::readDataFronNode()
 
 }
 
-void Geometry::createNodes()
+void Geometry::createNode()
 {
-    super::createNodes();
+    super::createNode();
     // todo
 }
 
@@ -246,14 +252,13 @@ void Geometry::setNormals(span<float3> v) { m_normals = v; }
 void Geometry::setUV(span<float2> v) { m_uv = v; }
 
 
-Deformer::Deformer(Node* n)
-    : super(n)
+Deformer::Deformer()
 {
 }
 
-ObjecType Deformer::getType() const
+ObjectType Deformer::getType() const
 {
-    return ObjecType::Deformer;
+    return ObjectType::Deformer;
 }
 
 void Deformer::readDataFronNode()
@@ -280,9 +285,9 @@ void Deformer::readDataFronNode()
     }
 }
 
-void Deformer::createNodes()
+void Deformer::createNode()
 {
-    super::createNodes();
+    super::createNode();
     // todo
 }
 
@@ -297,38 +302,36 @@ void Deformer::getTransform(const float4x4& v) { m_transform = v; }
 void Deformer::getTransformLink(const float4x4& v) { m_transform_link = v; }
 
 
-Pose::Pose(Node* n)
-    : super(n)
+Pose::Pose()
 {
 }
 
-ObjecType Pose::getType() const
+ObjectType Pose::getType() const
 {
-    return ObjecType::Pose;
+    return ObjectType::Pose;
 }
 
 
 
-void Pose::createNodes()
+void Pose::createNode()
 {
-    super::createNodes();
+    super::createNode();
     // todo
 }
 
 
-Material::Material(Node* n)
-    : super(n)
+Material::Material()
 {
 }
 
-ObjecType Material::getType() const
+ObjectType Material::getType() const
 {
-    return ObjecType::Material;
+    return ObjectType::Material;
 }
 
-void Material::createNodes()
+void Material::createNode()
 {
-    super::createNodes();
+    super::createNode();
     // todo
 }
 

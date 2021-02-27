@@ -56,9 +56,10 @@ uint32_t SizeOfElement(PropertyType type);
 class Property
 {
 friend class Document;
-public:
+private:
     Property();
 
+public:
     // T: corresponding types with PropertyType (bool ... float64 and span<> & std::vector<>, std::string)
     template<class T, sfbxEnableIf(is_propery_pod<T>::value)> void assign(T v);
     template<class T, sfbxEnableIf(is_propery_array<T>::value)> void assign(span<T> v);
@@ -96,11 +97,5 @@ private:
     } m_scalar{};
     RawVector<char> m_data;
 };
-
-template<class... T>
-inline PropertyPtr MakeProperty(T&&... v)
-{
-    return std::make_shared<Property>(std::forward<T>(v)...);
-}
 
 } // namespace sfbx

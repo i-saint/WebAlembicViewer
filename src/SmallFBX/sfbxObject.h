@@ -3,7 +3,7 @@
 
 namespace sfbx {
 
-enum class ObjecType
+enum class ObjectType
 {
     Unknown,
     Attribute,
@@ -27,8 +27,8 @@ enum class ObjectSubType
     BlendShapeChannel,
 };
 
-ObjecType     GetFbxObjectType(const std::string& n);
-const char*   GetFbxObjectName(ObjecType t);
+ObjectType     GetFbxObjectType(const std::string& n);
+const char*   GetFbxObjectName(ObjectType t);
 ObjectSubType GetFbxObjectSubType(const std::string& n);
 const char*   GetFbxObjectSubName(ObjectSubType t);
 
@@ -37,10 +37,8 @@ class Object
 {
 friend class Document;
 public:
-    Object(Node* n = nullptr);
     virtual ~Object();
-
-    virtual ObjecType getType() const;
+    virtual ObjectType getType() const;
     ObjectSubType getSubType() const;
     int64 getID() const;
     Node* getNode() const;
@@ -48,13 +46,17 @@ public:
     span<Object*> getChildren() const;
 
     void setSubType(ObjectSubType v);
-    void setID(int16 v);
+    void setID(int64 v);
     void setNode(Node* v);
+    void addChild(Object* v);
 
     virtual void readDataFronNode();
-    virtual void createNodes();
+    virtual void createNode();
 
 protected:
+    Object();
+
+    Document* m_document{};
     Node* m_node{};
     int64 m_id{};
     std::string m_name;
@@ -70,12 +72,12 @@ class Attribute : public Object
 friend class Document;
 using super = Object;
 public:
-    Attribute(Node* n = nullptr);
-    ObjecType getType() const override;
+    ObjectType getType() const override;
 
     virtual void createNodes();
 
 protected:
+    Attribute();
 };
 
 
@@ -84,12 +86,12 @@ class Model : public Object
 friend class Document;
 using super = Object;
 public:
-    Model(Node* n = nullptr);
-    ObjecType getType() const override;
+    ObjectType getType() const override;
 
-    void createNodes() override;
+    void createNode() override;
 
 protected:
+    Model();
 };
 
 
@@ -98,11 +100,10 @@ class Geometry : public Object
 friend class Document;
 using super = Object;
 public:
-    Geometry(Node* n = nullptr);
-    ObjecType getType() const override;
+    ObjectType getType() const override;
 
     void readDataFronNode() override;
-    void createNodes() override;
+    void createNode() override;
 
     span<int> getCounts() const;
     span<int> getIndices() const;
@@ -117,6 +118,8 @@ public:
     void setUV(span<float2> v);
 
 protected:
+    Geometry();
+
     RawVector<int> m_counts;
     RawVector<int> m_indices;
     RawVector<float3> m_points;
@@ -130,11 +133,10 @@ class Deformer : public Object
 friend class Document;
 using super = Object;
 public:
-    Deformer(Node* n = nullptr);
-    ObjecType getType() const override;
+    ObjectType getType() const override;
 
     void readDataFronNode() override;
-    void createNodes() override;
+    void createNode() override;
 
     span<int> getIndices() const;
     span<float> getWeights() const;
@@ -147,6 +149,8 @@ public:
     void getTransformLink(const float4x4& v);
 
 protected:
+    Deformer();
+
     RawVector<int> m_indices;
     RawVector<float> m_weights;
     float4x4 m_transform = float4x4::identity();
@@ -159,13 +163,13 @@ class Pose : public Object
 friend class Document;
 using super = Object;
 public:
-    Pose(Node* n = nullptr);
-    ObjecType getType() const override;
+    ObjectType getType() const override;
 
-    void createNodes() override;
+    void createNode() override;
 
 
 protected:
+    Pose();
 };
 
 
@@ -174,13 +178,12 @@ class Material : public Object
 friend class Document;
 using super = Object;
 public:
-    Material(Node* n = nullptr);
-    ObjecType getType() const override;
+    ObjectType getType() const override;
 
-    void createNodes() override;
-
+    void createNode() override;
 
 protected:
+    Material();
 };
 
 

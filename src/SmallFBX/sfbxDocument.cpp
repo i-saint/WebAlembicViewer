@@ -34,26 +34,6 @@ void Document::write(const std::string& fname)
     file.close();
 }
 
-Property* Document::createProperty()
-{
-    auto p = MakeProperty();
-    m_properties.push_back(p);
-    return p.get();
-}
-
-Node* Document::createNode(const char* name)
-{
-    auto n = createChildNode(name);
-    m_top_nodes.push_back(n);
-    return n;
-}
-Node* Document::createChildNode(const char* name)
-{
-    auto n = MakeNode(this, name);
-    m_nodes.push_back(n);
-    return n.get();
-}
-
 static const char g_fbx_magic[23]{
     'K', 'a', 'y', 'd', 'a', 'r', 'a', ' ', 'F', 'B', 'X', ' ', 'B', 'i', 'n', 'a', 'r', 'y', ' ', ' ', 0x00, 0x1A, 0x00,
 };
@@ -81,21 +61,9 @@ void Document::read(std::istream& is)
     } while (true);
 
     if (auto objects = findNode("Objects")) {
-        objects->eachChild([&](Node* c) {
-            auto add_object = [&](ObjectPtr p) {
-                p->setNode(c);
-                m_objects.push_back(p);
-            };
-
-            ObjecType t = GetFbxObjectType(c->getName());
-            switch (t) {
-            case ObjecType::Attribute: add_object(MakeAttribute()); break;
-            case ObjecType::Model:     add_object(MakeModel()); break;
-            case ObjecType::Geometry:  add_object(MakeGeometry()); break;
-            case ObjecType::Deformer:  add_object(MakeDeformer()); break;
-            case ObjecType::Pose:      add_object(MakePose()); break;
-            case ObjecType::Material:  add_object(MakeMaterial()); break;
-            default: break;
+        objects->eachChild([&](Node* n) {
+            if (auto obj = createObject(GetFbxObjectType(n->getName()))) {
+                obj->setNode(n);
             }
             });
 
@@ -104,11 +72,23 @@ void Document::read(std::istream& is)
     }
 
     if (auto connections = findNode("Connections")) {
-        connections->eachChild([&](Node* c) {
-            if (c->getName() == "C") {
-                // todo
+        connections->eachChild([&](Node* n) {
+            if (n->getName() == "C") {
+                if (n->getProperty(0)->getString() == "OO") {
+                    int64 cid = n->getProperty(1)->getValue<int64>();
+                    int64 pid = n->getProperty(2)->getValue<int64>();
+                    Object* child = findObject(cid);
+                    Object* parent = findObject(pid);
+                    if (child && parent)
+                        parent->addChild(child);
+                }
             }
             });
+    }
+
+    for (auto& obj : m_objects) {
+        if (!obj->getParent())
+            m_root_objects.push_back(obj.get());
     }
 }
 
@@ -141,6 +121,36 @@ void Document::write(std::ostream& os)
     writev(os, (char*)footer, std::size(footer));
 }
 
+
+std::uint32_t Document::getVersion()
+{
+    return m_version;
+}
+
+
+Property* Document::createProperty()
+{
+    auto r = new Property();
+    m_properties.push_back(PropertyPtr(r));
+    return r;
+}
+
+
+Node* Document::createNode(const char* name)
+{
+    auto n = createChildNode(name);
+    m_root_nodes.push_back(n);
+    return n;
+}
+Node* Document::createChildNode(const char* name)
+{
+    auto r = new Node();
+    r->m_document = this;
+    r->setName(name);
+    m_nodes.push_back(NodePtr(r));
+    return r;
+}
+
 Node* Document::findNode(const char* name) const
 {
     if (!this)
@@ -148,6 +158,31 @@ Node* Document::findNode(const char* name) const
     auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
         [name](const NodePtr& p) { return p->getName() == name; });
     return it != m_nodes.end() ? it->get() : nullptr;
+}
+
+span<Node*> Document::getRootNodes()
+{
+    return make_span(m_root_nodes);
+}
+
+
+Object* Document::createObject(ObjectType t)
+{
+    Object* r{};
+    switch (t) {
+    case ObjectType::Attribute: r = new Attribute(); break;
+    case ObjectType::Model:     r = new Model(); break;
+    case ObjectType::Geometry:  r = new Geometry(); break;
+    case ObjectType::Deformer:  r = new Deformer(); break;
+    case ObjectType::Pose:      r = new Pose(); break;
+    case ObjectType::Material:  r = new Material(); break;
+    default: break;
+    }
+    if (r) {
+        r->m_document = this;
+        m_objects.push_back(ObjectPtr(r));
+    }
+    return r;
 }
 
 Object* Document::findObject(int64 id)
@@ -158,6 +193,12 @@ Object* Document::findObject(int64 id)
         [id](const ObjectPtr& p) { return p->getID() == id; });
     return it != m_objects.end() ? it->get() : nullptr;
 }
+
+span<Object*> Document::getRootObjects()
+{
+    return make_span(m_root_objects);
+}
+
 
 void Document::createBasicStructure()
 {
@@ -298,11 +339,6 @@ void Document::createBasicStructure()
             }
         }
     }
-}
-
-std::uint32_t Document::getVersion()
-{
-    return m_version;
 }
 
 } // namespace sfbx
