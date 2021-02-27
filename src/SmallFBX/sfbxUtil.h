@@ -1,9 +1,5 @@
 #pragma once
 #include <iostream>
-#include "sfbxTypes.h"
-#include "sfbxRawVector.h"
-
-#define sfbxReturnIfNull() if (!this) { return {}; }
 
 namespace sfbx {
 
@@ -77,6 +73,62 @@ void copy_indexed(Dst& dst, Src& src, Indices& idx)
     auto* d = dst.data();
     for (auto i : idx)
         *d++ = src[i];
+}
+
+
+template<class T>
+inline T GetPropertyValue(Node* node, size_t pi = 0)
+{
+    if (node)
+        if (Property* prop = node->getProperty(pi))
+            return prop->getValue<T>();
+    return {};
+}
+
+template<class T>
+inline span<T> GetPropertyArray(Node* node, size_t pi = 0)
+{
+    if (node)
+        if (Property* prop = node->getProperty(pi))
+            return prop->getArray<T>();
+    return {};
+}
+
+inline std::string GetPropertyString(Node* node, size_t pi = 0)
+{
+    if (node)
+        if (Property* prop = node->getProperty(pi))
+            return prop->getString();
+    return {};
+}
+
+template<class T>
+inline T GetChildPropertyValue(Node* node, const char* name, size_t pi = 0)
+{
+    if (node)
+        if (Node* child = node->findChild(name))
+            if (Property* prop = child->getProperty(pi))
+                return prop->getValue<T>();
+    return {};
+}
+
+template<class T>
+inline span<T> GetChildPropertyArray(Node* node, const char* name, size_t pi = 0)
+{
+    if (node)
+        if (Node* child = node->findChild(name))
+            if (Property* prop = child->getProperty(pi))
+                return prop->getArray<T>();
+    return {};
+}
+
+inline std::string GetChildPropertyString(Node* node, const char* name, size_t pi = 0)
+{
+    if (node)
+        if (Node* child = node->findChild(name))
+            if (Property* prop = child->getProperty(pi))
+                return prop->getString();
+    return {};
 }
 
 } // namespace sfbx

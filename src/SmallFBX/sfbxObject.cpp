@@ -104,9 +104,9 @@ ObjectType Object::getType() const
 void Object::readDataFronNode()
 {
     if (auto n = getNode()) {
-        m_id = n->getProperty(0)->getValue<int64>();
-        m_name = n->getProperty(1)->getString();
-        m_subtype = GetFbxObjectSubType(n->getProperty(2)->getString());
+        m_id = GetPropertyValue<int64>(n, 0);
+        m_name = GetPropertyString(n, 1);
+        m_subtype = GetFbxObjectSubType(GetPropertyString(n, 2));
     }
 }
 
@@ -193,32 +193,32 @@ void Model::readDataFronNode()
 
     if (auto prop = n->findChild(sfbxS_Properties70)) {
         for (auto p : prop->getChildren()) {
-            auto pname = p->getProperty(0)->getString();
+            auto pname = GetPropertyString(p);
             if (pname == sfbxS_Visibility) {
-                m_visibility = p->getProperty(4)->getValue<bool>();
+                m_visibility = GetPropertyValue<bool>(p, 4);
             }
             else if (pname == sfbxS_RotationOrder) {
-                m_rotation_order = (RotationOrder)p->getProperty(4)->getValue<int32>();
+                m_rotation_order = (RotationOrder)GetPropertyValue<int32>(p, 4);
             }
             else if (pname == sfbxS_LclTranslation) {
                 m_position = float3{
-                    (float)p->getProperty(4)->getValue<float64>(),
-                    (float)p->getProperty(5)->getValue<float64>(),
-                    (float)p->getProperty(6)->getValue<float64>(),
+                    (float)GetPropertyValue<float64>(p, 4),
+                    (float)GetPropertyValue<float64>(p, 5),
+                    (float)GetPropertyValue<float64>(p, 6),
                 };
             }
             else if (pname == sfbxS_LclRotation) {
                 m_rotation = float3{
-                    (float)p->getProperty(4)->getValue<float64>(),
-                    (float)p->getProperty(5)->getValue<float64>(),
-                    (float)p->getProperty(6)->getValue<float64>(),
+                    (float)GetPropertyValue<float64>(p, 4),
+                    (float)GetPropertyValue<float64>(p, 5),
+                    (float)GetPropertyValue<float64>(p, 6),
                 };
             }
             else if (pname == sfbxS_LclScale) {
                 m_scale = float3{
-                    (float)p->getProperty(4)->getValue<float64>(),
-                    (float)p->getProperty(5)->getValue<float64>(),
-                    (float)p->getProperty(6)->getValue<float64>(),
+                    (float)GetPropertyValue<float64>(p, 4),
+                    (float)GetPropertyValue<float64>(p, 5),
+                    (float)GetPropertyValue<float64>(p, 6),
                 };
             }
         }
@@ -316,14 +316,14 @@ void Geometry::readDataFronNode()
     auto handle_vertices = [this](Node* n) {
         if (n->getName() != sfbxS_Vertices)
             return false;
-        m_points = n->getProperty(0)->getArray<double3>();
+        m_points = GetPropertyArray<double3>(n);
         return true;
     };
 
     auto handle_polygon_indices = [this](Node* n) {
         if (n->getName() != sfbxS_PolygonVertexIndex)
             return false;
-        auto src_indices = n->getProperty(0)->getArray<int>();
+        auto src_indices = GetPropertyArray<int>(n);
         size_t cindices = src_indices.size();
         m_counts.resize(cindices); // reserve
         m_indices.resize(cindices);
@@ -352,9 +352,9 @@ void Geometry::readDataFronNode()
         //auto mapping = n->findChildProperty(sfbxS_MappingInformationType);
         //auto ref = n->findChildProperty(sfbxS_ReferenceInformationType);
         LayerElementF3 tmp;
-        tmp.name = n->findChildProperty(sfbxS_Name)->getString();
-        tmp.data = n->findChildProperty(sfbxS_Normals)->getArray<double3>();
-        tmp.indices = n->findChildProperty(sfbxS_NormalsIndex)->getArray<int>();
+        tmp.name = GetChildPropertyString(n, sfbxS_Name);
+        tmp.data = GetChildPropertyArray<double3>(n, sfbxS_Normals);
+        tmp.indices = GetChildPropertyArray<int>(n, sfbxS_NormalsIndex);
         addNormalLayer(std::move(tmp));
         return true;
     };
@@ -363,9 +363,9 @@ void Geometry::readDataFronNode()
         if (n->getName() != sfbxS_LayerElementUV)
             return false;
         LayerElementF2 tmp;
-        tmp.name = n->findChildProperty(sfbxS_Name)->getString();
-        tmp.data = n->findChildProperty(sfbxS_UV)->getArray<double2>();
-        tmp.indices = n->findChildProperty(sfbxS_UVIndex)->getArray<int>();
+        tmp.name = GetChildPropertyString(n, sfbxS_Name);
+        tmp.data = GetChildPropertyArray<double2>(n, sfbxS_UV);
+        tmp.indices = GetChildPropertyArray<int>(n, sfbxS_UVIndex);
         addUVLayer(std::move(tmp));
         return true;
     };
@@ -374,9 +374,9 @@ void Geometry::readDataFronNode()
         if (n->getName() != sfbxS_LayerElementColor)
             return false;
         LayerElementF4 tmp;
-        tmp.name = n->findChildProperty(sfbxS_Name)->getString();
-        tmp.data = n->findChildProperty(sfbxS_Colors)->getArray<double4>();
-        tmp.indices = n->findChildProperty(sfbxS_ColorIndex)->getArray<int>();
+        tmp.name = GetChildPropertyString(n, sfbxS_Name);
+        tmp.data = GetChildPropertyArray<double4>(n, sfbxS_Colors);
+        tmp.indices = GetChildPropertyArray<int>(n, sfbxS_ColorIndex);
         addColorLayer(std::move(tmp));
         return true;
     };
@@ -384,7 +384,7 @@ void Geometry::readDataFronNode()
     auto handle_shape_indices = [this](Node* n) {
         if (n->getName() != sfbxS_Indexes)
             return false;
-        m_indices = n->getProperty(0)->getArray<int>();
+        m_indices = GetPropertyArray<int>(n);
         return true;
     };
 
@@ -392,7 +392,7 @@ void Geometry::readDataFronNode()
         if (n->getName() != sfbxS_Normals)
             return false;
         LayerElementF3 tmp;
-        tmp.data = n->getProperty(0)->getArray<double3>();
+        tmp.data = GetPropertyArray<double3>(n);
         addNormalLayer(std::move(tmp));
         return true;
     };
@@ -517,10 +517,10 @@ void Deformer::readDataFronNode()
         // nothing to do
     }
     else if (m_subtype == ObjectSubType::Cluster) {
-        m_indices = n->findChildProperty(sfbxS_Indexes)->getArray<int>();
-        m_weights = n->findChildProperty(sfbxS_Weights)->getArray<float64>();
-        m_transform = n->findChildProperty(sfbxS_Transform)->getValue<double4x4>();
-        m_transform_link = n->findChildProperty(sfbxS_TransformLink)->getValue<double4x4>();
+        m_indices = GetChildPropertyArray<int>(n, sfbxS_Indexes);
+        m_weights = GetChildPropertyArray<float64>(n, sfbxS_Weights);
+        m_transform = GetChildPropertyValue<double4x4>(n, sfbxS_Transform);
+        m_transform_link = GetChildPropertyValue<double4x4>(n, sfbxS_TransformLink);
     }
     else if (m_subtype == ObjectSubType::BlendShape) {
         // nothing to do
@@ -568,8 +568,8 @@ void Pose::readDataFronNode()
     if (m_subtype == ObjectSubType::BindPose) {
         for (auto c : n->getChildren()) {
             if (c->getName() == sfbxS_PoseNode) {
-                auto nid = c->findChildProperty(sfbxS_Node)->getValue<int64>();
-                auto mat = c->findChildProperty(sfbxS_Marix)->getValue<double4x4>();
+                auto nid = GetChildPropertyValue<int64>(c, sfbxS_Node);
+                auto mat = GetChildPropertyValue<double4x4>(c, sfbxS_Marix);
                 m_joints.push_back({ m_document->findObject(nid), float4x4(mat) });
             }
         }

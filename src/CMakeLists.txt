@@ -39,6 +39,8 @@ else()
     set(ext_libs ${ALEMBIC_LIBRARIES})
 endif()
 
+add_subdirectory(SmallFBX)
+
 file(GLOB sources *.cpp *.h)
 add_executable(WebAlembicViewer ${sources})
 target_include_directories(WebAlembicViewer

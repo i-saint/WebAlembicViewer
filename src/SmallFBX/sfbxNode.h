@@ -33,9 +33,6 @@ public:
     Node* getChild(size_t i) const;
     Node* findChild(const char* name) const;
     Node* findChild(const std::string& name) const { return findChild(name.c_str()); }
-    
-    Property* findChildProperty(const char* name, size_t i = 0) const { return findChild(name)->getProperty(i); }
-    Property* findChildProperty(const std::string& name, size_t i = 0) const { return findChildProperty(name.c_str(), i); }
 
 private:
     uint32_t getDocumentVersion() const;

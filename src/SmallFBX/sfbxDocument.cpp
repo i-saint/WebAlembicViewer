@@ -42,9 +42,9 @@ void Document::read(std::istream& is)
 
     if (auto connections = findNode(sfbxS_Connections)) {
         for (auto n : connections->getChildren()) {
-            if (n->getName() == "C" && n->getProperty(0)->getString() == sfbxS_OO) {
-                int64 cid = n->getProperty(1)->getValue<int64>();
-                int64 pid = n->getProperty(2)->getValue<int64>();
+            if (n->getName() == "C" && GetPropertyString(n, 0) == sfbxS_OO) {
+                int64 cid = GetPropertyValue<int64>(n, 1);
+                int64 pid = GetPropertyValue<int64>(n, 2);
                 Object* child = findObject(cid);
                 Object* parent = findObject(pid);
                 if (child && parent)
@@ -150,8 +150,6 @@ Node* Document::createChildNode(const std::string& name)
 
 Node* Document::findNode(const char* name) const
 {
-    if (!this)
-        return nullptr;
     auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
         [name](const NodePtr& p) { return p->getName() == name; });
     return it != m_nodes.end() ? it->get() : nullptr;
@@ -184,8 +182,6 @@ Object* Document::createObject(ObjectType t)
 
 Object* Document::findObject(int64 id)
 {
-    if (!this)
-        return nullptr;
     auto it = std::find_if(m_objects.begin(), m_objects.end(),
         [id](const ObjectPtr& p) { return p->getID() == id; });
     return it != m_objects.end() ? it->get() : nullptr;

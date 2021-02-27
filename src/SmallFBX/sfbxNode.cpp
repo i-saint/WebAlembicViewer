@@ -123,54 +123,38 @@ uint64_t Node::getSizeInBytes() const
 
 const std::string& Node::getName() const
 {
-    if (!this) {
-        static std::string s_dummy;
-        return s_dummy;
-    }
     return m_name;
 }
 
 span<Property*> Node::getProperties() const
 {
-    if (!this)
-        return {};
     return make_span(m_properties);
 }
 
 Property* Node::getProperty(size_t i)
 {
-    if (!this)
-        return {};
-    if (this && i < m_properties.size())
+    if (i < m_properties.size())
         return m_properties[i];
     return nullptr;
 }
 
 Node* Node::getParent() const
 {
-    if (!this)
-        return {};
     return m_parent;
 }
 
 span<Node*> Node::getChildren() const
 {
-    if (!this)
-        return {};
     return make_span(m_children);
 }
 
 Node* Node::getChild(size_t i) const
 {
-    if (!this)
-        return {};
     return i < m_children.size() ? m_children[i] : nullptr;
 }
 
 Node* Node::findChild(const char* name) const
 {
-    if (!this)
-        return {};
     auto it = std::find_if(m_children.begin(), m_children.end(),
         [name](Node* p) { return p->getName() == name; });
     return it != m_children.end() ? *it : nullptr;
