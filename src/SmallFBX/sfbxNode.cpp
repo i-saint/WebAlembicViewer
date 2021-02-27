@@ -1,7 +1,7 @@
 #include "pch.h"
+#include "sfbxInternal.h"
 #include "sfbxNode.h"
 #include "sfbxDocument.h"
-#include "sfbxUtil.h"
 
 namespace sfbx {
 
@@ -50,7 +50,7 @@ uint32_t Node::write(std::ostream& os, uint32_t start_offset)
         ret += child->getSizeInBytes();
 
     if (ret != getSizeInBytes())
-        throw std::runtime_error("bytes != getBytes()");
+        throw std::runtime_error("sfbx::Node::write1(): ret != getSizeInBytes()");
 
     write1(os, uint32_t(start_offset + ret));
     write1(os, uint32_t(m_properties.size()));

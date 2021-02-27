@@ -31,10 +31,11 @@ public:
     Object* findObject(int64 id);
     span<Object*> getRootObjects();
 
-    void createBasicStructure();
-
+    void constructNodes();
 
 private:
+    void createHeaderExtention();
+
     std::vector<PropertyPtr> m_properties;
 
     std::vector<NodePtr> m_nodes;

@@ -17,11 +17,12 @@ public:
     void setName(const std::string& v);
 
     Property* createProperty();
-    template<class... T>
-    Property* addProperty(T&&... v) { auto p = createProperty(); p ->assign(std::forward<T>(v)...); return p; }
+    template<class... T> void addProperty(T&&... v) { createProperty()->assign(std::forward<T>(v)...); }
 
     Node* createNode(const char* name = "");
     Node* createNode(const std::string& name) { return createNode(name.c_str()); }
+    template<class... T> void addPropertyNode(const char* name, T&&... v) { createNode(name)->addProperty(std::forward<T>(v)...);  }
+    template<class... T> void addPropertyNode(const std::string& name, T&&... v) { createNode(name.c_str())->addProperty(std::forward<T>(v)...); }
 
     uint32_t getSizeInBytes() const;
     const std::string& getName() const;

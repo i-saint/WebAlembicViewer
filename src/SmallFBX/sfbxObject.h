@@ -52,7 +52,7 @@ public:
     virtual ~Object();
     virtual ObjectType getType() const;
     virtual void readDataFronNode();
-    virtual void createNode();
+    virtual void constructNodes();
 
     ObjectSubType getSubType() const;
     int64 getID() const;
@@ -86,7 +86,7 @@ using super = Object;
 public:
     ObjectType getType() const override;
     void readDataFronNode() override;
-    void createNode() override;
+    void constructNodes() override;
 
 protected:
     Attribute();
@@ -100,7 +100,7 @@ using super = Object;
 public:
     ObjectType getType() const override;
     void readDataFronNode() override;
-    void createNode() override;
+    void constructNodes() override;
 
     bool getVisibility() const;
     RotationOrder getRotationOrder() const;
@@ -132,7 +132,7 @@ using super = Object;
 public:
     ObjectType getType() const override;
     void readDataFronNode() override;
-    void createNode() override;
+    void constructNodes() override;
 
     span<int> getCounts() const;
     span<int> getIndices() const;
@@ -164,7 +164,7 @@ using super = Object;
 public:
     ObjectType getType() const override;
     void readDataFronNode() override;
-    void createNode() override;
+    void constructNodes() override;
 
     span<int> getIndices() const;
     span<float> getWeights() const;
@@ -199,7 +199,7 @@ public:
 
     ObjectType getType() const override;
     void readDataFronNode() override;
-    void createNode() override;
+    void constructNodes() override;
 
     span<BindPose> getBindPose() const;
 
@@ -217,7 +217,7 @@ using super = Object;
 public:
     ObjectType getType() const override;
 
-    void createNode() override;
+    void constructNodes() override;
 
 protected:
     Material();

@@ -3,6 +3,8 @@
 #include "sfbxTypes.h"
 #include "sfbxRawVector.h"
 
+#define sfbxReturnIfNull() if (!this) { return {}; }
+
 namespace sfbx {
 
 template<class T>

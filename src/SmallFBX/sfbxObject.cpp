@@ -1,30 +1,7 @@
 #include "pch.h"
+#include "sfbxInternal.h"
 #include "sfbxObject.h"
 #include "sfbxDocument.h"
-
-#define sfbxS_Empty           ""
-#define sfbxS_Version         "Version"
-#define sfbxS_GeometryVersion "GeometryVersion"
-#define sfbxS_Properties      "Properties70"
-#define sfbxS_A               "A"
-#define sfbxS_P               "P"
-#define sfbxS_Visibility      "Visibility"
-#define sfbxS_RotationOrder   "RotationOrder"
-#define sfbxS_Translation     "Lcl Translation"
-#define sfbxS_Rotation        "Lcl Rotation"
-#define sfbxS_Scale           "Lcl Scaling"
-#define sfbxS_BindPose        "BindPose"
-#define sfbxS_NbPoseNodes     "NbPoseNodes"
-
-#define sfbxI_ModelVersion      232
-#define sfbxI_GeometryVersion   124
-#define sfbxI_ShapeVersion      100
-#define sfbxI_BindPoseVersion   100
-#define sfbxI_SkinVersion       101
-#define sfbxI_ClusterVersion    100
-#define sfbxI_BlendShapeVersion         101
-#define sfbxI_BlendShapeChannelVersion  100
-#define sfbxI_MaterialVersion   102
 
 
 namespace sfbx {
@@ -133,13 +110,19 @@ void Object::readDataFronNode()
     }
 }
 
-void Object::createNode()
+void Object::constructNodes()
 {
-    m_node = m_document->createNode();
-    m_node->setName(GetFbxObjectName(getType()));
+    auto objects = m_document->findNode(sfbxS_Objects);
+    m_node = objects->createNode(GetFbxObjectName(getType()));
     m_node->addProperty(m_id);
     m_node->addProperty(m_name);
     m_node->addProperty(GetFbxObjectSubName(m_subtype));
+
+    auto connections = m_document->findNode(sfbxS_Connections);
+    auto c = connections->createNode(sfbxS_C);
+    c->addProperty(sfbxS_OO);
+    c->addProperty(m_id);
+    c->addProperty(m_parent ? m_parent->getID() : 0);
 }
 
 ObjectSubType Object::getSubType() const { return m_subtype; }
@@ -177,9 +160,9 @@ void Attribute::readDataFronNode()
     // todo
 }
 
-void Attribute::createNode()
+void Attribute::constructNodes()
 {
-    super::createNode();
+    super::constructNodes();
     // todo
 }
 
@@ -201,7 +184,7 @@ void Model::readDataFronNode()
     if (!n)
         return;
 
-    if (auto prop = n->findChild(sfbxS_Properties)) {
+    if (auto prop = n->findChild(sfbxS_Properties70)) {
         for (auto p : prop->getChildren()) {
             auto pname = p->getProperty(0)->getString();
             if (pname == sfbxS_Visibility) {
@@ -210,21 +193,21 @@ void Model::readDataFronNode()
             else if (pname == sfbxS_RotationOrder) {
                 m_rotation_order = (RotationOrder)p->getProperty(4)->getValue<int32>();
             }
-            else if (pname == sfbxS_Translation) {
+            else if (pname == sfbxS_LclTranslation) {
                 m_position = float3{
                     (float)p->getProperty(4)->getValue<float64>(),
                     (float)p->getProperty(5)->getValue<float64>(),
                     (float)p->getProperty(6)->getValue<float64>(),
                 };
             }
-            else if (pname == sfbxS_Rotation) {
+            else if (pname == sfbxS_LclRotation) {
                 m_rotation = float3{
                     (float)p->getProperty(4)->getValue<float64>(),
                     (float)p->getProperty(5)->getValue<float64>(),
                     (float)p->getProperty(6)->getValue<float64>(),
                 };
             }
-            else if (pname == sfbxS_Scale) {
+            else if (pname == sfbxS_LclScale) {
                 m_scale = float3{
                     (float)p->getProperty(4)->getValue<float64>(),
                     (float)p->getProperty(5)->getValue<float64>(),
@@ -236,9 +219,9 @@ void Model::readDataFronNode()
     // todo
 }
 
-void Model::createNode()
+void Model::constructNodes()
 {
-    super::createNode();
+    super::constructNodes();
     auto n = getNode();
     if (!n)
         return;
@@ -246,13 +229,13 @@ void Model::createNode()
     // version
     n->createNode(sfbxS_Version)->addProperty(sfbxI_ModelVersion);
 
-    auto properties = n->createNode(sfbxS_Properties);
+    auto properties = n->createNode(sfbxS_Properties70);
 
     // position
     if (m_position != float3::zero()) {
         auto p = properties->createNode(sfbxS_P);
-        p->addProperty(sfbxS_Translation);
-        p->addProperty(sfbxS_Translation);
+        p->addProperty(sfbxS_LclTranslation);
+        p->addProperty(sfbxS_LclTranslation);
         p->addProperty(sfbxS_Empty);
         p->addProperty(sfbxS_A);
         p->addProperty((float64)m_position.x);
@@ -272,8 +255,8 @@ void Model::createNode()
         }
         {
             auto p = properties->createNode(sfbxS_P);
-            p->addProperty(sfbxS_Rotation);
-            p->addProperty(sfbxS_Rotation);
+            p->addProperty(sfbxS_LclRotation);
+            p->addProperty(sfbxS_LclRotation);
             p->addProperty(sfbxS_Empty);
             p->addProperty(sfbxS_A);
             p->addProperty((float64)m_rotation.x);
@@ -285,8 +268,8 @@ void Model::createNode()
     // scale
     if (m_scale!= float3::one()) {
         auto p = properties->createNode(sfbxS_P);
-        p->addProperty(sfbxS_Scale);
-        p->addProperty(sfbxS_Scale);
+        p->addProperty(sfbxS_LclScale);
+        p->addProperty(sfbxS_LclScale);
         p->addProperty(sfbxS_Empty);
         p->addProperty(sfbxS_A);
         p->addProperty((float64)m_scale.x);
@@ -324,11 +307,11 @@ void Geometry::readDataFronNode()
         return;
 
     // vertices
-    m_points = n->findChildProperty("Vertices")->getArray<double3>();
+    m_points = n->findChildProperty(sfbxS_Vertices)->getArray<double3>();
 
     if (m_subtype == ObjectSubType::Mesh) {
         // indices
-        if (auto pindices = n->findChildProperty("PolygonVertexIndex")) {
+        if (auto pindices = n->findChildProperty(sfbxS_PolygonVertexIndex)) {
             auto src_indices = pindices->getArray<int>();
             size_t cindices = src_indices.size();
             m_counts.resize(cindices); // reserve
@@ -352,36 +335,36 @@ void Geometry::readDataFronNode()
         }
 
         // normals
-        if (auto nnormals = n->findChild("LayerElementNormal")) {
-            auto mapping = nnormals->findChildProperty("MappingInformationType");
-            auto ref = nnormals->findChildProperty("ReferenceInformationType");
+        if (auto nnormals = n->findChild(sfbxS_LayerElementNormal)) {
+            auto mapping = nnormals->findChildProperty(sfbxS_MappingInformationType);
+            auto ref = nnormals->findChildProperty(sfbxS_ReferenceInformationType);
 
-            auto src_normals = nnormals->findChildProperty("Normals")->getArray<double3>();
+            auto src_normals = nnormals->findChildProperty(sfbxS_Normals)->getArray<double3>();
             m_normals = src_normals;
         }
 
         // uv
-        if (auto nuv = n->findChild("LayerElementUV")) {
-            auto mapping = nuv->findChildProperty("MappingInformationType");
-            auto ref = nuv->findChildProperty("ReferenceInformationType");
+        if (auto nuv = n->findChild(sfbxS_LayerElementUV)) {
+            auto mapping = nuv->findChildProperty(sfbxS_MappingInformationType);
+            auto ref = nuv->findChildProperty(sfbxS_ReferenceInformationType);
 
-            auto src_uv = nuv->findChildProperty("UV")->getArray<double2>();
+            auto src_uv = nuv->findChildProperty(sfbxS_UV)->getArray<double2>();
             m_uv = src_uv;
         }
     }
     else if (m_subtype == ObjectSubType::Shape) {
         // indices
-        m_indices = n->findChildProperty("Indexes")->getArray<int>();
+        m_indices = n->findChildProperty(sfbxS_Indexes)->getArray<int>();
 
         // normals
-        m_points = n->findChildProperty("Normals")->getArray<double3>();
+        m_points = n->findChildProperty(sfbxS_Normals)->getArray<double3>();
     }
 
 }
 
-void Geometry::createNode()
+void Geometry::constructNodes()
 {
-    super::createNode();
+    super::constructNodes();
     // todo
 }
 
@@ -418,10 +401,10 @@ void Deformer::readDataFronNode()
         // nothing to do
     }
     else if (m_subtype == ObjectSubType::Cluster) {
-        m_indices = n->findChildProperty("Indexes")->getArray<int>();
-        m_weights = n->findChildProperty("Weights")->getArray<float64>();
-        m_transform = n->findChildProperty("Transform")->getValue<double4x4>();
-        m_transform_link = n->findChildProperty("TransformLink")->getValue<double4x4>();
+        m_indices = n->findChildProperty(sfbxS_Indexes)->getArray<int>();
+        m_weights = n->findChildProperty(sfbxS_Weights)->getArray<float64>();
+        m_transform = n->findChildProperty(sfbxS_Transform)->getValue<double4x4>();
+        m_transform_link = n->findChildProperty(sfbxS_TransformLink)->getValue<double4x4>();
     }
     else if (m_subtype == ObjectSubType::BlendShape) {
         // nothing to do
@@ -431,9 +414,9 @@ void Deformer::readDataFronNode()
     }
 }
 
-void Deformer::createNode()
+void Deformer::constructNodes()
 {
-    super::createNode();
+    super::constructNodes();
     // todo
 }
 
@@ -468,18 +451,18 @@ void Pose::readDataFronNode()
 
     if (m_subtype == ObjectSubType::BindPose) {
         for (auto c : n->getChildren()) {
-            if (c->getName() == "PoseNode") {
-                auto nid = c->findChildProperty("Node")->getValue<int64>();
-                auto mat = c->findChildProperty("Matrix")->getValue<double4x4>();
+            if (c->getName() == sfbxS_PoseNode) {
+                auto nid = c->findChildProperty(sfbxS_Node)->getValue<int64>();
+                auto mat = c->findChildProperty(sfbxS_Marix)->getValue<double4x4>();
                 m_bindpose.push_back({ m_document->findObject(nid), float4x4(mat) });
             }
         }
     }
 }
 
-void Pose::createNode()
+void Pose::constructNodes()
 {
-    super::createNode();
+    super::constructNodes();
     // todo
 }
 
@@ -498,9 +481,9 @@ ObjectType Material::getType() const
     return ObjectType::Material;
 }
 
-void Material::createNode()
+void Material::constructNodes()
 {
-    super::createNode();
+    super::constructNodes();
     // todo
 }
 

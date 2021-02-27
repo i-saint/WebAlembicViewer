@@ -1,6 +1,6 @@
 #include "pch.h"
+#include "sfbxInternal.h"
 #include "sfbxProperty.h"
-#include "sfbxUtil.h"
 
 #include <zlib.h>
 #pragma comment(lib, "zlib.lib")
@@ -211,45 +211,43 @@ uint32_t Property::getArraySize() const
     return m_data.size() / SizeOfElement(m_type);
 }
 
-#define ReturnIfNull() if (!this) { return {}; }
+template<> bool    Property::getValue() const { sfbxReturnIfNull(); return m_scalar.i8; }
+template<> int8    Property::getValue() const { sfbxReturnIfNull(); return m_scalar.i8; }
+template<> int16   Property::getValue() const { sfbxReturnIfNull(); return m_scalar.i16; }
+template<> int32   Property::getValue() const { sfbxReturnIfNull(); return m_scalar.i32; }
+template<> int64   Property::getValue() const { sfbxReturnIfNull(); return m_scalar.i64; }
+template<> float32 Property::getValue() const { sfbxReturnIfNull(); return m_scalar.f32; }
+template<> float64 Property::getValue() const { sfbxReturnIfNull(); return m_scalar.f64; }
 
-template<> bool    Property::getValue() const { ReturnIfNull(); return m_scalar.i8; }
-template<> int8    Property::getValue() const { ReturnIfNull(); return m_scalar.i8; }
-template<> int16   Property::getValue() const { ReturnIfNull(); return m_scalar.i16; }
-template<> int32   Property::getValue() const { ReturnIfNull(); return m_scalar.i32; }
-template<> int64   Property::getValue() const { ReturnIfNull(); return m_scalar.i64; }
-template<> float32 Property::getValue() const { ReturnIfNull(); return m_scalar.f32; }
-template<> float64 Property::getValue() const { ReturnIfNull(); return m_scalar.f64; }
+template<> double2 Property::getValue() const { sfbxReturnIfNull(); return *(double2*)m_data.data(); }
+template<> double3 Property::getValue() const { sfbxReturnIfNull(); return *(double3*)m_data.data(); }
+template<> double4 Property::getValue() const { sfbxReturnIfNull(); return *(double4*)m_data.data(); }
+template<> double4x4 Property::getValue() const { sfbxReturnIfNull(); return *(double4x4*)m_data.data(); }
 
-template<> double2 Property::getValue() const { ReturnIfNull(); return *(double2*)m_data.data(); }
-template<> double3 Property::getValue() const { ReturnIfNull(); return *(double3*)m_data.data(); }
-template<> double4 Property::getValue() const { ReturnIfNull(); return *(double4*)m_data.data(); }
-template<> double4x4 Property::getValue() const { ReturnIfNull(); return *(double4x4*)m_data.data(); }
+template<> span<bool>    Property::getArray() const { sfbxReturnIfNull(); return make_span((bool*)m_data.data(), getArraySize()); }
+template<> span<int8>    Property::getArray() const { sfbxReturnIfNull(); return make_span((int8*)m_data.data(), getArraySize()); }
+template<> span<int16>   Property::getArray() const { sfbxReturnIfNull(); return make_span((int16*)m_data.data(), getArraySize()); }
+template<> span<int32>   Property::getArray() const { sfbxReturnIfNull(); return make_span((int32*)m_data.data(), getArraySize()); }
+template<> span<int64>   Property::getArray() const { sfbxReturnIfNull(); return make_span((int64*)m_data.data(), getArraySize()); }
+template<> span<float32> Property::getArray() const { sfbxReturnIfNull(); return make_span((float32*)m_data.data(), getArraySize()); }
+template<> span<float64> Property::getArray() const { sfbxReturnIfNull(); return make_span((float64*)m_data.data(), getArraySize()); }
 
-template<> span<bool>    Property::getArray() const { ReturnIfNull(); return make_span((bool*)m_data.data(), getArraySize()); }
-template<> span<int8>    Property::getArray() const { ReturnIfNull(); return make_span((int8*)m_data.data(), getArraySize()); }
-template<> span<int16>   Property::getArray() const { ReturnIfNull(); return make_span((int16*)m_data.data(), getArraySize()); }
-template<> span<int32>   Property::getArray() const { ReturnIfNull(); return make_span((int32*)m_data.data(), getArraySize()); }
-template<> span<int64>   Property::getArray() const { ReturnIfNull(); return make_span((int64*)m_data.data(), getArraySize()); }
-template<> span<float32> Property::getArray() const { ReturnIfNull(); return make_span((float32*)m_data.data(), getArraySize()); }
-template<> span<float64> Property::getArray() const { ReturnIfNull(); return make_span((float64*)m_data.data(), getArraySize()); }
-
-template<> span<float2>  Property::getArray() const { ReturnIfNull(); return make_span((float2*)m_data.data(), getArraySize() / 2); }
-template<> span<float3>  Property::getArray() const { ReturnIfNull(); return make_span((float3*)m_data.data(), getArraySize() / 3); }
-template<> span<float4>  Property::getArray() const { ReturnIfNull(); return make_span((float4*)m_data.data(), getArraySize() / 4); }
-template<> span<double2> Property::getArray() const { ReturnIfNull(); return make_span((double2*)m_data.data(), getArraySize() / 2); }
-template<> span<double3> Property::getArray() const { ReturnIfNull(); return make_span((double3*)m_data.data(), getArraySize() / 3); }
-template<> span<double4> Property::getArray() const { ReturnIfNull(); return make_span((double4*)m_data.data(), getArraySize() / 4); }
+template<> span<float2>  Property::getArray() const { sfbxReturnIfNull(); return make_span((float2*)m_data.data(), getArraySize() / 2); }
+template<> span<float3>  Property::getArray() const { sfbxReturnIfNull(); return make_span((float3*)m_data.data(), getArraySize() / 3); }
+template<> span<float4>  Property::getArray() const { sfbxReturnIfNull(); return make_span((float4*)m_data.data(), getArraySize() / 4); }
+template<> span<double2> Property::getArray() const { sfbxReturnIfNull(); return make_span((double2*)m_data.data(), getArraySize() / 2); }
+template<> span<double3> Property::getArray() const { sfbxReturnIfNull(); return make_span((double3*)m_data.data(), getArraySize() / 3); }
+template<> span<double4> Property::getArray() const { sfbxReturnIfNull(); return make_span((double4*)m_data.data(), getArraySize() / 4); }
 
 std::string Property::getString() const
 {
-    ReturnIfNull();
+    sfbxReturnIfNull();
     return std::string(m_data.data(), m_data.size());
 }
 
 std::string Property::toString() const
 {
-    ReturnIfNull();
+    sfbxReturnIfNull();
     if (isArray()) {
         auto toS = [](const auto& span) {
             std::string s;

@@ -2,6 +2,8 @@
 
 #include <cstdio>
 #include <cstdint>
+#include <ctime>
+
 #include <string>
 #include <vector>
 #include <algorithm>
