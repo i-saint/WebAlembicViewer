@@ -18,7 +18,7 @@ public:
 
     Property* createProperty();
     template<class... T>
-    Property* addProperty(T&&... v) { auto p = createProperty(); p->assign(std::forward<T>(v)...); return p; }
+    void addProperty(T&&... v) { createProperty()->assign(std::forward<T>(v)...); }
 
     Node* createNode(const char* name = "");
     Node* createNode(const std::string& name) { return createNode(name.c_str()); }
@@ -35,14 +35,6 @@ public:
     Property* getProperty(size_t i);
     Property* findChildProperty(const char* name, size_t i = 0) const { return findChild(name)->getProperty(i); }
     Property* findChildProperty(const std::string& name, size_t i = 0) const { return findChildProperty(name.c_str(), i); }
-
-    template<class Body>
-    void eachChild(const Body& body)
-    {
-        for (auto c : m_children)
-            if (!c->isNull())
-                body(c);
-    }
 
 private:
     Document* m_document{};

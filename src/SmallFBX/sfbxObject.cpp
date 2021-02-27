@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "sfbxObject.h"
+#include "sfbxDocument.h"
 
 namespace sfbx {
 
@@ -55,6 +56,8 @@ ObjectSubType GetFbxObjectSubType(const std::string& n)
         return ObjectSubType::Skin;
     else if (n == "Cluster")
         return ObjectSubType::Cluster;
+    else if (n == "BindPose")
+        return ObjectSubType::BindPose;
     else if (n == "BlendShape")
         return ObjectSubType::BlendShape;
     else if (n == "BlendShapeChannel")
@@ -74,6 +77,7 @@ const char* GetFbxObjectSubName(ObjectSubType t)
     case ObjectSubType::LimbNode: return "LimbNode";
     case ObjectSubType::Skin: return "Skin";
     case ObjectSubType::Cluster: return "Cluster";
+    case ObjectSubType::BindPose: return "BindPose";
     case ObjectSubType::BlendShape: return "BlendShape";
     case ObjectSubType::BlendShapeChannel: return "BlendShapeChannel";
     default: return "";
@@ -89,7 +93,28 @@ Object::~Object()
 {
 }
 
-ObjectType Object::getType() const { return ObjectType::Unknown; }
+ObjectType Object::getType() const
+{
+    return ObjectType::Unknown;
+}
+
+void Object::readDataFronNode()
+{
+    if (auto n = getNode()) {
+        m_id = n->getProperty(0)->getValue<int64>();
+        m_name = n->getProperty(1)->getString();
+        m_subtype = GetFbxObjectSubType(n->getProperty(2)->getString());
+    }
+}
+
+void Object::createNode()
+{
+    //m_node = MakeNode();
+    //m_node->setName(GetFbxObjectName(getType()));
+    //m_node->addProperty(m_id);
+    //m_node->addProperty(m_name);
+    //m_node->addProperty(GetFbxObjectSubName(m_subtype));
+}
 
 ObjectSubType Object::getSubType() const { return m_subtype; }
 int64 Object::getID() const { return m_id; }
@@ -109,24 +134,6 @@ void Object::addChild(Object* v)
     }
 }
 
-void Object::readDataFronNode()
-{
-    auto n = getNode();
-    if (n) {
-        m_id = n->getProperty(0)->getValue<int64>();
-        m_name = n->getProperty(1)->getString();
-        m_subtype = GetFbxObjectSubType(n->getProperty(2)->getString());
-    }
-}
-
-void Object::createNode()
-{
-    //m_node = MakeNode();
-    //m_node->setName(GetFbxObjectName(getType()));
-    //m_node->addProperty(m_id);
-    //m_node->addProperty(m_name);
-    //m_node->addProperty(GetFbxObjectSubName(m_subtype));
-}
 
 
 Attribute::Attribute()
@@ -138,11 +145,18 @@ ObjectType Attribute::getType() const
     return ObjectType::Attribute;
 }
 
-void Attribute::createNodes()
+void Attribute::readDataFronNode()
+{
+    super::readDataFronNode();
+    // todo
+}
+
+void Attribute::createNode()
 {
     super::createNode();
     // todo
 }
+
 
 
 Model::Model()
@@ -155,11 +169,25 @@ ObjectType Model::getType() const
 }
 
 
+void Model::readDataFronNode()
+{
+    super::readDataFronNode();
+    // todo
+}
+
 void Model::createNode()
 {
     super::createNode();
     // todo
 }
+
+float3 Model::getPosition() const { return m_position; }
+float3 Model::getRotation() const { return m_rotation; }
+float3 Model::getScale() const { return m_scale; }
+
+void Model::setPosition(float3 v) { m_position = v; }
+void Model::setRotation(float3 v) { m_rotation = v; }
+void Model::setScale(float3 v) { m_scale = v; }
 
 Geometry::Geometry()
 {
@@ -313,10 +341,33 @@ ObjectType Pose::getType() const
 
 
 
+void Pose::readDataFronNode()
+{
+    super::readDataFronNode();
+    auto n = getNode();
+    if (!n)
+        return;
+
+    if (m_subtype == ObjectSubType::BindPose) {
+        for (auto c : n->getChildren()) {
+            if (c->getName() == "PoseNode") {
+                auto nid = c->findChildProperty("Node")->getValue<int64>();
+                auto mat = c->findChildProperty("Matrix")->getValue<double4x4>();
+                m_bindpose.push_back({ m_document->findObject(nid), float4x4(mat) });
+            }
+        }
+    }
+}
+
 void Pose::createNode()
 {
     super::createNode();
     // todo
+}
+
+std::span<sfbx::Pose::BindPose> Pose::getBindPose() const
+{
+    return make_span(m_bindpose);
 }
 
 

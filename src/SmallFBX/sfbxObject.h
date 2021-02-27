@@ -23,11 +23,17 @@ enum class ObjectSubType
     LimbNode,
     Skin,
     Cluster,
+    BindPose,
     BlendShape,
     BlendShapeChannel,
 };
 
-ObjectType     GetFbxObjectType(const std::string& n);
+enum class RotationOrder
+{
+
+};
+
+ObjectType    GetFbxObjectType(const std::string& n);
 const char*   GetFbxObjectName(ObjectType t);
 ObjectSubType GetFbxObjectSubType(const std::string& n);
 const char*   GetFbxObjectSubName(ObjectSubType t);
@@ -39,6 +45,9 @@ friend class Document;
 public:
     virtual ~Object();
     virtual ObjectType getType() const;
+    virtual void readDataFronNode();
+    virtual void createNode();
+
     ObjectSubType getSubType() const;
     int64 getID() const;
     Node* getNode() const;
@@ -49,9 +58,6 @@ public:
     void setID(int64 v);
     void setNode(Node* v);
     void addChild(Object* v);
-
-    virtual void readDataFronNode();
-    virtual void createNode();
 
 protected:
     Object();
@@ -73,8 +79,8 @@ friend class Document;
 using super = Object;
 public:
     ObjectType getType() const override;
-
-    virtual void createNodes();
+    void readDataFronNode() override;
+    void createNode() override;
 
 protected:
     Attribute();
@@ -87,11 +93,23 @@ friend class Document;
 using super = Object;
 public:
     ObjectType getType() const override;
-
+    void readDataFronNode() override;
     void createNode() override;
+
+    float3 getPosition() const;
+    float3 getRotation() const;
+    float3 getScale() const;
+
+    void setPosition(float3 v);
+    void setRotation(float3 v);
+    void setScale(float3 v);
 
 protected:
     Model();
+
+    float3 m_position{};
+    float3 m_rotation{};
+    float3 m_scale{1.0f, 1.0f, 1.0f};
 };
 
 
@@ -101,7 +119,6 @@ friend class Document;
 using super = Object;
 public:
     ObjectType getType() const override;
-
     void readDataFronNode() override;
     void createNode() override;
 
@@ -134,7 +151,6 @@ friend class Document;
 using super = Object;
 public:
     ObjectType getType() const override;
-
     void readDataFronNode() override;
     void createNode() override;
 
@@ -163,13 +179,22 @@ class Pose : public Object
 friend class Document;
 using super = Object;
 public:
-    ObjectType getType() const override;
+    struct BindPose
+    {
+        Object* joint{};
+        float4x4 matrix = float4x4::identity();
+    };
 
+    ObjectType getType() const override;
+    void readDataFronNode() override;
     void createNode() override;
 
+    span<BindPose> getBindPose() const;
 
 protected:
     Pose();
+
+    std::vector<BindPose> m_bindpose;
 };
 
 
@@ -185,15 +210,5 @@ public:
 protected:
     Material();
 };
-
-
-
-template<class... T> inline ObjectPtr    MakeObject(T&&... v)    { return std::make_shared<Object>(std::forward<T>(v)...); }
-template<class... T> inline AttributePtr MakeAttribute(T&&... v) { return std::make_shared<Attribute>(std::forward<T>(v)...); }
-template<class... T> inline ModelPtr     MakeModel(T&&... v)     { return std::make_shared<Model>(std::forward<T>(v)...); }
-template<class... T> inline GeometryPtr  MakeGeometry(T&&... v)  { return std::make_shared<Geometry>(std::forward<T>(v)...); }
-template<class... T> inline DeformerPtr  MakeDeformer(T&&... v)  { return std::make_shared<Deformer>(std::forward<T>(v)...); }
-template<class... T> inline PosePtr      MakePose(T&&... v)      { return std::make_shared<Pose>(std::forward<T>(v)...); }
-template<class... T> inline MaterialPtr  MakeMaterial(T&&... v)  { return std::make_shared<Material>(std::forward<T>(v)...); }
 
 } // sfbx

@@ -18,8 +18,6 @@ public:
     uint32_t getVersion();
 
     Property* createProperty();
-    template<class T>
-    Property* createProperty(const T& v) { auto p = createProperty(); *p = v; return p; }
 
     Node* createNode(const char* name = "");
     Node* createNode(const std::string& name) { return createNode(name.c_str()); }

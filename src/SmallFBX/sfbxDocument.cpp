@@ -52,7 +52,7 @@ void Document::read(std::istream& is)
     //if(version > maxVersion) throw "Unsupported FBX version "+std::to_string(version)
     //                        + " latest supported version is "+std::to_string(maxVersion);
 
-    uint32_t start_offset = 27; // magic: 21+2, version: 4
+    uint32_t start_offset = 27; // magic: 23, version: 4
     do {
         auto node = createNode();
         start_offset += node->read(is, start_offset);
@@ -61,29 +61,26 @@ void Document::read(std::istream& is)
     } while (true);
 
     if (auto objects = findNode("Objects")) {
-        objects->eachChild([&](Node* n) {
+        for (auto n : objects->getChildren()) {
             if (auto obj = createObject(GetFbxObjectType(n->getName()))) {
                 obj->setNode(n);
             }
-            });
-
+        }
         for (auto& obj : m_objects)
             obj->readDataFronNode();
     }
 
     if (auto connections = findNode("Connections")) {
-        connections->eachChild([&](Node* n) {
-            if (n->getName() == "C") {
-                if (n->getProperty(0)->getString() == "OO") {
-                    int64 cid = n->getProperty(1)->getValue<int64>();
-                    int64 pid = n->getProperty(2)->getValue<int64>();
-                    Object* child = findObject(cid);
-                    Object* parent = findObject(pid);
-                    if (child && parent)
-                        parent->addChild(child);
-                }
+        for (auto n : connections->getChildren()) {
+            if (n->getName() == "C" && n->getProperty(0)->getString() == "OO") {
+                int64 cid = n->getProperty(1)->getValue<int64>();
+                int64 pid = n->getProperty(2)->getValue<int64>();
+                Object* child = findObject(cid);
+                Object* parent = findObject(pid);
+                if (child && parent)
+                    parent->addChild(child);
             }
-            });
+        }
     }
 
     for (auto& obj : m_objects) {
