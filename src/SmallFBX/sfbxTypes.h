@@ -76,35 +76,56 @@ template<class T>
 struct tvec2
 {
     T x, y;
+
     T& operator[](int i) { return ((T*)this)[i]; }
     const T& operator[](int i) const { return ((T*)this)[i]; }
+    bool operator==(const tvec2& v) const { return x == v.x && y == v.y; }
+    bool operator!=(const tvec2& v) const { return !((*this) == v); }
     template<class U> operator tvec2<U>() const { return { (U)x, (U)y }; }
+
+    static constexpr tvec2 zero() { return { (T)0, (T)0 }; }
+    static constexpr tvec2 one()  { return { (T)1, (T)1 }; }
 };
 
 template<class T>
 struct tvec3
 {
     T x, y, z;
+
     T& operator[](int i) { return ((T*)this)[i]; }
     const T& operator[](int i) const { return ((T*)this)[i]; }
+    bool operator==(const tvec3& v) const { return x == v.x && y == v.y && z == v.z; }
+    bool operator!=(const tvec3& v) const { return !((*this) == v); }
     template<class U> operator tvec3<U>() const { return { (U)x, (U)y, (U)z }; }
+
+    static constexpr tvec3 zero() { return { (T)0, (T)0, (T)0 }; }
+    static constexpr tvec3 one()  { return { (T)1, (T)1, (T)1 }; }
 };
 
 template<class T>
 struct tvec4
 {
     T x, y, z, w;
+
     T& operator[](int i) { return ((T*)this)[i]; }
     const T& operator[](int i) const { return ((T*)this)[i]; }
+    bool operator==(const tvec4& v) const { return x == v.x && y == v.y && z == v.z && w == v.w; }
+    bool operator!=(const tvec4& v) const { return !((*this) == v); }
     template<class U> operator tvec4<U>() const { return { (U)x, (U)y, (U)z, (U)w }; }
+
+    static constexpr tvec4 zero() { return { (T)0, (T)0, (T)0, (T)0 }; }
+    static constexpr tvec4 one()  { return { (T)1, (T)1, (T)1, (T)1 }; }
 };
 
 template<class T>
 struct tmat4x4
 {
     tvec4<T> m[4];
+
     tvec4<T>& operator[](int i) { return m[i]; }
     const tvec4<T>& operator[](int i) const { return m[i]; }
+    bool operator==(const tmat4x4& v) const { return memcmp(m, v.m, sizeof(*this)) == 0; }
+    bool operator!=(const tmat4x4& v) const { return !((*this) == v); }
 
     template<class U> operator tmat4x4<U>() const
     {

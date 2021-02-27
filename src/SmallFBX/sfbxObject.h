@@ -3,7 +3,7 @@
 
 namespace sfbx {
 
-enum class ObjectType
+enum class ObjectType : int
 {
     Unknown,
     Attribute,
@@ -14,7 +14,7 @@ enum class ObjectType
     Material,
 };
 
-enum class ObjectSubType
+enum class ObjectSubType : int
 {
     Unknown,
     Mesh,
@@ -28,9 +28,15 @@ enum class ObjectSubType
     BlendShapeChannel,
 };
 
-enum class RotationOrder
+enum class RotationOrder : int
 {
-
+    XYZ,
+    XZY,
+    YZX,
+    YXZ,
+    ZXY,
+    ZYX,
+    SphericXYZ
 };
 
 ObjectType    GetFbxObjectType(const std::string& n);
@@ -96,10 +102,14 @@ public:
     void readDataFronNode() override;
     void createNode() override;
 
+    bool getVisibility() const;
+    RotationOrder getRotationOrder() const;
     float3 getPosition() const;
     float3 getRotation() const;
     float3 getScale() const;
 
+    void setVisibility(bool v);
+    void setRotationOrder(RotationOrder v);
     void setPosition(float3 v);
     void setRotation(float3 v);
     void setScale(float3 v);
@@ -107,6 +117,8 @@ public:
 protected:
     Model();
 
+    bool m_visibility = true;
+    RotationOrder m_rotation_order = RotationOrder::XYZ;
     float3 m_position{};
     float3 m_rotation{};
     float3 m_scale{1.0f, 1.0f, 1.0f};

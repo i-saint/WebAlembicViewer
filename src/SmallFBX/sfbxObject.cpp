@@ -2,6 +2,31 @@
 #include "sfbxObject.h"
 #include "sfbxDocument.h"
 
+#define sfbxS_Empty           ""
+#define sfbxS_Version         "Version"
+#define sfbxS_GeometryVersion "GeometryVersion"
+#define sfbxS_Properties      "Properties70"
+#define sfbxS_A               "A"
+#define sfbxS_P               "P"
+#define sfbxS_Visibility      "Visibility"
+#define sfbxS_RotationOrder   "RotationOrder"
+#define sfbxS_Translation     "Lcl Translation"
+#define sfbxS_Rotation        "Lcl Rotation"
+#define sfbxS_Scale           "Lcl Scaling"
+#define sfbxS_BindPose        "BindPose"
+#define sfbxS_NbPoseNodes     "NbPoseNodes"
+
+#define sfbxI_ModelVersion      232
+#define sfbxI_GeometryVersion   124
+#define sfbxI_ShapeVersion      100
+#define sfbxI_BindPoseVersion   100
+#define sfbxI_SkinVersion       101
+#define sfbxI_ClusterVersion    100
+#define sfbxI_BlendShapeVersion         101
+#define sfbxI_BlendShapeChannelVersion  100
+#define sfbxI_MaterialVersion   102
+
+
 namespace sfbx {
 
 ObjectType GetFbxObjectType(const std::string& n)
@@ -87,6 +112,7 @@ const char* GetFbxObjectSubName(ObjectSubType t)
 
 Object::Object()
 {
+    m_id = (int64)this;
 }
 
 Object::~Object()
@@ -109,11 +135,11 @@ void Object::readDataFronNode()
 
 void Object::createNode()
 {
-    //m_node = MakeNode();
-    //m_node->setName(GetFbxObjectName(getType()));
-    //m_node->addProperty(m_id);
-    //m_node->addProperty(m_name);
-    //m_node->addProperty(GetFbxObjectSubName(m_subtype));
+    m_node = m_document->createNode();
+    m_node->setName(GetFbxObjectName(getType()));
+    m_node->addProperty(m_id);
+    m_node->addProperty(m_name);
+    m_node->addProperty(GetFbxObjectSubName(m_subtype));
 }
 
 ObjectSubType Object::getSubType() const { return m_subtype; }
@@ -168,23 +194,115 @@ ObjectType Model::getType() const
     return ObjectType::Model;
 }
 
-
 void Model::readDataFronNode()
 {
     super::readDataFronNode();
+    auto n = getNode();
+    if (!n)
+        return;
+
+    if (auto prop = n->findChild(sfbxS_Properties)) {
+        for (auto p : prop->getChildren()) {
+            auto pname = p->getProperty(0)->getString();
+            if (pname == sfbxS_Visibility) {
+                m_visibility = p->getProperty(4)->getValue<bool>();
+            }
+            else if (pname == sfbxS_RotationOrder) {
+                m_rotation_order = (RotationOrder)p->getProperty(4)->getValue<int32>();
+            }
+            else if (pname == sfbxS_Translation) {
+                m_position = float3{
+                    (float)p->getProperty(4)->getValue<float64>(),
+                    (float)p->getProperty(5)->getValue<float64>(),
+                    (float)p->getProperty(6)->getValue<float64>(),
+                };
+            }
+            else if (pname == sfbxS_Rotation) {
+                m_rotation = float3{
+                    (float)p->getProperty(4)->getValue<float64>(),
+                    (float)p->getProperty(5)->getValue<float64>(),
+                    (float)p->getProperty(6)->getValue<float64>(),
+                };
+            }
+            else if (pname == sfbxS_Scale) {
+                m_scale = float3{
+                    (float)p->getProperty(4)->getValue<float64>(),
+                    (float)p->getProperty(5)->getValue<float64>(),
+                    (float)p->getProperty(6)->getValue<float64>(),
+                };
+            }
+        }
+    }
     // todo
 }
 
 void Model::createNode()
 {
     super::createNode();
-    // todo
+    auto n = getNode();
+    if (!n)
+        return;
+
+    // version
+    n->createNode(sfbxS_Version)->addProperty(sfbxI_ModelVersion);
+
+    auto properties = n->createNode(sfbxS_Properties);
+
+    // position
+    if (m_position != float3::zero()) {
+        auto p = properties->createNode(sfbxS_P);
+        p->addProperty(sfbxS_Translation);
+        p->addProperty(sfbxS_Translation);
+        p->addProperty(sfbxS_Empty);
+        p->addProperty(sfbxS_A);
+        p->addProperty((float64)m_position.x);
+        p->addProperty((float64)m_position.y);
+        p->addProperty((float64)m_position.z);
+    }
+
+    // rotation
+    if (m_rotation != float3::zero()) {
+        {
+            auto p = properties->createNode(sfbxS_P);
+            p->addProperty(sfbxS_RotationOrder);
+            p->addProperty(sfbxS_RotationOrder);
+            p->addProperty(sfbxS_Empty);
+            p->addProperty(sfbxS_A);
+            p->addProperty((int32)m_rotation_order);
+        }
+        {
+            auto p = properties->createNode(sfbxS_P);
+            p->addProperty(sfbxS_Rotation);
+            p->addProperty(sfbxS_Rotation);
+            p->addProperty(sfbxS_Empty);
+            p->addProperty(sfbxS_A);
+            p->addProperty((float64)m_rotation.x);
+            p->addProperty((float64)m_rotation.y);
+            p->addProperty((float64)m_rotation.z);
+        }
+    }
+
+    // scale
+    if (m_scale!= float3::one()) {
+        auto p = properties->createNode(sfbxS_P);
+        p->addProperty(sfbxS_Scale);
+        p->addProperty(sfbxS_Scale);
+        p->addProperty(sfbxS_Empty);
+        p->addProperty(sfbxS_A);
+        p->addProperty((float64)m_scale.x);
+        p->addProperty((float64)m_scale.y);
+        p->addProperty((float64)m_scale.z);
+    }
 }
 
+bool Model::getVisibility() const { return m_visibility; }
+RotationOrder Model::getRotationOrder() const { return m_rotation_order; }
 float3 Model::getPosition() const { return m_position; }
 float3 Model::getRotation() const { return m_rotation; }
 float3 Model::getScale() const { return m_scale; }
 
+void Model::setVisibility(bool v) { m_visibility = v; }
+void Model::setRotationOrder(RotationOrder v) { m_rotation_order = v; }
 void Model::setPosition(float3 v) { m_position = v; }
 void Model::setRotation(float3 v) { m_rotation = v; }
 void Model::setScale(float3 v) { m_scale = v; }
