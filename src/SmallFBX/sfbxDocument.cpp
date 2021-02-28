@@ -54,7 +54,7 @@ void Document::read(std::istream& is)
     }
 
     for (auto& obj : m_objects) {
-        if (!obj->getParent())
+        if (obj->getParents().empty())
             m_root_objects.push_back(obj.get());
     }
 }

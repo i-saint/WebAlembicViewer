@@ -118,19 +118,26 @@ void Object::constructNodes()
     m_node->addProperty(m_name);
     m_node->addProperty(GetFbxObjectSubName(m_subtype));
 
-    auto connections = m_document->findNode(sfbxS_Connections);
-    auto c = connections->createChild(sfbxS_C);
-    c->addProperty(sfbxS_OO);
-    c->addProperty(m_id);
-    c->addProperty(int64(m_parent ? m_parent->getID() : 0));
+    if (!m_parents.empty()) {
+        auto connections = m_document->findNode(sfbxS_Connections);
+        for (auto parent : getParents()) {
+            auto c = connections->createChild(sfbxS_C);
+            c->addProperty(sfbxS_OO);
+            c->addProperty(getID());
+            c->addProperty(parent->getID());
+        }
+    }
 }
 
 ObjectSubType Object::getSubType() const { return m_subtype; }
 int64 Object::getID() const { return m_id; }
 const std::string& Object::getName() const { return m_name; }
 Node* Object::getNode() const { return m_node; }
-Object* Object::getParent() const { return m_parent; }
+
+span<Object*> Object::getParents() const  { return make_span(m_parents); }
 span<Object*> Object::getChildren() const { return make_span(m_children); }
+Object* Object::getParent(size_t i) const { return i < m_parents.size() ? m_parents[i] : nullptr; }
+Object* Object::getChild(size_t i) const  { return i < m_children.size() ? m_children[i] : nullptr; }
 
 void Object::setSubType(ObjectSubType v) { m_subtype = v; }
 void Object::setID(int64 id) { m_id = id; }
@@ -148,7 +155,14 @@ void Object::addChild(Object* v)
 {
     if (v) {
         m_children.push_back(v);
-        v->m_parent = this;
+        v->addParent(this);
+    }
+}
+
+void Object::addParent(Object* v)
+{
+    if (v) {
+        m_parents.push_back(v);
     }
 }
 

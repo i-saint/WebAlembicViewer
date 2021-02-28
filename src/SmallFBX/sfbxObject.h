@@ -58,8 +58,11 @@ public:
     int64 getID() const;
     const std::string& getName() const;
     Node* getNode() const;
-    Object* getParent() const;
+
+    span<Object*> getParents() const;
     span<Object*> getChildren() const;
+    Object* getParent(size_t i) const;
+    Object* getChild(size_t i) const;
 
     void setSubType(ObjectSubType v);
     void setID(int64 v);
@@ -71,6 +74,7 @@ public:
 
 protected:
     Object();
+    void addParent(Object* v);
 
     Document* m_document{};
     Node* m_node{};
@@ -78,7 +82,7 @@ protected:
     std::string m_name;
     ObjectSubType m_subtype{};
 
-    Object* m_parent{};
+    std::vector<Object*> m_parents;
     std::vector<Object*> m_children;
 };
 

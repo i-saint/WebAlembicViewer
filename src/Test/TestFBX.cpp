@@ -8,8 +8,9 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
     for (int i = 0; i < depth; ++i)
         testPrint("  ");
 
-    testPrint("\"%s\" (%s : %s)\n",
+    testPrint("\"%s\" [0x%llx] (%s : %s)\n",
         obj->getName().c_str(),
+        obj->getID(),
         sfbx::GetFbxObjectName(obj->getType()),
         sfbx::GetFbxObjectSubName(obj->getSubType()));
 
