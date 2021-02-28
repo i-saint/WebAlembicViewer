@@ -50,6 +50,12 @@ void each_indexed(Values& val, Indices& idx, const Body& body)
         body(val[i]);
 }
 
+template<class T>
+void copy(T* dst, const T* src, size_t n)
+{
+    for (size_t i = 0; i < n; ++i)
+        *dst++ = *src++;
+}
 template<class Dst, class Src>
 void copy(Dst& dst, const Src& src)
 {

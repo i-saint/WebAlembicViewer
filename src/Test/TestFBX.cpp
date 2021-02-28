@@ -14,6 +14,13 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
         sfbx::GetFbxObjectName(obj->getType()),
         sfbx::GetFbxObjectSubName(obj->getSubType()));
 
+    if (obj->getType() == sfbx::ObjectType::Deformer && obj->getSubType() == sfbx::ObjectSubType::Skin) {
+        auto skin = dynamic_cast<sfbx::Deformer*>(obj);
+        auto weights_variable = skin->skinMakeWeightsVariable();
+        auto weights_4 = skin->skinMakeWeightsFixed(4);
+        testPrint("");
+    }
+
     for (auto child : obj->getChildren())
         PrintObject(child, depth + 1);
 }

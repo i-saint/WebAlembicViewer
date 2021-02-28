@@ -312,16 +312,14 @@ std::string Property::toString() const
 {
     if (isArray()) {
         auto toS = [](const auto& span) {
-            std::string s;
-            s += "[";
+            std::string s = "a: ";
             bool first = true;
             for (auto v : span) {
                 if (!first)
-                    s += ", ";
+                    s += ",";
                 s += std::to_string(v);
                 first = false;
             }
-            s += "]";
             return s;
         };
         switch (m_type) {

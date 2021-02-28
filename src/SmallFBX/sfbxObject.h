@@ -147,6 +147,13 @@ using LayerElementF2 = LayerElement<float2>;
 using LayerElementF3 = LayerElement<float3>;
 using LayerElementF4 = LayerElement<float4>;
 
+struct JointWeight
+{
+    int index; // index of joint
+    float weight;
+};
+
+
 // subtype: Mesh, Shape
 // if Mesh, it is usual poly mesh data.
 // if Shape, it is blend shape target. in this case, points & normals are delta (deference from original).
@@ -168,8 +175,8 @@ public:
     struct ShapeData : noncopyable
     {
         RawVector<int> indices;
-        RawVector<float3> points;
-        RawVector<float3> normals;
+        RawVector<float3> delta_points;
+        RawVector<float3> delta_normals;
     };
 
     ObjectType getType() const override;
@@ -216,6 +223,14 @@ public:
         float4x4 transform_link = float4x4::identity();
     };
 
+    struct JointWeights // copyable
+    {
+        int max_joints_per_vertex = 0;
+        RawVector<int> counts; // per-vertex. counts of affected joints.
+        RawVector<int> offsets; // per-vertex. offset to weights.
+        RawVector<JointWeight> weights; // vertex * affected joints (total of counts). weights of affected joints.
+    };
+
     ObjectType getType() const override;
     void constructObject() override;
     void constructNodes() override;
@@ -224,6 +239,11 @@ public:
     BlendShapeChannelData* getBlendShapeChannelData();
     SkinData* getSkinData();
     ClusterData* getClusterData();
+
+
+    // for Skin subtype
+    JointWeights skinMakeWeightsVariable();
+    JointWeights skinMakeWeightsFixed(int joints_per_vertex);
 
 protected:
     Deformer();

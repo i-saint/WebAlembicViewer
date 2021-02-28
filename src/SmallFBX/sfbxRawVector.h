@@ -227,6 +227,11 @@ public:
         return !(*this == v);
     }
 
+    void zeroclear()
+    {
+        memset(m_data, 0, sizeof(T) * m_size);
+    }
+
 private:
     T* m_data = nullptr;
     size_t m_size = 0;

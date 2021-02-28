@@ -426,14 +426,14 @@ void Geometry::constructObject()
     auto handle_shape_points = [this](Node* n) {
         if (n->getName() != sfbxS_Vertices)
             return false;
-        getShapeData()->points = GetPropertyArray<double3>(n);
+        getShapeData()->delta_points = GetPropertyArray<double3>(n);
         return true;
     };
 
     auto handle_shape_normals = [this](Node* n) {
         if (n->getName() != sfbxS_Normals)
             return false;
-        getShapeData()->normals = GetPropertyArray<double3>(n);
+        getShapeData()->delta_normals = GetPropertyArray<double3>(n);
         return true;
     };
 
@@ -516,9 +516,9 @@ void Geometry::constructNodes()
     }
     else if (m_subtype == ObjectSubType::Shape) {
         auto& data = *getShapeData();
-        CreatePropertyAndCopy<double3>(n->createChild(sfbxS_Vertices), data.points);
+        CreatePropertyAndCopy<double3>(n->createChild(sfbxS_Vertices), data.delta_points);
         CreatePropertyAndCopy<int>(n->createChild(sfbxS_Indexes), data.indices);
-        CreatePropertyAndCopy<double3>(n->createChild(sfbxS_Normals), data.normals);
+        CreatePropertyAndCopy<double3>(n->createChild(sfbxS_Normals), data.delta_normals);
     }
 }
 
@@ -563,7 +563,7 @@ void Deformer::constructObject()
     if (m_subtype == ObjectSubType::Skin) {
         auto& data = *getSkinData();
         for (auto child : getChildren()) {
-            if (child->getType() == ObjectType::Model && child->getSubType() == ObjectSubType::Cluster) {
+            if (child->getType() == ObjectType::Deformer && child->getSubType() == ObjectSubType::Cluster) {
                 if (auto deformer = dynamic_cast<Deformer*>(child)) {
                     data.clusters.push_back(deformer);
                 }
@@ -634,6 +634,101 @@ Deformer::ClusterData* Deformer::getClusterData()
     return m_cluster_data.get();
 }
 
+
+Deformer::JointWeights Deformer::skinMakeWeightsVariable()
+{
+    JointWeights ret;
+    auto geom = dynamic_cast<Geometry*>(getParent(0));
+    if (getSubType() != ObjectSubType::Skin || !geom || geom->getSubType() != ObjectSubType::Mesh)
+        return ret;
+
+    auto& mesh = *geom->getMeshData();
+    auto& skin = *getSkinData();
+
+    size_t cclusters = skin.clusters.size();
+    size_t cpoints = mesh.points.size();
+    size_t total_weights = 0;
+
+    // setup counts
+    ret.counts.resize(cpoints, 0);
+    for (auto ncluster : skin.clusters) {
+        auto& cluster = *ncluster->getClusterData();
+        for (int vi : cluster.indices)
+            ret.counts[vi]++;
+        total_weights += cluster.indices.size();
+    }
+
+    // setup offsets
+    ret.offsets.resize(cpoints);
+    size_t offset = 0;
+    int max_joints_per_vertex = 0;
+    for (size_t pi = 0; pi < cpoints; ++pi) {
+        ret.offsets[pi] = offset;
+        int c = ret.counts[pi];
+        offset += c;
+        max_joints_per_vertex = std::max(max_joints_per_vertex, c);
+    }
+    ret.max_joints_per_vertex = max_joints_per_vertex;
+
+    // setup weights
+    ret.counts.zeroclear(); // clear to re-count
+    ret.weights.resize(total_weights);
+    for (size_t ci = 0; ci < cclusters; ++ci) {
+        auto& cluster = *skin.clusters[ci]->getClusterData();
+        size_t cweights = cluster.indices.size();
+        for (size_t wi = 0; wi < cweights; ++wi) {
+            int vi = cluster.indices[wi];
+            float weight = cluster.weights[wi];
+            int pos = ret.offsets[vi] + ret.counts[vi]++;
+            ret.weights[pos] = { (int)ci, weight };
+        }
+    }
+    return ret;
+}
+
+Deformer::JointWeights Deformer::skinMakeWeightsFixed(int joints_per_vertex)
+{
+    JointWeights ret;
+    JointWeights tmp = skinMakeWeightsVariable();
+
+    size_t cpoints = tmp.counts.size();
+    ret.max_joints_per_vertex = std::min(joints_per_vertex, tmp.max_joints_per_vertex);
+    ret.counts.resize(cpoints);
+    ret.offsets.resize(cpoints);
+    ret.weights.resize(cpoints * joints_per_vertex);
+    ret.weights.zeroclear();
+
+    auto normalize_weights = [](span<JointWeight> weights) {
+        float total = 0.0f;
+        for (auto& w : weights)
+            total += w.weight;
+
+        if (total != 0.0f) {
+            float rcp_total = 1.0f / total;
+            for (auto& w : weights)
+                w.weight *= rcp_total;
+        }
+    };
+
+    for (size_t pi = 0; pi < cpoints; ++pi) {
+        int count = tmp.counts[pi];
+        ret.counts[pi] = std::min(count, joints_per_vertex);
+        ret.offsets[pi] = joints_per_vertex * pi;
+
+        auto* src = &tmp.weights[tmp.offsets[pi]];
+        auto* dst = &ret.weights[ret.offsets[pi]];
+        if (count < joints_per_vertex) {
+            copy(dst, src, size_t(count));
+        }
+        else {
+            std::nth_element(src, src + joints_per_vertex, src + count,
+                [](auto& a, auto& b) { return a.weight < b.weight; });
+            normalize_weights(make_span(src, joints_per_vertex));
+            copy(dst, src, size_t(joints_per_vertex));
+        }
+    }
+    return ret;
+}
 
 Pose::Pose()
 {
