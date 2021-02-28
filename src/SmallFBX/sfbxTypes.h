@@ -130,6 +130,20 @@ struct tvec4
 };
 
 template<class T>
+struct tquat
+{
+    T x, y, z, w;
+
+    T& operator[](int i) { return ((T*)this)[i]; }
+    const T& operator[](int i) const { return ((T*)this)[i]; }
+    bool operator==(const tquat& v) const { return x == v.x && y == v.y && z == v.z && w == v.w; }
+    bool operator!=(const tquat& v) const { return !((*this) == v); }
+    template<class U> operator tquat<U>() const { return { (U)x, (U)y, (U)z, (U)w }; }
+
+    static constexpr tquat identity() { return{ (T)0, (T)0, (T)0, (T)1 }; }
+};
+
+template<class T>
 struct tmat4x4
 {
     tvec4<T> m[4];
@@ -162,6 +176,17 @@ struct tmat4x4
     }
 };
 
+enum class RotationOrder : int
+{
+    XYZ,
+    XZY,
+    YZX,
+    YXZ,
+    ZXY,
+    ZYX,
+    SphericXYZ
+};
+
 using int2 = tvec2<int>;
 using int3 = tvec3<int>;
 using int4 = tvec4<int>;
@@ -169,11 +194,13 @@ using int4 = tvec4<int>;
 using float2 = tvec2<float>;
 using float3 = tvec3<float>;
 using float4 = tvec4<float>;
+using quatf = tquat<float>;
 using float4x4 = tmat4x4<float>;
 
 using double2 = tvec2<double>;
 using double3 = tvec3<double>;
 using double4 = tvec4<double>;
+using quatd = tquat<double>;
 using double4x4 = tmat4x4<double>;
 
 
@@ -189,5 +216,8 @@ sfbxEachObjectType(Decl)
 
 Decl(Document)
 #undef Decl
+
+template<class T, class U>
+T* as(U* v) { return dynamic_cast<T*>(v); }
 
 } // namespace sfbx

@@ -22,6 +22,7 @@
 #define sfbxS_C         "C"
 #define sfbxS_P         "P"
 #define sfbxS_OO        "OO"
+#define sfbxS_OP        "OP"
 #define sfbxS_Version   "Version"
 #define sfbxS_Name      "Name"
 

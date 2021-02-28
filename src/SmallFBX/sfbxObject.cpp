@@ -22,6 +22,14 @@ ObjectType GetFbxObjectType(const std::string& n)
         return ObjectType::Pose;
     else if (n == "Material")
         return ObjectType::Material;
+    else if (n == "AnimationStack")
+        return ObjectType::AnimationStack;
+    else if (n == "AnimationLayer")
+        return ObjectType::AnimationLayer;
+    else if (n == "AnimationCurveNode")
+        return ObjectType::AnimationCurveNode;
+    else if (n == "AnimationCurve")
+        return ObjectType::AnimationCurve;
     else {
         printf("GetFbxObjectType(): unknown type \"%s\"\n", n.c_str());
         return ObjectType::Unknown;
@@ -37,6 +45,10 @@ const char* GetFbxObjectName(ObjectType t)
     case ObjectType::Deformer: return "Deformer";
     case ObjectType::Pose: return "Pose";
     case ObjectType::Material: return "Material";
+    case ObjectType::AnimationStack: return "AnimationStack";
+    case ObjectType::AnimationLayer: return "AnimationLayer";
+    case ObjectType::AnimationCurveNode: return "AnimationCurveNode";
+    case ObjectType::AnimationCurve: return "AnimationCurve";
     default: return "";
     }
 }
@@ -46,6 +58,10 @@ ObjectSubType GetFbxObjectSubType(const std::string& n)
 {
     if (n.empty())
         return ObjectSubType::Unknown;
+    else if (n == "Light")
+        return ObjectSubType::Light;
+    else if (n == "Camera")
+        return ObjectSubType::Camera;
     else if (n == "Mesh")
         return ObjectSubType::Mesh;
     else if (n == "Shape")
@@ -73,6 +89,8 @@ ObjectSubType GetFbxObjectSubType(const std::string& n)
 const char* GetFbxObjectSubName(ObjectSubType t)
 {
     switch (t) {
+    case ObjectSubType::Light: return "Light";
+    case ObjectSubType::Camera: return "Camera";
     case ObjectSubType::Mesh: return "Mesh";
     case ObjectSubType::Shape: return "Shape";
     case ObjectSubType::Root: return "Root";
@@ -321,6 +339,23 @@ float3 Model::getPosition() const { return m_position; }
 float3 Model::getRotation() const { return m_rotation; }
 float3 Model::getScale() const { return m_scale; }
 
+float4x4 Model::getLocalMatrix() const
+{
+    return transform(m_position, rotate_euler(m_rotation_order, m_rotation), m_scale);
+}
+
+float4x4 Model::getGlobalMatrix() const
+{
+    float4x4 pmat = float4x4::identity();
+    for (Object* p = getParent(); p; p = p->getParent()) {
+        if (Model* pm = as<Model>(p)) {
+            pmat = pm->getGlobalMatrix();
+            break;
+        }
+    }
+    return pmat * getLocalMatrix();
+}
+
 void Model::setVisibility(bool v) { m_visibility = v; }
 void Model::setRotationOrder(RotationOrder v) { m_rotation_order = v; }
 void Model::setPosition(float3 v) { m_position = v; }
@@ -564,7 +599,7 @@ void Deformer::constructObject()
         auto& data = *getSkinData();
         for (auto child : getChildren()) {
             if (child->getType() == ObjectType::Deformer && child->getSubType() == ObjectSubType::Cluster) {
-                if (auto deformer = dynamic_cast<Deformer*>(child)) {
+                if (auto deformer = as<Deformer>(child)) {
                     data.clusters.push_back(deformer);
                 }
                 else {
@@ -635,10 +670,10 @@ Deformer::ClusterData* Deformer::getClusterData()
 }
 
 
-Deformer::JointWeights Deformer::skinMakeWeightsVariable()
+Deformer::JointWeights Deformer::skinGetJointWeightsVariable()
 {
     JointWeights ret;
-    auto geom = dynamic_cast<Geometry*>(getParent(0));
+    auto geom = as<Geometry>(getParent(0));
     if (getSubType() != ObjectSubType::Skin || !geom || geom->getSubType() != ObjectSubType::Mesh)
         return ret;
 
@@ -671,7 +706,7 @@ Deformer::JointWeights Deformer::skinMakeWeightsVariable()
     ret.max_joints_per_vertex = max_joints_per_vertex;
 
     // setup weights
-    ret.counts.zeroclear(); // clear to re-count
+    ret.counts.zeroclear(); // clear to recount
     ret.weights.resize(total_weights);
     for (size_t ci = 0; ci < cclusters; ++ci) {
         auto& cluster = *skin.clusters[ci]->getClusterData();
@@ -686,11 +721,14 @@ Deformer::JointWeights Deformer::skinMakeWeightsVariable()
     return ret;
 }
 
-Deformer::JointWeights Deformer::skinMakeWeightsFixed(int joints_per_vertex)
+Deformer::JointWeights Deformer::skinGetJointWeightsFixed(int joints_per_vertex)
 {
     JointWeights ret;
-    JointWeights tmp = skinMakeWeightsVariable();
+    auto geom = as<Geometry>(getParent(0));
+    if (getSubType() != ObjectSubType::Skin || !geom || geom->getSubType() != ObjectSubType::Mesh)
+        return ret;
 
+    JointWeights tmp = skinGetJointWeightsVariable();
     size_t cpoints = tmp.counts.size();
     ret.max_joints_per_vertex = std::min(joints_per_vertex, tmp.max_joints_per_vertex);
     ret.counts.resize(cpoints);
@@ -730,6 +768,31 @@ Deformer::JointWeights Deformer::skinMakeWeightsFixed(int joints_per_vertex)
     return ret;
 }
 
+Deformer::JointMatrices Deformer::skinGetJointMatrices()
+{
+    JointMatrices ret;
+    if (getSubType() != ObjectSubType::Skin)
+        return ret;
+
+    auto& skin = *getSkinData();
+    size_t cclusters = skin.clusters.size();
+
+    ret.bindpose.resize(cclusters);
+    ret.transform.resize(cclusters);
+    for (size_t ci = 0; ci < cclusters; ++ci) {
+        ret.bindpose[ci] = skin.clusters[ci]->getClusterData()->transform;
+        if (auto trans = as<Model>(skin.clusters[ci]->getChild())) {
+            ret.transform[ci] = trans->getGlobalMatrix();
+        }
+        else {
+            // should not be here
+            printf("sfbx::Deformer::skinMakeJointMatrices(): Cluster has non-Model child\n");
+            ret.transform[ci] = float4x4::identity();
+        }
+    }
+    return ret;
+}
+
 Pose::Pose()
 {
 }
@@ -754,7 +817,7 @@ void Pose::constructObject()
             if (c->getName() == sfbxS_PoseNode) {
                 auto nid = GetChildPropertyValue<int64>(c, sfbxS_Node);
                 auto mat = GetChildPropertyValue<double4x4>(c, sfbxS_Marix);
-                auto joint = dynamic_cast<Model*>(m_document->findObject(nid));
+                auto joint = as<Model>(m_document->findObject(nid));
                 if (joint) {
                     data.joints.push_back({ joint, float4x4(mat) });
                 }
@@ -797,5 +860,11 @@ void Material::constructNodes()
     super::constructNodes();
     // todo
 }
+
+ObjectType AnimationStack::getType() const { return ObjectType::AnimationStack; }
+ObjectType AnimationLayer::getType() const { return ObjectType::AnimationLayer; }
+ObjectType AnimationCurveNode::getType() const { return ObjectType::AnimationCurveNode; }
+ObjectType AnimationCurve::getType() const { return ObjectType::AnimationCurve; }
+
 
 } // namespace sfbx

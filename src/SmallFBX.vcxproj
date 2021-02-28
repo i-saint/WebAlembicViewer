@@ -23,6 +23,7 @@
     <ClInclude Include="SmallFBX\pch.h" />
     <ClInclude Include="SmallFBX\sfbxDocument.h" />
     <ClInclude Include="SmallFBX\sfbxInternal.h" />
+    <ClInclude Include="SmallFBX\sfbxMath.h" />
     <ClInclude Include="SmallFBX\sfbxNode.h" />
     <ClInclude Include="SmallFBX\sfbxObject.h" />
     <ClInclude Include="SmallFBX\sfbxProperty.h" />

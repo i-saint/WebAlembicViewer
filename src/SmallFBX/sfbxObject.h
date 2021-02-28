@@ -12,11 +12,17 @@ enum class ObjectType : int
     Deformer,
     Pose,
     Material,
+    AnimationStack,
+    AnimationLayer,
+    AnimationCurveNode,
+    AnimationCurve,
 };
 
 enum class ObjectSubType : int
 {
     Unknown,
+    Light,
+    Camera,
     Mesh,
     Shape,
     Root,
@@ -26,17 +32,6 @@ enum class ObjectSubType : int
     BindPose,
     BlendShape,
     BlendShapeChannel,
-};
-
-enum class RotationOrder : int
-{
-    XYZ,
-    XZY,
-    YZX,
-    YXZ,
-    ZXY,
-    ZYX,
-    SphericXYZ
 };
 
 ObjectType    GetFbxObjectType(const std::string& n);
@@ -61,8 +56,8 @@ public:
 
     span<Object*> getParents() const;
     span<Object*> getChildren() const;
-    Object* getParent(size_t i) const;
-    Object* getChild(size_t i) const;
+    Object* getParent(size_t i = 0) const;
+    Object* getChild(size_t i = 0) const;
 
     void setSubType(ObjectSubType v);
     void setID(int64 v);
@@ -118,6 +113,8 @@ public:
     float3 getPosition() const;
     float3 getRotation() const;
     float3 getScale() const;
+    float4x4 getLocalMatrix() const;
+    float4x4 getGlobalMatrix() const;
 
     void setVisibility(bool v);
     void setRotationOrder(RotationOrder v);
@@ -231,6 +228,12 @@ public:
         RawVector<JointWeight> weights; // vertex * affected joints (total of counts). weights of affected joints.
     };
 
+    struct JointMatrices
+    {
+        RawVector<float4x4> bindpose;
+        RawVector<float4x4> transform;
+    };
+
     ObjectType getType() const override;
     void constructObject() override;
     void constructNodes() override;
@@ -242,8 +245,9 @@ public:
 
 
     // for Skin subtype
-    JointWeights skinMakeWeightsVariable();
-    JointWeights skinMakeWeightsFixed(int joints_per_vertex);
+    JointWeights skinGetJointWeightsVariable();
+    JointWeights skinGetJointWeightsFixed(int joints_per_vertex);
+    JointMatrices skinGetJointMatrices();
 
 protected:
     Deformer();
@@ -295,6 +299,40 @@ public:
 
 protected:
     Material();
+};
+
+
+
+class AnimationStack : public Object
+{
+friend class Document;
+using super = Object;
+public:
+    ObjectType getType() const override;
+};
+
+class AnimationLayer : public Object
+{
+friend class Document;
+using super = Object;
+public:
+    ObjectType getType() const override;
+};
+
+class AnimationCurveNode : public Object
+{
+friend class Document;
+using super = Object;
+public:
+    ObjectType getType() const override;
+};
+
+class AnimationCurve : public Object
+{
+friend class Document;
+using super = Object;
+public:
+    ObjectType getType() const override;
 };
 
 } // sfbx

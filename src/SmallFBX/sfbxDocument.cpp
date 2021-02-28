@@ -48,6 +48,19 @@ void Document::read(std::istream& is)
                 if (child && parent)
                     parent->addChild(child);
             }
+            else if (n->getName() == sfbxS_C && GetPropertyString(n, 0) == sfbxS_OP) {
+                int64 cid = GetPropertyValue<int64>(n, 1);
+                int64 pid = GetPropertyValue<int64>(n, 2);
+                std::string name = GetPropertyString(n, 3); // todo
+                Object* child = findObject(cid);
+                Object* parent = findObject(pid);
+                if (child && parent) {
+                    parent->addChild(child);
+                }
+            }
+            else {
+                printf("sfbx::Document::read(): unrecognized connection type\n");
+            }
         }
     }
 
@@ -173,7 +186,13 @@ Object* Document::createObject(ObjectType t)
     case ObjectType::Deformer:  r = new Deformer(); break;
     case ObjectType::Pose:      r = new Pose(); break;
     case ObjectType::Material:  r = new Material(); break;
-    default: break;
+    case ObjectType::AnimationStack:    r = new AnimationStack(); break;
+    case ObjectType::AnimationLayer:    r = new AnimationLayer(); break;
+    case ObjectType::AnimationCurveNode:r = new AnimationCurveNode(); break;
+    case ObjectType::AnimationCurve:    r = new AnimationCurve(); break;
+    default:
+        printf("sfbx::Document::createObject(): unsupported type \"%s\"\n", GetFbxObjectName(t));
+        break;
     }
     if (r) {
         r->m_document = this;

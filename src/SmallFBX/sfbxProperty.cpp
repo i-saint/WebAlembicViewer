@@ -203,6 +203,7 @@ void Property::assign(const std::vector<bool>& v)
 void Property::assign(const std::string& v)
 {
     m_type = PropertyType::String;
+    m_data.reserve(16);
     m_data.assign(v.begin(), v.end());
 }
 
@@ -210,6 +211,7 @@ void Property::assign(const char* v)
 {
     m_type = PropertyType::String;
     m_data.clear();
+    m_data.reserve(16);
     if (v)
         m_data.assign(v, v + std::strlen(v));
 }
