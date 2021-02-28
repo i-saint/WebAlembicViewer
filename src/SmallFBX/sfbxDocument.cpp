@@ -36,8 +36,6 @@ void Document::read(std::istream& is)
                 obj->setNode(n);
             }
         }
-        for (auto& obj : m_objects)
-            obj->readDataFronNode();
     }
 
     if (auto connections = findNode(sfbxS_Connections)) {
@@ -54,6 +52,7 @@ void Document::read(std::istream& is)
     }
 
     for (auto& obj : m_objects) {
+        obj->constructObject();
         if (obj->getParents().empty())
             m_root_objects.push_back(obj.get());
     }
@@ -191,12 +190,9 @@ T* Document::createObject()
     m_objects.push_back(ObjectPtr(r));
     return r;
 }
-template Attribute* Document::createObject();
-template Model* Document::createObject();
-template Geometry* Document::createObject();
-template Deformer* Document::createObject();
-template Pose* Document::createObject();
-template Material* Document::createObject();
+#define Body(T) template T* Document::createObject();
+sfbxEachObjectType(Body)
+#undef Body
 
 
 Object* Document::findObject(int64 id)

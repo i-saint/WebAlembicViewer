@@ -6,9 +6,6 @@ namespace sfbx {
 class Node
 {
 friend class Document;
-private:
-    Node();
-
 public:
     uint64_t read(std::istream &input, uint64_t start_offset);
     uint64_t write(std::ostream &output, uint64_t start_offset);
@@ -35,6 +32,9 @@ public:
     Node* findChild(const std::string& name) const { return findChild(name.c_str()); }
 
 private:
+    Node(const Node&) = delete;
+    Node& operator=(const Node) = delete;
+    Node();
     uint32_t getDocumentVersion() const;
     uint32_t getHeaderSize() const;
 

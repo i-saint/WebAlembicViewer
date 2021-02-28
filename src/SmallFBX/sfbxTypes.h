@@ -68,6 +68,15 @@ template<class Container>
 inline span<typename Container::value_type> make_span(const Container& v) { return { (typename Container::value_type*)v.data(), v.size() }; }
 
 
+class noncopyable
+{
+protected:
+    noncopyable() = default;
+    ~noncopyable() = default;
+    noncopyable(const noncopyable&) = delete;
+    noncopyable& operator=(const noncopyable) = delete;
+};
+
 using int8 = int8_t;
 using int16 = int16_t;
 using int32 = int32_t;
@@ -168,17 +177,15 @@ using double4 = tvec4<double>;
 using double4x4 = tmat4x4<double>;
 
 
+#define sfbxEachObjectType(Body)\
+    Body(Attribute) Body(Model) Body(Geometry) Body(Deformer) Body(Pose) Body(Material)
+
 #define Decl(T) class T; using T##Ptr = std::shared_ptr<T>;
 Decl(Property)
 Decl(Node)
 
 Decl(Object)
-Decl(Attribute)
-Decl(Model)
-Decl(Geometry)
-Decl(Deformer)
-Decl(Pose)
-Decl(Material)
+sfbxEachObjectType(Decl)
 
 Decl(Document)
 #undef Decl

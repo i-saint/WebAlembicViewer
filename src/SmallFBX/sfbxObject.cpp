@@ -101,13 +101,18 @@ ObjectType Object::getType() const
     return ObjectType::Unknown;
 }
 
-void Object::readDataFronNode()
+void Object::setNode(Node* n)
 {
-    if (auto n = getNode()) {
+    m_node = n;
+    if (n) {
         m_id = GetPropertyValue<int64>(n, 0);
         m_name = GetPropertyString(n, 1);
         m_subtype = GetFbxObjectSubType(GetPropertyString(n, 2));
     }
+}
+
+void Object::constructObject()
+{
 }
 
 void Object::constructNodes()
@@ -142,7 +147,6 @@ Object* Object::getChild(size_t i) const  { return i < m_children.size() ? m_chi
 void Object::setSubType(ObjectSubType v) { m_subtype = v; }
 void Object::setID(int64 id) { m_id = id; }
 void Object::setName(const std::string& v) { m_name = v; }
-void Object::setNode(Node* v) { m_node = v; }
 
 Object* Object::createChild(ObjectType type)
 {
@@ -150,6 +154,17 @@ Object* Object::createChild(ObjectType type)
     addChild(ret);
     return ret;
 }
+
+template<class T> T* Object::createChild()
+{
+    auto ret = m_document->createObject<T>();
+    addChild(ret);
+    return ret;
+}
+#define Body(T) template T* Object::createChild();
+sfbxEachObjectType(Body)
+#undef Body
+
 
 void Object::addChild(Object* v)
 {
@@ -177,9 +192,9 @@ ObjectType Attribute::getType() const
     return ObjectType::Attribute;
 }
 
-void Attribute::readDataFronNode()
+void Attribute::constructObject()
 {
-    super::readDataFronNode();
+    super::constructObject();
     // todo
 }
 
@@ -200,9 +215,9 @@ ObjectType Model::getType() const
     return ObjectType::Model;
 }
 
-void Model::readDataFronNode()
+void Model::constructObject()
 {
-    super::readDataFronNode();
+    super::constructObject();
     auto n = getNode();
     if (!n)
         return;
@@ -321,31 +336,35 @@ ObjectType Geometry::getType() const
     return ObjectType::Geometry;
 }
 
-void Geometry::readDataFronNode()
+void Geometry::constructObject()
 {
-    super::readDataFronNode();
+    super::constructObject();
     auto n = getNode();
     if (!n)
         return;
 
-    auto handle_vertices = [this](Node* n) {
+    auto handle_mesh_vertices = [this](Node* n) {
         if (n->getName() != sfbxS_Vertices)
             return false;
-        m_points = GetPropertyArray<double3>(n);
+        getMeshData()->points = GetPropertyArray<double3>(n);
         return true;
     };
 
-    auto handle_polygon_indices = [this](Node* n) {
+    auto handle_mesh_indices = [this](Node* n) {
         if (n->getName() != sfbxS_PolygonVertexIndex)
             return false;
+
+        auto& counts = getMeshData()->counts;
+        auto& indices = getMeshData()->indices;
+
         auto src_indices = GetPropertyArray<int>(n);
         size_t cindices = src_indices.size();
-        m_counts.resize(cindices); // reserve
-        m_indices.resize(cindices);
+        counts.resize(cindices); // reserve
+        indices.resize(cindices);
 
         const int* src = src_indices.data();
-        int* dst_counts = m_counts.data();
-        int* dst_indices = m_indices.data();
+        int* dst_counts = counts.data();
+        int* dst_indices = indices.data();
         size_t cfaces = 0;
         size_t cpoints = 0;
         for (int i : src_indices) {
@@ -357,11 +376,11 @@ void Geometry::readDataFronNode()
             }
             *dst_indices++ = i;
         }
-        m_counts.resize(cfaces); // fit to actual size
+        counts.resize(cfaces); // fit to actual size
         return true;
     };
 
-    auto handle_normal_layer = [this](Node* n) {
+    auto handle_mesh_normal_layer = [this](Node* n) {
         if (n->getName() != sfbxS_LayerElementNormal)
             return false;
         //auto mapping = n->findChildProperty(sfbxS_MappingInformationType);
@@ -370,62 +389,68 @@ void Geometry::readDataFronNode()
         tmp.name = GetChildPropertyString(n, sfbxS_Name);
         tmp.data = GetChildPropertyArray<double3>(n, sfbxS_Normals);
         tmp.indices = GetChildPropertyArray<int>(n, sfbxS_NormalsIndex);
-        addNormalLayer(std::move(tmp));
+        getMeshData()->normal_layers.push_back(std::move(tmp));
         return true;
     };
 
-    auto handle_uv_layer = [this](Node* n) {
+    auto handle_mesh_uv_layer = [this](Node* n) {
         if (n->getName() != sfbxS_LayerElementUV)
             return false;
         LayerElementF2 tmp;
         tmp.name = GetChildPropertyString(n, sfbxS_Name);
         tmp.data = GetChildPropertyArray<double2>(n, sfbxS_UV);
         tmp.indices = GetChildPropertyArray<int>(n, sfbxS_UVIndex);
-        addUVLayer(std::move(tmp));
+        getMeshData()->uv_layers.push_back(std::move(tmp));
         return true;
     };
 
-    auto handle_color_layer = [this](Node* n) {
+    auto handle_mesh_color_layer = [this](Node* n) {
         if (n->getName() != sfbxS_LayerElementColor)
             return false;
         LayerElementF4 tmp;
         tmp.name = GetChildPropertyString(n, sfbxS_Name);
         tmp.data = GetChildPropertyArray<double4>(n, sfbxS_Colors);
         tmp.indices = GetChildPropertyArray<int>(n, sfbxS_ColorIndex);
-        addColorLayer(std::move(tmp));
+        getMeshData()->color_layers.push_back(std::move(tmp));
         return true;
     };
+
 
     auto handle_shape_indices = [this](Node* n) {
         if (n->getName() != sfbxS_Indexes)
             return false;
-        m_indices = GetPropertyArray<int>(n);
+        getShapeData()->indices = GetPropertyArray<int>(n);
+        return true;
+    };
+
+    auto handle_shape_points = [this](Node* n) {
+        if (n->getName() != sfbxS_Vertices)
+            return false;
+        getShapeData()->points = GetPropertyArray<double3>(n);
         return true;
     };
 
     auto handle_shape_normals = [this](Node* n) {
         if (n->getName() != sfbxS_Normals)
             return false;
-        LayerElementF3 tmp;
-        tmp.data = GetPropertyArray<double3>(n);
-        addNormalLayer(std::move(tmp));
+        getShapeData()->normals = GetPropertyArray<double3>(n);
         return true;
     };
 
 
     if (m_subtype == ObjectSubType::Mesh) {
         for (auto c : n->getChildren()) {
-            handle_vertices(c) ||
-                handle_polygon_indices(c) ||
-                handle_normal_layer(c) ||
-                handle_uv_layer(c) ||
-                handle_color_layer(c);
+            handle_mesh_vertices(c) ||
+                handle_mesh_indices(c) ||
+                handle_mesh_normal_layer(c) ||
+                handle_mesh_uv_layer(c) ||
+                handle_mesh_color_layer(c);
         }
     }
     else if (m_subtype == ObjectSubType::Shape) {
         for (auto c : n->getChildren()) {
-            handle_vertices(c) ||
-                handle_shape_indices(c) ||
+            handle_shape_indices(c) ||
+                handle_shape_points(c) ||
                 handle_shape_normals(c);
         }
     }
@@ -433,11 +458,11 @@ void Geometry::readDataFronNode()
 
 
 template<class D, class S>
-static inline void CreatePropertyAndCopy(Node* dst_node, span<S> src)
+static inline void CreatePropertyAndCopy(Node* dst_node, RawVector<S> src)
 {
     auto dst_prop = dst_node->createProperty();
     auto dst = dst_prop->allocateArray<D>(src.size());
-    copy(dst, src);
+    copy(dst, make_span(src));
 }
 
 void Geometry::constructNodes()
@@ -445,15 +470,16 @@ void Geometry::constructNodes()
     super::constructNodes();
 
     auto n = getNode();
-
-    // points
-    CreatePropertyAndCopy<double3>(n->createChild(sfbxS_Vertices), getPoints());
-
     if (m_subtype == ObjectSubType::Mesh) {
+        auto& data = *getMeshData();
+
+        // points
+        CreatePropertyAndCopy<double3>(n->createChild(sfbxS_Vertices), data.points);
+
         // indices
         {
-            auto indices = getIndices();
-            auto counts = getCounts().data();
+            auto& indices = data.indices;
+            auto counts = data.counts.data();
 
             auto dst_node = n->createChild(sfbxS_PolygonVertexIndex);
             auto dst_prop = dst_node->createProperty();
@@ -471,45 +497,51 @@ void Geometry::constructNodes()
         }
 
         // normal layers
-        for (auto& layer : m_normal_layers) {
+        for (auto& layer : data.normal_layers) {
             auto normals_layer = n->createChild(sfbxS_LayerElementNormal);
             // todo
         }
 
         // uv layers
-        for (auto& layer : m_uv_layers) {
+        for (auto& layer : data.uv_layers) {
             auto uv_layer = n->createChild(sfbxS_LayerElementUV);
             // todo
         }
 
         // color layers
-        for (auto& layer : m_color_layers) {
+        for (auto& layer : data.color_layers) {
             auto color_layer = n->createChild(sfbxS_LayerElementColor);
             // todo
         }
     }
     else if (m_subtype == ObjectSubType::Shape) {
-        //CreatePropertyAndCopy<int>(n->createChild(sfbxS_Indexes), getIndices());
-        //CreatePropertyAndCopy<double3>(n->createChild(sfbxS_Normals), getNormals());
+        auto& data = *getShapeData();
+        CreatePropertyAndCopy<double3>(n->createChild(sfbxS_Vertices), data.points);
+        CreatePropertyAndCopy<int>(n->createChild(sfbxS_Indexes), data.indices);
+        CreatePropertyAndCopy<double3>(n->createChild(sfbxS_Normals), data.normals);
     }
 }
 
-span<int>    Geometry::getCounts() const { return make_span(m_counts); }
-span<int>    Geometry::getIndices() const { return make_span(m_indices); }
-span<float3> Geometry::getPoints() const { return make_span(m_points); }
-span<LayerElementF3> Geometry::getNormalLayers() const { return make_span(m_normal_layers); }
-span<LayerElementF2> Geometry::getUVLayers() const { return make_span(m_uv_layers); }
-span<LayerElementF4> Geometry::getColorLayers() const { return make_span(m_color_layers); }
+Geometry::MeshData* Geometry::getMeshData()
+{
+    if (!m_mesh_data) {
+        if (m_subtype == ObjectSubType::Unknown)
+            m_subtype = ObjectSubType::Mesh;
+        m_mesh_data.reset(new MeshData());
+    }
+    return m_mesh_data.get();
+}
 
-void Geometry::setCounts(span<int> v) { m_counts = v; }
-void Geometry::setIndices(span<int> v) { m_indices = v; }
-void Geometry::setPoints(span<float3> v) { m_points = v; }
-void Geometry::addNormalLayer(const LayerElementF3& v)  { m_normal_layers.push_back(v); }
-void Geometry::addNormalLayer(LayerElementF3&& v)       { m_normal_layers.push_back(std::move(v)); }
-void Geometry::addUVLayer(const LayerElementF2& v)      { m_uv_layers.push_back(v); }
-void Geometry::addUVLayer(LayerElementF2&& v)           { m_uv_layers.push_back(std::move(v)); }
-void Geometry::addColorLayer(const LayerElementF4& v)   { m_color_layers.push_back(v); }
-void Geometry::addColorLayer(LayerElementF4&& v)        { m_color_layers.push_back(std::move(v)); }
+Geometry::ShapeData* Geometry::getShapeData()
+{
+    if (!m_shape_data) {
+        if (m_subtype == ObjectSubType::Unknown)
+            m_subtype = ObjectSubType::Shape;
+        m_shape_data.reset(new ShapeData());
+    }
+    return m_shape_data.get();
+}
+
 
 
 Deformer::Deformer()
@@ -521,21 +553,32 @@ ObjectType Deformer::getType() const
     return ObjectType::Deformer;
 }
 
-void Deformer::readDataFronNode()
+void Deformer::constructObject()
 {
-    super::readDataFronNode();
+    super::constructObject();
     auto n = getNode();
     if (!n)
         return;
 
     if (m_subtype == ObjectSubType::Skin) {
-        // nothing to do
+        auto& data = *getSkinData();
+        for (auto child : getChildren()) {
+            if (child->getType() == ObjectType::Model && child->getSubType() == ObjectSubType::Cluster) {
+                if (auto deformer = dynamic_cast<Deformer*>(child)) {
+                    data.clusters.push_back(deformer);
+                }
+                else {
+                    printf("sfbx::Deformer::constructObject(): non-Deformer cluster object\n");
+                }
+            }
+        }
     }
     else if (m_subtype == ObjectSubType::Cluster) {
-        m_indices = GetChildPropertyArray<int>(n, sfbxS_Indexes);
-        m_weights = GetChildPropertyArray<float64>(n, sfbxS_Weights);
-        m_transform = GetChildPropertyValue<double4x4>(n, sfbxS_Transform);
-        m_transform_link = GetChildPropertyValue<double4x4>(n, sfbxS_TransformLink);
+        auto& data = *getClusterData();
+        data.indices = GetChildPropertyArray<int>(n, sfbxS_Indexes);
+        data.weights = GetChildPropertyArray<float64>(n, sfbxS_Weights);
+        data.transform = GetChildPropertyValue<double4x4>(n, sfbxS_Transform);
+        data.transform_link = GetChildPropertyValue<double4x4>(n, sfbxS_TransformLink);
     }
     else if (m_subtype == ObjectSubType::BlendShape) {
         // nothing to do
@@ -551,15 +594,45 @@ void Deformer::constructNodes()
     // todo
 }
 
-span<int> Deformer::getIndices() const { return make_span(m_indices); }
-span<float> Deformer::getWeights() const { return make_span(m_weights); }
-const float4x4& Deformer::getTransform() const { return m_transform; }
-const float4x4& Deformer::getTransformLink() const { return m_transform_link; }
+Deformer::BlendShapeData* Deformer::getBlendShapeData()
+{
+    if (!m_blendshape_data) {
+        if (m_subtype == ObjectSubType::Unknown)
+            m_subtype = ObjectSubType::BlendShape;
+        m_blendshape_data.reset(new BlendShapeData());
+    }
+    return m_blendshape_data.get();
+}
 
-void Deformer::setIndices(span<int> v) { m_indices = v; }
-void Deformer::setWeights(span<float> v) { m_weights = v; }
-void Deformer::getTransform(const float4x4& v) { m_transform = v; }
-void Deformer::getTransformLink(const float4x4& v) { m_transform_link = v; }
+Deformer::BlendShapeChannelData* Deformer::getBlendShapeChannelData()
+{
+    if (!m_blendshape_channel_data) {
+        if (m_subtype == ObjectSubType::Unknown)
+            m_subtype = ObjectSubType::BlendShapeChannel;
+        m_blendshape_channel_data.reset(new BlendShapeChannelData());
+    }
+    return m_blendshape_channel_data.get();
+}
+
+Deformer::SkinData* Deformer::getSkinData()
+{
+    if (!m_skin_data) {
+        if (m_subtype == ObjectSubType::Unknown)
+            m_subtype = ObjectSubType::Skin;
+        m_skin_data.reset(new SkinData());
+    }
+    return m_skin_data.get();
+}
+
+Deformer::ClusterData* Deformer::getClusterData()
+{
+    if (!m_cluster_data) {
+        if (m_subtype == ObjectSubType::Unknown)
+            m_subtype = ObjectSubType::Cluster;
+        m_cluster_data.reset(new ClusterData());
+    }
+    return m_cluster_data.get();
+}
 
 
 Pose::Pose()
@@ -573,19 +646,26 @@ ObjectType Pose::getType() const
 
 
 
-void Pose::readDataFronNode()
+void Pose::constructObject()
 {
-    super::readDataFronNode();
+    super::constructObject();
     auto n = getNode();
     if (!n)
         return;
 
     if (m_subtype == ObjectSubType::BindPose) {
+        auto& data = *getBindPoseData();
         for (auto c : n->getChildren()) {
             if (c->getName() == sfbxS_PoseNode) {
                 auto nid = GetChildPropertyValue<int64>(c, sfbxS_Node);
                 auto mat = GetChildPropertyValue<double4x4>(c, sfbxS_Marix);
-                m_joints.push_back({ m_document->findObject(nid), float4x4(mat) });
+                auto joint = dynamic_cast<Model*>(m_document->findObject(nid));
+                if (joint) {
+                    data.joints.push_back({ joint, float4x4(mat) });
+                }
+                else {
+                    printf("sfbx::Pose::constructObject(): non-Model joint object\n");
+                }
             }
         }
     }
@@ -597,9 +677,14 @@ void Pose::constructNodes()
     // todo
 }
 
-std::span<sfbx::Pose::JointData> Pose::getJoints() const
+Pose::BindPoseData* Pose::getBindPoseData()
 {
-    return make_span(m_joints);
+    if (!m_bindpose_data) {
+        if (m_subtype == ObjectSubType::Unknown)
+            m_subtype = ObjectSubType::BindPose;
+        m_bindpose_data.reset(new BindPoseData());
+    }
+    return m_bindpose_data.get();
 }
 
 
