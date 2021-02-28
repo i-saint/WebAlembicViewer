@@ -27,10 +27,32 @@ public:
     virtual float getFarPlane() const = 0;
 };
 
-struct BoneWeight
+struct JointWeight
 {
-    int bone_index{};
-    float bone_weight{};
+    int index{};
+    float weight{};
+};
+
+class ISkin : public IEntity
+{
+public:
+    virtual std::span<int> getJointCounts() const = 0;
+    virtual std::span<JointWeight> getJointWeights() const = 0;
+    virtual std::span<float4x4> getJointMatrices() const = 0;
+
+    virtual bool deformPoints(std::span<float3> dst, std::span<float3> src) const = 0;
+    virtual bool deformNormals(std::span<float3> dst, std::span<float3> src) const = 0;
+};
+
+class IBlendShape : public IEntity
+{
+public:
+    virtual std::span<int> getIndices() const = 0; // indices to vertices
+    virtual std::span<float3> getDeltaPoints() const = 0;
+    virtual std::span<float3> getDeltaNormals() const = 0;
+
+    virtual bool deformPoints(std::span<float3> dst, std::span<float3> src, float w) const = 0;
+    virtual bool deformNormals(std::span<float3> dst, std::span<float3> src, float w) const = 0;
 };
 
 class IMesh : public IEntity
@@ -43,12 +65,6 @@ public:
     virtual std::span<int> getCounts() const = 0;
     virtual std::span<int> getFaceIndices() const = 0;
     virtual std::span<int> getWireframeIndices() const = 0;
-
-    virtual bool isSkinned() const = 0;
-    virtual std::span<int> getBoneCounts() const = 0;
-    virtual std::span<BoneWeight> getBoneWeights() const = 0;
-    virtual void deformPoints(std::span<float3> dst, const std::span<float4x4> bones) const = 0;
-    virtual void deformNormals(std::span<float3> dst, const std::span<float4x4> bones) const = 0;
 
 #ifdef wabcWithGL
     virtual GLuint getPointsBuffer() const = 0;

@@ -52,6 +52,41 @@ public:
 };
 using CameraPtr = std::shared_ptr<Camera>;
 
+class Skin : public ISkin
+{
+public:
+    std::span<int> getJointCounts() const override { return MakeSpan(m_counts); }
+    std::span<JointWeight> getJointWeights() const override { return MakeSpan(m_weights); }
+    std::span<float4x4> getJointMatrices() const override { return MakeSpan(m_matrices); }
+
+    template<class Vec, class Mul>
+    bool deformImpl(std::span<Vec> dst, std::span<Vec> src, const Mul& mul) const;
+
+    bool deformPoints(std::span<float3> dst, std::span<float3> src) const override;
+    bool deformNormals(std::span<float3> dst, std::span<float3> src) const override;
+
+public:
+    std::vector<int> m_counts;
+    std::vector<JointWeight> m_weights;
+    std::vector<float4x4> m_matrices;
+};
+
+class BlendShape : public IBlendShape
+{
+public:
+    std::span<int> getIndices() const override { return MakeSpan(m_indices); }
+    std::span<float3> getDeltaPoints() const override { return MakeSpan(m_delta_points); }
+    std::span<float3> getDeltaNormals() const override { return MakeSpan(m_delta_normals); }
+
+    bool deformPoints(std::span<float3> dst, std::span<float3> src, float w) const override;
+    bool deformNormals(std::span<float3> dst, std::span<float3> src, float w) const override;
+
+public:
+    std::vector<int> m_indices;
+    std::vector<float3> m_delta_points;
+    std::vector<float3> m_delta_normals;
+};
+
 class Mesh : public IMesh
 {
 public:
@@ -64,12 +99,6 @@ public:
     std::span<int> getCounts() const override { return MakeSpan(m_counts); }
     std::span<int> getFaceIndices() const override { return MakeSpan(m_face_indices); }
     std::span<int> getWireframeIndices() const override { return MakeSpan(m_wireframe_indices); }
-
-    bool isSkinned() const override { return !m_bone_counts.empty(); }
-    std::span<int> getBoneCounts() const override { return MakeSpan(m_bone_counts); }
-    std::span<BoneWeight> getBoneWeights() const override { return MakeSpan(m_bone_weights); }
-    void deformPoints(std::span<float3> dst, const std::span<float4x4> bones) const override;
-    void deformNormals(std::span<float3> dst, const std::span<float4x4> bones) const override;
 
 #ifdef wabcWithGL
     GLuint getPointsBuffer() const override { return m_buf_points; }
@@ -90,9 +119,6 @@ public:
     std::vector<int> m_counts;
     std::vector<int> m_face_indices;
     std::vector<int> m_wireframe_indices;
-
-    std::vector<int> m_bone_counts;
-    std::vector<BoneWeight> m_bone_weights;
 
 #ifdef wabcWithGL
     GLuint m_buf_points{};
@@ -169,6 +195,69 @@ private:
 
 
 
+// Mul: e.g. [](float4x4, float3) -> float3
+template<class Vec, class Mul>
+bool Skin::deformImpl(std::span<Vec> dst, std::span<Vec> src, const Mul& mul) const
+{
+    if (m_counts.size() != src.size() || m_counts.size() != dst.size()) {
+        printf("Skin::deformImpl(): vertex count mismatch\n");
+        return false;
+    }
+
+    const JointWeight* weights = m_weights.data();
+    size_t nvertices = src.size();
+    for (size_t vi = 0; vi < nvertices; ++vi) {
+        Vec p = src[vi];
+        Vec r{};
+        int cjoints = m_counts[vi];
+        for (int bi = 0; bi < cjoints; ++bi) {
+            JointWeight w = weights[bi];
+            r += mul(m_matrices[w.index], p) * w.weight;
+        }
+        dst[vi] = r;
+        weights += cjoints;
+    }
+    return true;
+}
+
+bool Skin::deformPoints(std::span<float3> dst, std::span<float3> src) const
+{
+    return deformImpl(dst, src,
+        [](float4x4 m, float3 p) { return mul_p(m, p); });
+}
+
+bool Skin::deformNormals(std::span<float3> dst, std::span<float3> src) const
+{
+    return deformImpl(dst, src,
+        [](float4x4 m, float3 p) { return mul_v(m, p); });
+}
+
+
+bool BlendShape::deformPoints(std::span<float3> dst, std::span<float3> src, float w) const
+{
+    if (dst.data() != src.data())
+        memcpy(dst.data(), src.data(), src.size_bytes());
+
+    size_t c = m_indices.size();
+    for (size_t i = 0; i < c; ++i)
+        dst[m_indices[i]] += m_delta_points[i];
+    return true;
+}
+
+bool BlendShape::deformNormals(std::span<float3> dst, std::span<float3> src, float w) const
+{
+    if (dst.data() != src.data())
+        memcpy(dst.data(), src.data(), src.size_bytes());
+
+    size_t c = m_indices.size();
+    for (size_t i = 0; i < c; ++i)
+        dst[m_indices[i]] += m_delta_normals[i];
+    return true;
+}
+
+
+
+
 Mesh::Mesh()
 {
 #ifdef wabcWithGL
@@ -199,9 +288,6 @@ void Mesh::clear()
     m_counts.clear();
     m_face_indices.clear();
     m_wireframe_indices.clear();
-
-    m_bone_counts.clear();
-    m_bone_weights.clear();
 }
 
 void Mesh::upload()
@@ -224,40 +310,6 @@ void Mesh::upload()
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_wireframe_indices.size() * sizeof(int), m_wireframe_indices.data(), GL_STREAM_DRAW);
     }
 #endif
-}
-
-void Mesh::deformPoints(std::span<float3> dst, const std::span<float4x4> bones) const
-{
-    const BoneWeight* weights = m_bone_weights.data();
-    size_t nvertices = m_points.size();
-    for (size_t vi = 0; vi < nvertices; ++vi) {
-        float3 p = m_points[vi];
-        float3 r{};
-        int nbones = m_bone_counts[vi];
-        for (int bi = 0; bi < nbones; ++bi) {
-            BoneWeight w = weights[bi];
-            r += mul_p(bones[w.bone_index], p) * w.bone_weight;
-        }
-        dst[vi] = r;
-        weights += nbones;
-    }
-}
-
-void Mesh::deformNormals(std::span<float3> dst, const std::span<float4x4> bones) const
-{
-    const BoneWeight* weights = m_bone_weights.data();
-    size_t nvertices = m_normals.size();
-    for (size_t vi = 0; vi < nvertices; ++vi) {
-        float3 n = m_normals[vi];
-        float3 r{};
-        int nbones = m_bone_counts[vi];
-        for (int bi = 0; bi < nbones; ++bi) {
-            BoneWeight w = weights[bi];
-            r += mul_v(bones[w.bone_index], n) * w.bone_weight;
-        }
-        dst[vi] = r;
-        weights += nbones;
-    }
 }
 
 
