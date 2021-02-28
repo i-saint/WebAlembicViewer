@@ -56,11 +56,11 @@ uint64_t Node::write(std::ostream& os, uint64_t start_offset)
     }
 
     uint64_t property_size = 0;
-    for (auto& prop : m_properties)
+    for (auto prop : m_properties)
         property_size += prop->getSizeInBytes();
 
     uint64_t pos = header_size + m_name.length() + property_size;
-    for (auto& child : m_children)
+    for (auto child : m_children)
         pos += child->getSizeInBytes();
 
     if (getDocumentVersion() >= sfbxI_FBX2016_FileVersion) {
@@ -78,9 +78,9 @@ uint64_t Node::write(std::ostream& os, uint64_t start_offset)
     writev(os, m_name.data(), m_name.size());
 
     pos = header_size + m_name.length() + property_size;
-    for (auto& prop : m_properties)
+    for (auto prop : m_properties)
         prop->write(os);
-    for (auto& child : m_children)
+    for (auto child : m_children)
         pos += child->write(os, start_offset + pos);
 
     return pos;
@@ -114,10 +114,10 @@ Node* Node::createChild(const std::string& name)
 uint64_t Node::getSizeInBytes() const
 {
     uint64_t ret = getHeaderSize() + m_name.length();
-    for (auto& child : m_children)
-        ret += child->getSizeInBytes();
     for (auto& prop : m_properties)
         ret += prop->getSizeInBytes();
+    for (auto& child : m_children)
+        ret += child->getSizeInBytes();
     return ret;
 }
 

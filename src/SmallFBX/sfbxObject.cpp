@@ -122,17 +122,19 @@ void Object::constructNodes()
     auto c = connections->createChild(sfbxS_C);
     c->addProperty(sfbxS_OO);
     c->addProperty(m_id);
-    c->addProperty(m_parent ? m_parent->getID() : 0);
+    c->addProperty(int64(m_parent ? m_parent->getID() : 0));
 }
 
 ObjectSubType Object::getSubType() const { return m_subtype; }
 int64 Object::getID() const { return m_id; }
+const std::string& Object::getName() const { return m_name; }
 Node* Object::getNode() const { return m_node; }
 Object* Object::getParent() const { return m_parent; }
 span<Object*> Object::getChildren() const { return make_span(m_children); }
 
 void Object::setSubType(ObjectSubType v) { m_subtype = v; }
 void Object::setID(int64 id) { m_id = id; }
+void Object::setName(const std::string& v) { m_name = v; }
 void Object::setNode(Node* v) { m_node = v; }
 
 Object* Object::createChild(ObjectType type)
@@ -223,7 +225,6 @@ void Model::readDataFronNode()
             }
         }
     }
-    // todo
 }
 
 void Model::constructNodes()

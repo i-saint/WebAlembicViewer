@@ -42,7 +42,7 @@ void Document::read(std::istream& is)
 
     if (auto connections = findNode(sfbxS_Connections)) {
         for (auto n : connections->getChildren()) {
-            if (n->getName() == "C" && GetPropertyString(n, 0) == sfbxS_OO) {
+            if (n->getName() == sfbxS_C && GetPropertyString(n, 0) == sfbxS_OO) {
                 int64 cid = GetPropertyValue<int64>(n, 1);
                 int64 pid = GetPropertyValue<int64>(n, 2);
                 Object* child = findObject(cid);
@@ -74,14 +74,17 @@ void Document::read(const std::string& path)
 
 void Document::write(std::ostream& os)
 {
+    constructNodes();
+
     writev(os, g_fbx_magic, 23);
     write1(os, m_version);
 
     uint32_t offset = 27; // magic: 21+2, version: 4
-    for (auto& node : m_nodes)
+    for (auto node : m_root_nodes)
         offset += node->write(os, offset);
 
     Node null_node;
+    null_node.m_document = this;
     offset += null_node.write(os, offset);
 
     uint8_t footer[] = {
@@ -179,6 +182,22 @@ Object* Document::createObject(ObjectType t)
     }
     return r;
 }
+
+template<class T>
+T* Document::createObject()
+{
+    T* r = new T();
+    r->m_document = this;
+    m_objects.push_back(ObjectPtr(r));
+    return r;
+}
+template Attribute* Document::createObject();
+template Model* Document::createObject();
+template Geometry* Document::createObject();
+template Deformer* Document::createObject();
+template Pose* Document::createObject();
+template Material* Document::createObject();
+
 
 Object* Document::findObject(int64 id)
 {

@@ -43,6 +43,7 @@ public:
     span<Node*> getRootNodes();
 
     Object* createObject(ObjectType t);
+    template<class T> T* createObject();
     Object* findObject(int64 id);
     span<Object*> getRootObjects();
 

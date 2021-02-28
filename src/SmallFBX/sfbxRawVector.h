@@ -22,7 +22,7 @@ public:
 
     RawVector() {}
     RawVector(const RawVector& v) { operator=(v); }
-    RawVector(RawVector&& v) { swap(v); }
+    RawVector(RawVector&& v) noexcept { swap(v); }
     RawVector(std::initializer_list<T> v) { operator=(v); }
     RawVector(const_iterator b, const_iterator e) { assign(b, e); }
     explicit RawVector(size_t initial_size) { resize(initial_size); }

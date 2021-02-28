@@ -42,16 +42,26 @@ void Property::read(std::istream& is)
         is.read(m_data.data(), length);
     }
     else if (!isArray()) {
-        if (m_type == PropertyType::Bool || m_type == PropertyType::Int8)
+        switch (m_type) {
+        case PropertyType::Bool:
+        case PropertyType::Int8:
             m_scalar.i8 = read1<int8>(is);
-        else if (m_type == PropertyType::Int16)
+            break;
+        case PropertyType::Int16:
             m_scalar.i16 = read1<int16>(is);
-        else if (m_type == PropertyType::Int32 || m_type == PropertyType::Float32)
+            break;
+        case PropertyType::Int32:
+        case PropertyType::Float32:
             m_scalar.i32 = read1<int32>(is);
-        else if (m_type == PropertyType::Int64 || m_type == PropertyType::Float64)
+            break;
+        case PropertyType::Int64:
+        case PropertyType::Float64:
             m_scalar.i64 = read1<int64>(is);
-        else
+            break;
+        default:
             throw std::runtime_error(std::string("Unsupported property type ") + std::to_string((char)m_type));
+            break;
+        }
     }
     else {
         uint32_t array_size = read1<uint32_t>(is); // number of elements in array
@@ -85,6 +95,26 @@ void Property::write(std::ostream& os)
         writev(os, m_data.data(), m_data.size());
     }
     else if (!isArray()) {
+        switch (m_type) {
+        case PropertyType::Bool:
+        case PropertyType::Int8:
+            write1(os, m_scalar.i8);
+            break;
+        case PropertyType::Int16:
+            write1(os, m_scalar.i16);
+            break;
+        case PropertyType::Int32:
+        case PropertyType::Float32:
+            write1(os, m_scalar.i32);
+            break;
+        case PropertyType::Int64:
+        case PropertyType::Float64:
+            write1(os, m_scalar.i64);
+            break;
+        default:
+            throw std::runtime_error(std::string("Unsupported property type ") + std::to_string((char)m_type));
+            break;
+        }
         // scalar
         writev(os, m_data.data(), m_data.size());
     }
@@ -93,6 +123,7 @@ void Property::write(std::ostream& os)
         write1(os, (uint32_t)getArraySize()); // arrayLength
         write1(os, (uint32_t)0); // encoding // TODO: support compression
         write1(os, (uint32_t)m_data.size());
+        writev(os, m_data.data(), m_data.size());
     }
 }
 

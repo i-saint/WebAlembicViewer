@@ -56,12 +56,14 @@ public:
 
     ObjectSubType getSubType() const;
     int64 getID() const;
+    const std::string& getName() const;
     Node* getNode() const;
     Object* getParent() const;
     span<Object*> getChildren() const;
 
     void setSubType(ObjectSubType v);
     void setID(int64 v);
+    void setName(const std::string& v);
     void setNode(Node* v);
 
     Object* createChild(ObjectType type);
