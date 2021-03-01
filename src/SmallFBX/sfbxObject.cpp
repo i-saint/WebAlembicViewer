@@ -11,7 +11,7 @@ ObjectType GetFbxObjectType(const std::string& n)
     if (n.empty())
         return ObjectType::Unknown;
     else if (n == "NodeAttribute")
-        return ObjectType::Attribute;
+        return ObjectType::NodeAttribute;
     else if (n == "Model")
         return ObjectType::Model;
     else if (n == "Geometry")
@@ -43,7 +43,7 @@ ObjectType GetFbxObjectType(Node* n)
 const char* GetFbxObjectName(ObjectType t)
 {
     switch (t) {
-    case ObjectType::Attribute: return "NodeAtrribute";
+    case ObjectType::NodeAttribute: return "NodeAtrribute";
     case ObjectType::Model: return "Model";
     case ObjectType::Geometry: return "Geometry";
     case ObjectType::Deformer: return "Deformer";
@@ -203,18 +203,18 @@ void Object::addParent(Object* v)
 
 
 
-ObjectType Attribute::getType() const
+ObjectType NodeAttribute::getType() const
 {
-    return ObjectType::Attribute;
+    return ObjectType::NodeAttribute;
 }
 
-void Attribute::constructObject()
+void NodeAttribute::constructObject()
 {
     super::constructObject();
     // todo
 }
 
-void Attribute::constructNodes()
+void NodeAttribute::constructNodes()
 {
     super::constructNodes();
     // todo
@@ -357,10 +357,34 @@ void Model::setRotation(float3 v) { m_rotation = v; }
 void Model::setScale(float3 v) { m_scale = v; }
 
 
-ObjectType Geometry::getType() const
+void Light::constructObject()
 {
-    return ObjectType::Geometry;
+    super::constructObject();
+    // todo
 }
+
+void Light::constructNodes()
+{
+    super::constructNodes();
+    // todo
+}
+
+
+void Camera::constructObject()
+{
+    super::constructObject();
+    // todo
+}
+
+void Camera::constructNodes()
+{
+    super::constructNodes();
+    // todo
+}
+
+
+
+ObjectType Geometry::getType() const { return ObjectType::Geometry; }
 
 template<class D, class S>
 static inline void CreatePropertyAndCopy(Node* dst_node, RawVector<S> src)
@@ -740,55 +764,44 @@ void BlendShapeChannel::constructNodes()
 
 ObjectType Pose::getType() const { return ObjectType::Pose; }
 
-void Pose::constructObject()
+void BindPose::constructObject()
 {
     super::constructObject();
-    auto n = getNode();
-    if (!n)
-        return;
 
-    if (m_subtype == ObjectSubType::BindPose) {
-        auto& data = *getBindPoseData();
-        for (auto c : n->getChildren()) {
-            if (c->getName() == sfbxS_PoseNode) {
-                auto nid = GetChildPropertyValue<int64>(c, sfbxS_Node);
-                auto mat = GetChildPropertyValue<double4x4>(c, sfbxS_Marix);
-                auto joint = as<Model>(m_document->findObject(nid));
-                if (joint) {
-                    data.joints.push_back({ joint, float4x4(mat) });
-                }
-                else {
-                    printf("sfbx::Pose::constructObject(): non-Model joint object\n");
-                }
+    for (auto n : getNode()->getChildren()) {
+        if (n->getName() == sfbxS_PoseNode) {
+            auto nid = GetChildPropertyValue<int64>(n, sfbxS_Node);
+            auto mat = GetChildPropertyValue<double4x4>(n, sfbxS_Marix);
+            auto model = as<Model>(m_document->findObject(nid));
+            if (model) {
+                m_pose_data.push_back({ model, float4x4(mat) });
+            }
+            else {
+                printf("sfbx::Pose::constructObject(): non-Model joint object\n");
             }
         }
     }
 }
 
-void Pose::constructNodes()
+void BindPose::constructNodes()
 {
     super::constructNodes();
     // todo
 }
 
-Pose::BindPoseData* Pose::getBindPoseData()
-{
-    if (!m_bindpose_data) {
-        if (m_subtype == ObjectSubType::Unknown)
-            m_subtype = ObjectSubType::BindPose;
-        m_bindpose_data.reset(new BindPoseData());
-    }
-    return m_bindpose_data.get();
-}
+span<BindPose::PoseData> BindPose::getPoseData() const { return make_span(m_pose_data); }
+void BindPose::addPoseData(const PoseData& v) { m_pose_data.push_back(v); }
 
 
-Material::Material()
-{
-}
 
-ObjectType Material::getType() const
+
+Material::Material() {}
+ObjectType Material::getType() const { return ObjectType::Material; }
+
+void Material::constructObject()
 {
-    return ObjectType::Material;
+    super::constructNodes();
+    // todo
 }
 
 void Material::constructNodes()

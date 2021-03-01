@@ -186,24 +186,21 @@ Object* Document::createObject(ObjectType t, ObjectSubType s)
 {
     Object* r{};
     switch (t) {
-    case ObjectType::Attribute: r = new Attribute(); break;
+    case ObjectType::NodeAttribute: r = new NodeAttribute(); break;
     case ObjectType::Model:
-        // todo
         switch (s) {
-        case ObjectSubType::Light:
-        case ObjectSubType::Camera:
-        case ObjectSubType::Root:
-        case ObjectSubType::LimbNode:
-        default:
-            r = new Model(); break;
-            break;
+        case ObjectSubType::Light: r = new Light(); break;
+        case ObjectSubType::Camera: r = new Camera(); break;
+        case ObjectSubType::Root: r = new Root(); break;
+        case ObjectSubType::LimbNode: r = new LimbNode(); break;
+        default: r = new Model(); break;
         }
         break;
     case ObjectType::Geometry:
         switch (s) {
         case ObjectSubType::Mesh: r = new Mesh(); break;
         case ObjectSubType::Shape: r = new Shape(); break;
-        default: break;
+        default: r = new Geometry(); break;
         }
         break;
     case ObjectType::Deformer:
@@ -212,10 +209,15 @@ Object* Document::createObject(ObjectType t, ObjectSubType s)
         case ObjectSubType::Cluster: r = new Cluster(); break;
         case ObjectSubType::BlendShape: r = new BlendShape(); break;
         case ObjectSubType::BlendShapeChannel: r = new BlendShapeChannel(); break;
-        default: break;
+        default: r = new Deformer(); break;
         }
         break;
-    case ObjectType::Pose:      r = new Pose(); break;
+    case ObjectType::Pose:
+        switch (s) {
+        case ObjectSubType::BindPose: r = new BindPose(); break;
+        default: r = new Pose(); break;
+        }
+        break;
     case ObjectType::Material:  r = new Material(); break;
     case ObjectType::AnimationStack:    r = new AnimationStack(); break;
     case ObjectType::AnimationLayer:    r = new AnimationLayer(); break;

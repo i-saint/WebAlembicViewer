@@ -6,7 +6,7 @@ namespace sfbx {
 enum class ObjectType : int
 {
     Unknown,
-    Attribute,
+    NodeAttribute,
     Model,
     Geometry,
     Deformer,
@@ -86,7 +86,7 @@ protected:
 };
 
 
-class Attribute : public Object
+class NodeAttribute : public Object
 {
 friend class Document;
 using super = Object;
@@ -128,6 +128,38 @@ protected:
     float3 m_position{};
     float3 m_rotation{};
     float3 m_scale{1.0f, 1.0f, 1.0f};
+};
+
+class Light : public Model
+{
+friend class Document;
+using super = Model;
+public:
+    void constructObject() override;
+    void constructNodes() override;
+};
+
+class Camera : public Model
+{
+friend class Document;
+using super = Model;
+public:
+    void constructObject() override;
+    void constructNodes() override;
+};
+
+class Root : public Model
+{
+friend class Document;
+using super = Model;
+public:
+};
+
+class LimbNode : public Model
+{
+friend class Document;
+using super = Model;
+public:
 };
 
 
@@ -311,25 +343,28 @@ class Pose : public Object
 friend class Document;
 using super = Object;
 public:
-    struct BindPoseData : noncopyable
-    {
-        struct JointData
-        {
-            Model* joint{};
-            float4x4 matrix = float4x4::identity();
-        };
+    ObjectType getType() const override;
+};
 
-        std::vector<JointData> joints;
+class BindPose : public Pose
+{
+friend class Document;
+using super = Pose;
+public:
+    struct PoseData
+    {
+        Model* object{};
+        float4x4 matrix = float4x4::identity();
     };
 
-    ObjectType getType() const override;
     void constructObject() override;
     void constructNodes() override;
 
-    BindPoseData* getBindPoseData();
+    span<PoseData> getPoseData() const;
+    void addPoseData(const PoseData& v);
 
 protected:
-    std::unique_ptr<BindPoseData> m_bindpose_data;
+    std::vector<PoseData> m_pose_data;
 };
 
 
@@ -339,7 +374,7 @@ friend class Document;
 using super = Object;
 public:
     ObjectType getType() const override;
-
+    void constructObject() override;
     void constructNodes() override;
 
 protected:
