@@ -44,7 +44,7 @@ public:
     span<Node*> getRootNodes();
 
     Object* createObject(ObjectType t, ObjectSubType s);
-    template<class T> T* createObject();
+    template<class T> T* createObject(const std::string& name = "");
     Object* findObject(int64 id);
     span<Object*> getRootObjects();
 

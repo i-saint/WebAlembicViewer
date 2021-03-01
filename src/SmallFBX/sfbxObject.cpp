@@ -153,13 +153,14 @@ void Object::setSubType(ObjectSubType v) { m_subtype = v; }
 void Object::setID(int64 id) { m_id = id; }
 void Object::setName(const std::string& v) { m_name = v; }
 
-template<class T> T* Object::createChild()
+template<class T> T* Object::createChild(const std::string& name)
 {
     auto ret = m_document->createObject<T>();
+    ret->setName(name);
     addChild(ret);
     return ret;
 }
-#define Body(T) template T* Object::createChild();
+#define Body(T) template T* Object::createChild(const std::string& name);
 sfbxEachObjectType(Body)
 #undef Body
 
@@ -812,6 +813,31 @@ void AnimationCurve::constructNodes()
 
 span<float> AnimationCurve::getTimes() const { return make_span(m_times); }
 span<float> AnimationCurve::getValues() const { return make_span(m_values); }
+
+float AnimationCurve::evaluate(float time) const
+{
+    if (m_times.empty())
+        return m_default;
+    else if (time <= m_times.front())
+        return m_values.front();
+    else if (time >= m_times.back())
+        return m_values.back();
+    else {
+        // lerp
+        auto it = std::lower_bound(m_times.begin(), m_times.end(), time);
+        size_t i = std::distance(m_times.begin(), it);
+
+        float t2 = m_times[i];
+        float v2 = m_values[i];
+        if (time == t2)
+            return v2;
+
+        float t1 = m_times[i - 1];
+        float v1 = m_values[i - 1];
+        float w = (time - t1) / (t2 - t1);
+        return v1 + (v2 - v1) * w;
+    }
+}
 
 void AnimationCurve::setTimes(span<float> v) { m_times = v; }
 void AnimationCurve::setValues(span<float> v) { m_values = v; }

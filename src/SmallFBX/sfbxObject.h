@@ -66,7 +66,7 @@ public:
     void setName(const std::string& v);
     void setNode(Node* v);
 
-    template<class T> T* createChild();
+    template<class T> T* createChild(const std::string& name = "");
     void addChild(Object* v);
 
 protected:
@@ -421,6 +421,7 @@ public:
 
     span<float> getTimes() const;
     span<float> getValues() const;
+    float evaluate(float time) const;
 
     void setTimes(span<float> v);
     void setValues(span<float> v);

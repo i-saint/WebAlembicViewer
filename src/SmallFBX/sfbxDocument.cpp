@@ -248,14 +248,15 @@ Object* Document::createObject(ObjectType t, ObjectSubType s)
 }
 
 template<class T>
-T* Document::createObject()
+T* Document::createObject(const std::string& name)
 {
     T* r = new T();
     r->m_document = this;
+    r->setName(name);
     m_objects.push_back(ObjectPtr(r));
     return r;
 }
-#define Body(T) template T* Document::createObject();
+#define Body(T) template T* Document::createObject(const std::string& name);
 sfbxEachObjectType(Body)
 #undef Body
 

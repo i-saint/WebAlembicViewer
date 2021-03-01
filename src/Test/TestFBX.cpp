@@ -62,3 +62,18 @@ testCase(fbxWrite)
             PrintObject(obj);
     }
 }
+
+testCase(fbxAnimationCurve)
+{
+    sfbx::DocumentPtr doc = sfbx::MakeDocument();
+    auto curve = doc->createObject<sfbx::AnimationCurve>("TestCurve");
+
+    sfbx::RawVector<float> times{ 0.0f, 1.0f, 2.0f };
+    sfbx::RawVector<float> values{ 0.0f, 100.0f, 400.0f };
+    curve->setTimes(times);
+    curve->setValues(values);
+
+    for (float t = -0.5f; t < 2.5f; t += 0.1f) {
+        printf("time: %f, value: %f\n", t, curve->evaluate(t));
+    }
+}
