@@ -1,4 +1,5 @@
 #pragma once
+#include <cmath>
 #include "sfbxTypes.h"
 
 namespace sfbx {
@@ -96,20 +97,20 @@ template<class T> inline T sum(const tvec4<T>& v) { return v.x + v.y + v.z + v.w
 
 template<class T> inline tquat<T> rotate_x(T angle)
 {
-    T c = cos(angle * T(0.5));
-    T s = sin(angle * T(0.5));
+    T c = std::cos(angle * T(0.5));
+    T s = std::sin(angle * T(0.5));
     return{ s, T(0.0), T(0.0), c };
 }
 template<class T> inline tquat<T> rotate_y(T angle)
 {
-    T c = cos(angle * T(0.5));
-    T s = sin(angle * T(0.5));
+    T c = std::cos(angle * T(0.5));
+    T s = std::sin(angle * T(0.5));
     return{ T(0.0), s, T(0.0), c };
 }
 template<class T> inline tquat<T> rotate_z(T angle)
 {
-    T c = cos(angle * T(0.5));
-    T s = sin(angle * T(0.5));
+    T c = std::cos(angle * T(0.5));
+    T s = std::sin(angle * T(0.5));
     return{ T(0.0), T(0.0), s, c };
 }
 

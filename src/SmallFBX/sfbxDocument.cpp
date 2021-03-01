@@ -273,126 +273,126 @@ void Document::createHeaderExtention()
         std::tm* now = std::localtime(&t);
 
         auto timestamp = header_extension->createChild(sfbxS_CreationTimeStamp);
-        timestamp->addPropertyNode("Version", 1000);
-        timestamp->addPropertyNode("Year", now->tm_year);
-        timestamp->addPropertyNode("Month", now->tm_mon);
-        timestamp->addPropertyNode("Day", now->tm_mday);
-        timestamp->addPropertyNode("Hour", now->tm_hour);
-        timestamp->addPropertyNode("Minute", now->tm_min);
-        timestamp->addPropertyNode("Second", now->tm_sec);
-        timestamp->addPropertyNode("Millisecond", 0);
+        timestamp->addPropertyNode(sfbxS_Version, 1000);
+        timestamp->addPropertyNode(sfbxS_Year, now->tm_year);
+        timestamp->addPropertyNode(sfbxS_Month, now->tm_mon);
+        timestamp->addPropertyNode(sfbxS_Day, now->tm_mday);
+        timestamp->addPropertyNode(sfbxS_Hour, now->tm_hour);
+        timestamp->addPropertyNode(sfbxS_Minute, now->tm_min);
+        timestamp->addPropertyNode(sfbxS_Second, now->tm_sec);
+        timestamp->addPropertyNode(sfbxS_Millisecond, 0);
     }
     header_extension->addPropertyNode(sfbxS_Creator, "SmallFBX 1.0.0");
     {
         auto sceneInfo = header_extension->createChild(sfbxS_SceneInfo);
         sceneInfo->addProperty(PropertyType::String,
             RawVector<char>{'G', 'l', 'o', 'b', 'a', 'l', 'I', 'n', 'f', 'o', 0, 1, 'S', 'c', 'e', 'n', 'e', 'I', 'n', 'f', 'o'});
-        sceneInfo->addProperty("UserData");
-        sceneInfo->addPropertyNode("Type", "UserData");
-        sceneInfo->addPropertyNode("Version", 100);
+        sceneInfo->addProperty(sfbxS_UserData);
+        sceneInfo->addPropertyNode(sfbxS_Type, sfbxS_UserData);
+        sceneInfo->addPropertyNode(sfbxS_Version, 100);
         {
             auto meta = sceneInfo->createChild(sfbxS_MetaData);
-            meta->addPropertyNode("Version", 100);
-            meta->addPropertyNode("Title", "");
-            meta->addPropertyNode("Subject", "");
-            meta->addPropertyNode("Author", "");
-            meta->addPropertyNode("Keywords", "");
-            meta->addPropertyNode("Revision", "");
-            meta->addPropertyNode("Comment", "");
+            meta->addPropertyNode(sfbxS_Version, 100);
+            meta->addPropertyNode(sfbxS_Title, "");
+            meta->addPropertyNode(sfbxS_Subject, "");
+            meta->addPropertyNode(sfbxS_Author, "");
+            meta->addPropertyNode(sfbxS_Keywords, "");
+            meta->addPropertyNode(sfbxS_Revision, "");
+            meta->addPropertyNode(sfbxS_Comment, "");
         }
         {
             auto properties = sceneInfo->createChild(sfbxS_Properties70);
             {
                 //properties->createChild();
                 auto p = properties->createChild(sfbxS_P);
-                p->addProperty("DocumentUrl");
-                p->addProperty("KString");
-                p->addProperty("Url");
+                p->addProperty(sfbxS_DocumentUrl);
+                p->addProperty(sfbxS_KString);
+                p->addProperty(sfbxS_Url);
                 p->addProperty("");
                 p->addProperty("a.fbx");
             }
             {
                 auto p = properties->createChild(sfbxS_P);
-                p->addProperty("SrcDocumentUrl");
-                p->addProperty("KString");
-                p->addProperty("Url");
+                p->addProperty(sfbxS_SrcDocumentUrl);
+                p->addProperty(sfbxS_KString);
+                p->addProperty(sfbxS_Url);
                 p->addProperty("");
                 p->addProperty("a.fbx");
             }
             {
                 auto p = properties->createChild(sfbxS_P);
-                p->addProperty("Original");
-                p->addProperty("Compound");
+                p->addProperty(sfbxS_Original);
+                p->addProperty(sfbxS_Compound);
                 p->addProperty("");
                 p->addProperty("");
             }
             {
                 auto p = properties->createChild(sfbxS_P);
-                p->addProperty("Original|ApplicationVendor");
-                p->addProperty("KString");
-                p->addProperty("");
-                p->addProperty("");
-                p->addProperty("");
-            }
-            {
-                auto p = properties->createChild(sfbxS_P);
-                p->addProperty("Original|ApplicationName");
-                p->addProperty("KString");
+                p->addProperty(sfbxS_OriginalApplicationVendor);
+                p->addProperty(sfbxS_KString);
                 p->addProperty("");
                 p->addProperty("");
                 p->addProperty("");
             }
             {
                 auto p = properties->createChild(sfbxS_P);
-                p->addProperty("Original|ApplicationVersion");
-                p->addProperty("KString");
+                p->addProperty(sfbxS_OriginalApplicationName);
+                p->addProperty(sfbxS_KString);
                 p->addProperty("");
                 p->addProperty("");
                 p->addProperty("");
             }
             {
                 auto p = properties->createChild(sfbxS_P);
-                p->addProperty("Original|DateTime_GMT");
-                p->addProperty("DateTime");
+                p->addProperty(sfbxS_OriginalApplicationVersion);
+                p->addProperty(sfbxS_KString);
                 p->addProperty("");
                 p->addProperty("");
                 p->addProperty("");
             }
             {
                 auto p = properties->createChild(sfbxS_P);
-                p->addProperty("Original|FileName");
-                p->addProperty("KString");
+                p->addProperty(sfbxS_OriginalDateTime_GMT);
+                p->addProperty(sfbxS_DateTime);
                 p->addProperty("");
                 p->addProperty("");
                 p->addProperty("");
             }
             {
                 auto p = properties->createChild(sfbxS_P);
-                p->addProperty("LastSaved");
-                p->addProperty("Compound");
-                p->addProperty("");
-                p->addProperty("");
-            }
-            {
-                auto p = properties->createChild(sfbxS_P);
-                p->addProperty("LastSaved|ApplicationVendor");
-                p->addProperty("KString");
+                p->addProperty(sfbxS_OriginalFileName);
+                p->addProperty(sfbxS_KString);
                 p->addProperty("");
                 p->addProperty("");
                 p->addProperty("");
             }
             {
                 auto p = properties->createChild(sfbxS_P);
-                p->addProperty("LastSaved|ApplicationName");
-                p->addProperty("KString");
+                p->addProperty(sfbxS_LastSaved);
+                p->addProperty(sfbxS_Compound);
+                p->addProperty("");
+                p->addProperty("");
+            }
+            {
+                auto p = properties->createChild(sfbxS_P);
+                p->addProperty(sfbxS_LastSavedApplicationVendor);
+                p->addProperty(sfbxS_KString);
                 p->addProperty("");
                 p->addProperty("");
                 p->addProperty("");
             }
             {
                 auto p = properties->createChild(sfbxS_P);
-                p->addProperty("LastSaved|DateTime_GMT");
-                p->addProperty("DateTime");
+                p->addProperty(sfbxS_LastSavedApplicationName);
+                p->addProperty(sfbxS_KString);
+                p->addProperty("");
+                p->addProperty("");
+                p->addProperty("");
+            }
+            {
+                auto p = properties->createChild(sfbxS_P);
+                p->addProperty(sfbxS_LastSavedDateTime_GMT);
+                p->addProperty(sfbxS_DateTime );
                 p->addProperty("");
                 p->addProperty("");
                 p->addProperty("");

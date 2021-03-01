@@ -10,26 +10,16 @@ ObjectType GetFbxObjectType(const std::string& n)
 {
     if (n.empty())
         return ObjectType::Unknown;
-    else if (n == "NodeAttribute")
-        return ObjectType::NodeAttribute;
-    else if (n == "Model")
-        return ObjectType::Model;
-    else if (n == "Geometry")
-        return ObjectType::Geometry;
-    else if (n == "Deformer")
-        return ObjectType::Deformer;
-    else if (n == "Pose")
-        return ObjectType::Pose;
-    else if (n == "Material")
-        return ObjectType::Material;
-    else if (n == "AnimationStack")
-        return ObjectType::AnimationStack;
-    else if (n == "AnimationLayer")
-        return ObjectType::AnimationLayer;
-    else if (n == "AnimationCurveNode")
-        return ObjectType::AnimationCurveNode;
-    else if (n == "AnimationCurve")
-        return ObjectType::AnimationCurve;
+    else if (n == sfbxS_NodeAttribute)      return ObjectType::NodeAttribute;
+    else if (n == sfbxS_Model)              return ObjectType::Model;
+    else if (n == sfbxS_Geometry)           return ObjectType::Geometry;
+    else if (n == sfbxS_Deformer)           return ObjectType::Deformer;
+    else if (n == sfbxS_Pose)               return ObjectType::Pose;
+    else if (n == sfbxS_Material)           return ObjectType::Material;
+    else if (n == sfbxS_AnimationStack)     return ObjectType::AnimationStack;
+    else if (n == sfbxS_AnimationLayer)     return ObjectType::AnimationLayer;
+    else if (n == sfbxS_AnimationCurveNode) return ObjectType::AnimationCurveNode;
+    else if (n == sfbxS_AnimationCurve)     return ObjectType::AnimationCurve;
     else {
         printf("GetFbxObjectType(): unknown type \"%s\"\n", n.c_str());
         return ObjectType::Unknown;
@@ -43,16 +33,16 @@ ObjectType GetFbxObjectType(Node* n)
 const char* GetFbxObjectName(ObjectType t)
 {
     switch (t) {
-    case ObjectType::NodeAttribute: return "NodeAtrribute";
-    case ObjectType::Model: return "Model";
-    case ObjectType::Geometry: return "Geometry";
-    case ObjectType::Deformer: return "Deformer";
-    case ObjectType::Pose: return "Pose";
-    case ObjectType::Material: return "Material";
-    case ObjectType::AnimationStack: return "AnimationStack";
-    case ObjectType::AnimationLayer: return "AnimationLayer";
-    case ObjectType::AnimationCurveNode: return "AnimationCurveNode";
-    case ObjectType::AnimationCurve: return "AnimationCurve";
+    case ObjectType::NodeAttribute:     return sfbxS_NodeAttribute;
+    case ObjectType::Model:             return sfbxS_Model;
+    case ObjectType::Geometry:          return sfbxS_Geometry;
+    case ObjectType::Deformer:          return sfbxS_Deformer;
+    case ObjectType::Pose:              return sfbxS_Pose;
+    case ObjectType::Material:          return sfbxS_Material;
+    case ObjectType::AnimationStack:    return sfbxS_AnimationStack;
+    case ObjectType::AnimationLayer:    return sfbxS_AnimationLayer;
+    case ObjectType::AnimationCurveNode:return sfbxS_AnimationCurveNode;
+    case ObjectType::AnimationCurve:    return sfbxS_AnimationCurve;
     default: return "";
     }
 }
@@ -60,30 +50,18 @@ const char* GetFbxObjectName(ObjectType t)
 
 ObjectSubType GetFbxObjectSubType(const std::string& n)
 {
-    if (n.empty())
-        return ObjectSubType::Unknown;
-    else if (n == "Light")
-        return ObjectSubType::Light;
-    else if (n == "Camera")
-        return ObjectSubType::Camera;
-    else if (n == "Mesh")
-        return ObjectSubType::Mesh;
-    else if (n == "Shape")
-        return ObjectSubType::Shape;
-    else if (n == "Root")
-        return ObjectSubType::Root;
-    else if (n == "LimbNode")
-        return ObjectSubType::LimbNode;
-    else if (n == "Skin")
-        return ObjectSubType::Skin;
-    else if (n == "Cluster")
-        return ObjectSubType::Cluster;
-    else if (n == "BindPose")
-        return ObjectSubType::BindPose;
-    else if (n == "BlendShape")
-        return ObjectSubType::BlendShape;
-    else if (n == "BlendShapeChannel")
-        return ObjectSubType::BlendShapeChannel;
+    if (n.empty()) return ObjectSubType::Unknown;
+    else if (n == sfbxS_Light)      return ObjectSubType::Light;
+    else if (n == sfbxS_Camera)     return ObjectSubType::Camera;
+    else if (n == sfbxS_Mesh)       return ObjectSubType::Mesh;
+    else if (n == sfbxS_Shape)      return ObjectSubType::Shape;
+    else if (n == sfbxS_Root)       return ObjectSubType::Root;
+    else if (n == sfbxS_LimbNode)   return ObjectSubType::LimbNode;
+    else if (n == sfbxS_Skin)       return ObjectSubType::Skin;
+    else if (n == sfbxS_Cluster)    return ObjectSubType::Cluster;
+    else if (n == sfbxS_BindPose)   return ObjectSubType::BindPose;
+    else if (n == sfbxS_BlendShape) return ObjectSubType::BlendShape;
+    else if (n == sfbxS_BlendShapeChannel) return ObjectSubType::BlendShapeChannel;
     else {
         printf("GetFbxObjectSubType(): unknown subtype \"%s\"\n", n.c_str());
         return ObjectSubType::Unknown;
@@ -98,17 +76,17 @@ ObjectSubType GetFbxObjectSubType(Node* n)
 const char* GetFbxObjectSubName(ObjectSubType t)
 {
     switch (t) {
-    case ObjectSubType::Light: return "Light";
-    case ObjectSubType::Camera: return "Camera";
-    case ObjectSubType::Mesh: return "Mesh";
-    case ObjectSubType::Shape: return "Shape";
-    case ObjectSubType::Root: return "Root";
-    case ObjectSubType::LimbNode: return "LimbNode";
-    case ObjectSubType::Skin: return "Skin";
-    case ObjectSubType::Cluster: return "Cluster";
-    case ObjectSubType::BindPose: return "BindPose";
-    case ObjectSubType::BlendShape: return "BlendShape";
-    case ObjectSubType::BlendShapeChannel: return "BlendShapeChannel";
+    case ObjectSubType::Light:      return sfbxS_Light;
+    case ObjectSubType::Camera:     return sfbxS_Camera;
+    case ObjectSubType::Mesh:       return sfbxS_Mesh;
+    case ObjectSubType::Shape:      return sfbxS_Shape;
+    case ObjectSubType::Root:       return sfbxS_Root;
+    case ObjectSubType::LimbNode:   return sfbxS_LimbNode;
+    case ObjectSubType::Skin:       return sfbxS_Skin;
+    case ObjectSubType::Cluster:    return sfbxS_Cluster;
+    case ObjectSubType::BindPose:   return sfbxS_BindPose;
+    case ObjectSubType::BlendShape: return sfbxS_BlendShape;
+    case ObjectSubType::BlendShapeChannel: return sfbxS_BlendShapeChannel;
     default: return "";
     }
 }
