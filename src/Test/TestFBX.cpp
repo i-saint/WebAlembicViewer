@@ -14,11 +14,10 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
         sfbx::GetFbxObjectName(obj->getType()),
         sfbx::GetFbxObjectSubName(obj->getSubType()));
 
-    if (obj->getType() == sfbx::ObjectType::Deformer && obj->getSubType() == sfbx::ObjectSubType::Skin) {
-        auto skin = sfbx::as<sfbx::Deformer>(obj);
-        auto weights_v = skin->skinGetJointWeightsVariable();
-        auto weights_4 = skin->skinGetJointWeightsFixed(4);
-        auto matrices = skin->skinGetJointMatrices();
+    if (auto skin = sfbx::as<sfbx::Skin>(obj)) {
+        auto weights_v = skin->getJointWeightsVariable();
+        auto weights_4 = skin->getJointWeightsFixed(4);
+        auto matrices = skin->getJointMatrices();
         testPrint("");
     }
 

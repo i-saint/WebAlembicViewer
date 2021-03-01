@@ -38,11 +38,12 @@ public:
 
     Node* createNode(const std::string& name = "");
     Node* createChildNode(const std::string& name = "");
+    void registerNode(NodePtr n);
     Node* findNode(const char* name) const;
     Node* findNode(const std::string& name) const { return findNode(name.c_str()); }
     span<Node*> getRootNodes();
 
-    Object* createObject(ObjectType t);
+    Object* createObject(ObjectType t, ObjectSubType s);
     template<class T> T* createObject();
     Object* findObject(int64 id);
     span<Object*> getRootObjects();

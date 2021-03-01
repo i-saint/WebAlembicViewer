@@ -40,8 +40,17 @@ uint64_t Node::read(std::istream& is, uint64_t start_offset)
     ret += prop_size;
 
     while (start_offset + ret < end_offset) {
-        auto child = createChild();
+        auto child = NodePtr(new Node());
+        child->m_document = m_document;
+        child->m_parent = this;
         ret += child->read(is, start_offset + ret);
+        if (!child->isNull()) {
+            m_document->registerNode(child);
+            m_children.push_back(child.get());
+        }
+        else {
+            printf("");
+        }
     }
     return ret;
 }

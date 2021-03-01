@@ -32,7 +32,7 @@ void Document::read(std::istream& is)
 
     if (auto objects = findNode(sfbxS_Objects)) {
         for (auto n : objects->getChildren()) {
-            if (auto obj = createObject(GetFbxObjectType(n->getName()))) {
+            if (auto obj = createObject(GetFbxObjectType(n), GetFbxObjectSubType(n))) {
                 obj->setNode(n);
             }
         }
@@ -156,11 +156,17 @@ Node* Document::createNode(const std::string& name)
 }
 Node* Document::createChildNode(const std::string& name)
 {
-    auto r = new Node();
-    r->m_document = this;
-    r->setName(name);
-    m_nodes.push_back(NodePtr(r));
-    return r;
+    auto n = new Node();
+    n->m_document = this;
+    n->setName(name);
+    m_nodes.push_back(NodePtr(n));
+    return n;
+}
+
+void Document::registerNode(NodePtr n)
+{
+    n->m_document = this;
+    m_nodes.push_back(n);
 }
 
 Node* Document::findNode(const char* name) const
@@ -176,27 +182,54 @@ span<Node*> Document::getRootNodes()
 }
 
 
-Object* Document::createObject(ObjectType t)
+Object* Document::createObject(ObjectType t, ObjectSubType s)
 {
     Object* r{};
     switch (t) {
     case ObjectType::Attribute: r = new Attribute(); break;
-    case ObjectType::Model:     r = new Model(); break;
-    case ObjectType::Geometry:  r = new Geometry(); break;
-    case ObjectType::Deformer:  r = new Deformer(); break;
+    case ObjectType::Model:
+        // todo
+        switch (s) {
+        case ObjectSubType::Light:
+        case ObjectSubType::Camera:
+        case ObjectSubType::Root:
+        case ObjectSubType::LimbNode:
+        default:
+            r = new Model(); break;
+            break;
+        }
+        break;
+    case ObjectType::Geometry:
+        switch (s) {
+        case ObjectSubType::Mesh: r = new Mesh(); break;
+        case ObjectSubType::Shape: r = new Shape(); break;
+        default: break;
+        }
+        break;
+    case ObjectType::Deformer:
+        switch (s) {
+        case ObjectSubType::Skin: r = new Skin(); break;
+        case ObjectSubType::Cluster: r = new Cluster(); break;
+        case ObjectSubType::BlendShape: r = new BlendShape(); break;
+        case ObjectSubType::BlendShapeChannel: r = new BlendShapeChannel(); break;
+        default: break;
+        }
+        break;
     case ObjectType::Pose:      r = new Pose(); break;
     case ObjectType::Material:  r = new Material(); break;
     case ObjectType::AnimationStack:    r = new AnimationStack(); break;
     case ObjectType::AnimationLayer:    r = new AnimationLayer(); break;
     case ObjectType::AnimationCurveNode:r = new AnimationCurveNode(); break;
     case ObjectType::AnimationCurve:    r = new AnimationCurve(); break;
-    default:
-        printf("sfbx::Document::createObject(): unsupported type \"%s\"\n", GetFbxObjectName(t));
-        break;
+    default: break;
     }
+
     if (r) {
         r->m_document = this;
         m_objects.push_back(ObjectPtr(r));
+    }
+    else {
+        printf("sfbx::Document::createObject(): unrecongnized type \"%s\"\n", GetFbxObjectName(t));
     }
     return r;
 }

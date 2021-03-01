@@ -23,10 +23,10 @@ enum class ObjectSubType : int
     Unknown,
     Light,
     Camera,
-    Mesh,
-    Shape,
     Root,
     LimbNode,
+    Mesh,
+    Shape,
     Skin,
     Cluster,
     BindPose,
@@ -35,8 +35,10 @@ enum class ObjectSubType : int
 };
 
 ObjectType    GetFbxObjectType(const std::string& n);
+ObjectType    GetFbxObjectType(Node* n);
 const char*   GetFbxObjectName(ObjectType t);
 ObjectSubType GetFbxObjectSubType(const std::string& n);
+ObjectSubType GetFbxObjectSubType(Node* n);
 const char*   GetFbxObjectSubName(ObjectSubType t);
 
 
@@ -64,7 +66,6 @@ public:
     void setName(const std::string& v);
     void setNode(Node* v);
 
-    Object* createChild(ObjectType type);
     template<class T> T* createChild();
     void addChild(Object* v);
 
@@ -95,7 +96,6 @@ public:
     void constructNodes() override;
 
 protected:
-    Attribute();
 };
 
 
@@ -123,13 +123,20 @@ public:
     void setScale(float3 v);
 
 protected:
-    Model();
-
     bool m_visibility = true;
     RotationOrder m_rotation_order = RotationOrder::XYZ;
     float3 m_position{};
     float3 m_rotation{};
     float3 m_scale{1.0f, 1.0f, 1.0f};
+};
+
+
+class Geometry : public Object
+{
+friend class Document;
+using super = Object;
+public:
+    ObjectType getType() const override;
 };
 
 
@@ -144,50 +151,58 @@ using LayerElementF2 = LayerElement<float2>;
 using LayerElementF3 = LayerElement<float3>;
 using LayerElementF4 = LayerElement<float4>;
 
-struct JointWeight
-{
-    int index; // index of joint
-    float weight;
-};
-
-
-// subtype: Mesh, Shape
-// if Mesh, it is usual poly mesh data.
-// if Shape, it is blend shape target. in this case, points & normals are delta (deference from original).
-class Geometry : public Object
+class Mesh : public Geometry
 {
 friend class Document;
-using super = Object;
+using super = Geometry;
 public:
-    struct MeshData : noncopyable
-    {
-        RawVector<int> counts;
-        RawVector<int> indices;
-        RawVector<float3> points;
-        std::vector<LayerElementF3> normal_layers;
-        std::vector<LayerElementF2> uv_layers;
-        std::vector<LayerElementF4> color_layers;
-    };
-
-    struct ShapeData : noncopyable
-    {
-        RawVector<int> indices;
-        RawVector<float3> delta_points;
-        RawVector<float3> delta_normals;
-    };
-
-    ObjectType getType() const override;
     void constructObject() override;
     void constructNodes() override;
 
-    MeshData* getMeshData();
-    ShapeData* getShapeData();
+    span<int> getCounts() const;
+    span<int> getIndices() const;
+    span<float3> getPoints() const;
+    span<LayerElementF3> getNormalLayers() const;
+    span<LayerElementF2> getUVLayers() const;
+    span<LayerElementF4> getColorLayers() const;
+
+    void setCounts(span<int> v);
+    void setIndices(span<int> v);
+    void setPoints(span<float3> v);
+    void addNormalLayer(LayerElementF3&& v);
+    void addUVLayer(LayerElementF2&& v);
+    void addColorLayer(LayerElementF4&& v);
 
 protected:
-    Geometry();
+    RawVector<int> m_counts;
+    RawVector<int> m_indices;
+    RawVector<float3> m_points;
+    std::vector<LayerElementF3> m_normal_layers;
+    std::vector<LayerElementF2> m_uv_layers;
+    std::vector<LayerElementF4> m_color_layers;
+};
 
-    std::unique_ptr<MeshData> m_mesh_data;
-    std::unique_ptr<ShapeData> m_shape_data;
+class Shape : public Geometry
+{
+friend class Document;
+using super = Geometry;
+public:
+    void constructObject() override;
+    void constructNodes() override;
+
+    Mesh* getBaseMesh();
+    span<int> getIndices() const;
+    span<float3> getDeltaPoints() const;
+    span<float3> getDeltaNormals() const;
+
+    void setIndices(span<int> v);
+    void setDeltaPoints(span<float3> v);
+    void setDeltaNormals(span<float3> v);
+
+public:
+    RawVector<int> m_indices;
+    RawVector<float3> m_delta_points;
+    RawVector<float3> m_delta_normals;
 };
 
 
@@ -197,66 +212,98 @@ class Deformer : public Object
 friend class Document;
 using super = Object;
 public:
-    struct BlendShapeData : noncopyable
-    {
-        std::vector<Deformer*> channels;
-    };
-
-    struct BlendShapeChannelData : noncopyable
-    {
-        std::vector<Geometry*> shapes;
-    };
-
-    struct SkinData : noncopyable
-    {
-        std::vector<Deformer*> clusters;
-    };
-
-    struct ClusterData : noncopyable
-    {
-        RawVector<int> indices;
-        RawVector<float> weights;
-        float4x4 transform = float4x4::identity();
-        float4x4 transform_link = float4x4::identity();
-    };
-
-    struct JointWeights // copyable
-    {
-        int max_joints_per_vertex = 0;
-        RawVector<int> counts; // per-vertex. counts of affected joints.
-        RawVector<int> offsets; // per-vertex. offset to weights.
-        RawVector<JointWeight> weights; // vertex * affected joints (total of counts). weights of affected joints.
-    };
-
-    struct JointMatrices
-    {
-        RawVector<float4x4> bindpose;
-        RawVector<float4x4> transform;
-    };
-
     ObjectType getType() const override;
+};
+
+
+struct JointWeight
+{
+    int index; // index of joint/cluster
+    float weight;
+};
+
+struct JointWeights // copyable
+{
+    int max_joints_per_vertex = 0;
+    RawVector<int> counts; // per-vertex. counts of affected joints.
+    RawVector<int> offsets; // per-vertex. offset to weights.
+    RawVector<JointWeight> weights; // vertex * affected joints (total of counts). weights of affected joints.
+};
+
+struct JointMatrices
+{
+    RawVector<float4x4> bindpose;
+    RawVector<float4x4> global_transform;
+    RawVector<float4x4> joint_transform;
+};
+
+class Skin : public Deformer
+{
+friend class Document;
+using super = Deformer;
+public:
     void constructObject() override;
     void constructNodes() override;
 
-    BlendShapeData* getBlendShapeData();
-    BlendShapeChannelData* getBlendShapeChannelData();
-    SkinData* getSkinData();
-    ClusterData* getClusterData();
-
-
-    // for Skin subtype
-    JointWeights skinGetJointWeightsVariable();
-    JointWeights skinGetJointWeightsFixed(int joints_per_vertex);
-    JointMatrices skinGetJointMatrices();
+    span<Cluster*> getClusters() const;
+    JointWeights getJointWeightsVariable();
+    JointWeights getJointWeightsFixed(int joints_per_vertex);
+    JointMatrices getJointMatrices();
 
 protected:
-    Deformer();
-
-    std::unique_ptr<BlendShapeData> m_blendshape_data;
-    std::unique_ptr<BlendShapeChannelData> m_blendshape_channel_data;
-    std::unique_ptr<SkinData> m_skin_data;
-    std::unique_ptr<ClusterData> m_cluster_data;
+    std::vector<Cluster*> m_clusters;
 };
+
+
+class Cluster : public Deformer
+{
+friend class Document;
+using super = Deformer;
+public:
+    void constructObject() override;
+    void constructNodes() override;
+
+    span<int> getIndices() const;
+    span<float> getWeights() const;
+    float4x4 getTransform() const;
+    float4x4 getTransformLink() const;
+
+    void setIndices(span<int> v);
+    void setWeights(span<float> v);
+    void setTransform(float4x4 v);
+    void setTransformLink(float4x4 v);
+
+protected:
+    RawVector<int> m_indices;
+    RawVector<float> m_weights;
+    float4x4 m_transform = float4x4::identity();
+    float4x4 m_transform_link = float4x4::identity();
+};
+
+
+class BlendShape : public Deformer
+{
+friend class Document;
+using super = Deformer;
+public:
+    void constructObject() override;
+    void constructNodes() override;
+
+protected:
+};
+
+
+class BlendShapeChannel : public Deformer
+{
+friend class Document;
+using super = Deformer;
+public:
+    void constructObject() override;
+    void constructNodes() override;
+
+protected:
+};
+
 
 
 class Pose : public Object
@@ -282,8 +329,6 @@ public:
     BindPoseData* getBindPoseData();
 
 protected:
-    Pose();
-
     std::unique_ptr<BindPoseData> m_bindpose_data;
 };
 

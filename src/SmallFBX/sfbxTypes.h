@@ -205,7 +205,10 @@ using double4x4 = tmat4x4<double>;
 
 
 #define sfbxEachObjectType(Body)\
-    Body(Attribute) Body(Model) Body(Geometry) Body(Deformer) Body(Pose) Body(Material)
+    Body(Attribute) Body(Model)\
+    Body(Geometry) Body(Mesh) Body(Shape)\
+    Body(Deformer) Body(Skin) Body(Cluster) Body(BlendShape) Body(BlendShapeChannel)\
+    Body(Pose) Body(Material)
 
 #define Decl(T) class T; using T##Ptr = std::shared_ptr<T>;
 Decl(Property)
