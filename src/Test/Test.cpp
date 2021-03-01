@@ -46,6 +46,14 @@ void PrintImpl(const char *format, ...)
     fflush(stdout);
 }
 
+void PutsImpl(const char* s)
+{
+#ifdef _WIN32
+    ::OutputDebugStringA(s);
+#endif
+    printf(s);
+}
+
 struct ArgEntry
 {
     std::string name;

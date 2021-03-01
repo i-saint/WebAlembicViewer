@@ -26,8 +26,10 @@ void Document::read(std::istream& is)
     for (;;) {
         auto node = createNode();
         pos += node->read(is, pos);
-        if (node->isNull())
+        if (node->isNull()) {
+            eraseNode(node);
             break;
+        }
     }
 
     if (auto objects = findNode(sfbxS_Objects)) {
@@ -163,10 +165,19 @@ Node* Document::createChildNode(const std::string& name)
     return n;
 }
 
-void Document::registerNode(NodePtr n)
+void Document::eraseNode(Node* n)
 {
-    n->m_document = this;
-    m_nodes.push_back(n);
+    {
+        auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
+            [n](const NodePtr& p) { return p.get() == n; });
+        if (it != m_nodes.end())
+            m_nodes.erase(it);
+    }
+    {
+        auto it = std::find(m_root_nodes.begin(), m_root_nodes.end(), n);
+        if (it != m_root_nodes.end())
+            m_root_nodes.erase(it);
+    }
 }
 
 Node* Document::findNode(const char* name) const
@@ -410,6 +421,14 @@ void Document::constructNodes()
 
     for (auto& o : m_objects)
         o->constructNodes();
+}
+
+std::string Document::toString()
+{
+    std::string s;
+    for (auto node : getRootNodes())
+        s += node->toString();
+    return s;
 }
 
 } // namespace sfbx

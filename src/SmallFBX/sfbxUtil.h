@@ -137,4 +137,10 @@ inline std::string GetChildPropertyString(Node* node, const char* name, size_t p
     return {};
 }
 
+inline void AddTabs(std::string& dst, int n)
+{
+    for (int i = 0; i < n; ++i)
+        dst += '\t';
+}
+
 } // namespace sfbx

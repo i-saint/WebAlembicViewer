@@ -35,6 +35,10 @@ testCase(fbxRead)
     sfbx::DocumentPtr doc = sfbx::MakeDocument();
     doc->read(path);
 
+    testPrint("Nodes:\n");
+    testPuts(doc->toString().c_str());
+
+    testPrint("Objects:\n");
     for (auto obj : doc->getRootObjects())
         PrintObject(obj);
 }

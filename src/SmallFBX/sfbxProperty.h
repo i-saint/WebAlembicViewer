@@ -82,7 +82,7 @@ public:
     template<class T> span<T> getArray() const;
     std::string getString() const;
 
-    std::string toString() const;
+    std::string toString(int depth = 0) const;
 
 private:
     Property(const Property&) = delete;

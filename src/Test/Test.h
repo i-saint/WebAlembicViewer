@@ -7,6 +7,7 @@
 #endif
 
 #define testPrint(...) ::test::PrintImpl(__VA_ARGS__)
+#define testPuts(...) ::test::PutsImpl(__VA_ARGS__)
 
 #define testRegisterInitializer(Name, Init, Fini)\
     static struct _TestInitializer_##Name {\
@@ -32,6 +33,7 @@ void RegisterInitializer(const std::function<void()>& init, const std::function<
 void RegisterTestCaseImpl(const char* name, const std::function<void()>& body);
 std::string Format(const char* format, ...);
 void PrintImpl(const char* format, ...);
+void PutsImpl(const char* format);
 template<class T> bool GetArg(const char* name, T& dst);
 
 template<class Body>

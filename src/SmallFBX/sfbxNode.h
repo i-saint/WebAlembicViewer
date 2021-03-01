@@ -18,6 +18,7 @@ public:
 
     Node* createChild(const std::string& name = "");
     template<class... T> void addPropertyNode(const std::string& name, T&&... v) { createChild(name.c_str())->addProperty(std::forward<T>(v)...); }
+    void eraseChild(Node* n);
 
     uint64_t getSizeInBytes() const;
     const std::string& getName() const;
@@ -30,6 +31,8 @@ public:
     Node* getChild(size_t i) const;
     Node* findChild(const char* name) const;
     Node* findChild(const std::string& name) const { return findChild(name.c_str()); }
+
+    std::string toString(int depth = 0) const;
 
 private:
     Node(const Node&) = delete;

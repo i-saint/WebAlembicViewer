@@ -212,8 +212,8 @@ void Property::assign(const char* v)
     m_type = PropertyType::String;
     m_data.clear();
     m_data.reserve(16);
-    if (v)
-        m_data.assign(v, v + std::strlen(v));
+    if (v && *v != '\0')
+        m_data.assign(v, v + (std::strlen(v) - 1));
 }
 
 void Property::assign(PropertyType t, const RawVector<char>& v)
@@ -310,11 +310,15 @@ static inline std::string Base16Number(uint8_t n)
     return std::string() + Base16Letter(n >> 4) + Base16Letter(n);
 }
 
-std::string Property::toString() const
+std::string Property::toString(int depth) const
 {
     if (isArray()) {
-        auto toS = [](const auto& span) {
-            std::string s = "a: ";
+        auto toS = [depth](const auto& span) {
+            std::string s = "*";
+            s += std::to_string(span.size());
+            s += " {\n";
+            AddTabs(s, depth + 1);
+            s += "a: ";
             bool first = true;
             for (auto v : span) {
                 if (!first)
@@ -322,10 +326,13 @@ std::string Property::toString() const
                 s += std::to_string(v);
                 first = false;
             }
+            s += "\n";
+            AddTabs(s, depth);
+            s += "}";
             return s;
         };
         switch (m_type) {
-        case PropertyType::BoolArray: return toS(getArray<bool>());
+        case PropertyType::BoolArray:
         case PropertyType::Int8Array: return toS(getArray<int8>());
         case PropertyType::Int16Array: return toS(getArray<int16>());
         case PropertyType::Int32Array: return toS(getArray<int32>());
@@ -337,7 +344,7 @@ std::string Property::toString() const
     }
     else {
         switch (m_type) {
-        case PropertyType::Bool: return getValue<bool>() ? "true" : "false";
+        case PropertyType::Bool:
         case PropertyType::Int8: return std::to_string(getValue<int8>());
         case PropertyType::Int16: return std::to_string(getValue<int16>());
         case PropertyType::Int32: return std::to_string(getValue<int32>());
@@ -349,8 +356,8 @@ std::string Property::toString() const
         {
             std::string s;
             s += "\"";
-            for (char c : m_data)
-                s += std::to_string(uint8_t(c)) + " ";
+            // todo: this should be incorrect
+            s.insert(s.end(), m_data.begin(), m_data.end());
             s += "\"";
             return s;
         }
@@ -358,17 +365,30 @@ std::string Property::toString() const
         {
             std::string s;
             s += "\"";
-            for (char c : m_data) {
-                if (c == '\\') {
-                    s += "\\\\";
+            if (!m_data.empty()) {
+                auto get_span = [](const char* s, size_t n) {
+                    size_t i = 0;
+                    for (; s[i] != 0 && i < n; ++i) {}
+                    return make_span(s, i);
+                };
+
+                span<const char> first, second;
+                {
+                    size_t n = m_data.size();
+                    const char* pos = m_data.data();
+                    first = get_span(pos, n);
+
+                    if (first.size() + 1 < n) {
+                        n -= first.size() + 2;
+                        pos += first.size() + 2;
+                        second = get_span(pos, n);
+                    }
                 }
-                else if (c >= 32 && c <= 126) {
-                    s += c;
+                if (!second.empty()) {
+                    s.insert(s.end(), second.data(), second.data() + second.size());
+                    s += "::";
                 }
-                else {
-                    s += "\\u00";
-                    s += Base16Number(c);
-                }
+                s.insert(s.end(), first.data(), first.data() + first.size());
             }
             s += "\"";
             return s;

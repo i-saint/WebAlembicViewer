@@ -793,5 +793,22 @@ ObjectType AnimationLayer::getType() const { return ObjectType::AnimationLayer; 
 ObjectType AnimationCurveNode::getType() const { return ObjectType::AnimationCurveNode; }
 ObjectType AnimationCurve::getType() const { return ObjectType::AnimationCurve; }
 
+void AnimationCurve::constructObject()
+{
+    super::constructObject();
+}
+
+void AnimationCurve::constructNodes()
+{
+    super::constructNodes();
+    // todo
+}
+
+span<float> AnimationCurve::getTimes() const { return make_span(m_times); }
+span<float> AnimationCurve::getValues() const { return make_span(m_values); }
+
+void AnimationCurve::setTimes(span<float> v) { m_times = v; }
+void AnimationCurve::setValues(span<float> v) { m_values = v; }
+
 
 } // namespace sfbx

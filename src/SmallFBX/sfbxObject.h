@@ -405,6 +405,9 @@ friend class Document;
 using super = Object;
 public:
     ObjectType getType() const override;
+
+protected:
+    std::vector<AnimationCurve*> m_curves;
 };
 
 class AnimationCurve : public Object
@@ -413,6 +416,18 @@ friend class Document;
 using super = Object;
 public:
     ObjectType getType() const override;
+    void constructObject() override;
+    void constructNodes() override;
+
+    span<float> getTimes() const;
+    span<float> getValues() const;
+
+    void setTimes(span<float> v);
+    void setValues(span<float> v);
+
+protected:
+    RawVector<float> m_times;
+    RawVector<float> m_values;
 };
 
 } // sfbx

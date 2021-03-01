@@ -210,7 +210,8 @@ using double4x4 = tmat4x4<double>;
     Body(Geometry) Body(Mesh) Body(Shape)\
     Body(Deformer) Body(Skin) Body(Cluster) Body(BlendShape) Body(BlendShapeChannel)\
     Body(Pose) Body(BindPose)\
-    Body(Material)
+    Body(Material)\
+    Body(AnimationStack) Body(AnimationLayer) Body(AnimationCurveNode) Body(AnimationCurve)
 
 #define Decl(T) class T; using T##Ptr = std::shared_ptr<T>;
 Decl(Property)

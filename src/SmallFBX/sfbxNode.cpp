@@ -40,17 +40,10 @@ uint64_t Node::read(std::istream& is, uint64_t start_offset)
     ret += prop_size;
 
     while (start_offset + ret < end_offset) {
-        auto child = NodePtr(new Node());
-        child->m_document = m_document;
-        child->m_parent = this;
+        auto child = createChild();
         ret += child->read(is, start_offset + ret);
-        if (!child->isNull()) {
-            m_document->registerNode(child);
-            m_children.push_back(child.get());
-        }
-        else {
-            printf("");
-        }
+        if (child->isNull())
+            eraseChild(child);
     }
     return ret;
 }
@@ -120,6 +113,15 @@ Node* Node::createChild(const std::string& name)
     return p;
 }
 
+void Node::eraseChild(Node* n)
+{
+    m_document->eraseNode(n);
+
+    auto it = std::find(m_children.begin(), m_children.end(), n);
+    if (it != m_children.end())
+        m_children.erase(it);
+}
+
 uint64_t Node::getSizeInBytes() const
 {
     uint64_t ret = getHeaderSize() + m_name.length();
@@ -167,6 +169,36 @@ Node* Node::findChild(const char* name) const
     auto it = std::find_if(m_children.begin(), m_children.end(),
         [name](Node* p) { return p->getName() == name; });
     return it != m_children.end() ? *it : nullptr;
+}
+
+std::string Node::toString(int depth) const
+{
+    std::string s;
+    AddTabs(s, depth);
+    s += getName();
+    s += ": ";
+
+    {
+        bool first = true;
+        for (auto* p : m_properties) {
+            if (!first)
+                s += ", ";
+            s += p->toString(depth);
+            first = false;
+        }
+        s += " ";
+    }
+
+    if (!m_children.empty() || (m_children.empty() && m_properties.empty())) {
+        s += "{\n";
+        for (auto* c : m_children)
+            s += c->toString(depth + 1);
+        AddTabs(s, depth);
+        s += "}";
+    }
+    s += "\n";
+
+    return s;
 }
 
 uint32_t Node::getDocumentVersion() const

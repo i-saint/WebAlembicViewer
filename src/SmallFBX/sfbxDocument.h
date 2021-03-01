@@ -38,7 +38,7 @@ public:
 
     Node* createNode(const std::string& name = "");
     Node* createChildNode(const std::string& name = "");
-    void registerNode(NodePtr n);
+    void eraseNode(Node* n);
     Node* findNode(const char* name) const;
     Node* findNode(const std::string& name) const { return findNode(name.c_str()); }
     span<Node*> getRootNodes();
@@ -49,6 +49,7 @@ public:
     span<Object*> getRootObjects();
 
     void constructNodes();
+    std::string toString();
 
 private:
     void createHeaderExtention();

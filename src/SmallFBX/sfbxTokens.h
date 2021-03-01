@@ -114,6 +114,8 @@
 #define sfbxS_MappingInformationType    "MappingInformationType"
 #define sfbxS_ReferenceInformationType  "ReferenceInformationType"
 
+#define sfbxS_KeyTime       "KeyTime"
+#define sfbxS_KeyValueFloat "KeyValueFloat"
 
 
 #define sfbxI_ModelVersion      232
@@ -125,6 +127,8 @@
 #define sfbxI_BlendShapeVersion         101
 #define sfbxI_BlendShapeChannelVersion  100
 #define sfbxI_MaterialVersion   102
+
+#define sfbxI_TicksPerSecond 46186158000
 
 #define sfbxI_FBX2014_FileVersion 7400
 #define sfbxI_FBX2015_FileVersion 7400
