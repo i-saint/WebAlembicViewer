@@ -114,8 +114,13 @@
 #define sfbxS_MappingInformationType    "MappingInformationType"
 #define sfbxS_ReferenceInformationType  "ReferenceInformationType"
 
-#define sfbxS_KeyTime       "KeyTime"
-#define sfbxS_KeyValueFloat "KeyValueFloat"
+#define sfbxS_Default           "Default"
+#define sfbxS_KeyVer            "KeyVer"
+#define sfbxS_KeyTime           "KeyTime"
+#define sfbxS_KeyValueFloat     "KeyValueFloat"
+#define sfbxS_KeyAttrFlags      "KeyAttrFlags"
+#define sfbxS_KeyAttrDataFloat  "KeyAttrDataFloat"
+#define sfbxS_KeyAttrRefCount   "KeyAttrRefCount"
 
 
 #define sfbxI_ModelVersion      232

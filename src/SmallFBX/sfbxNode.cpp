@@ -177,17 +177,9 @@ std::string Node::toString(int depth) const
     AddTabs(s, depth);
     s += getName();
     s += ": ";
-
-    {
-        bool first = true;
-        for (auto* p : m_properties) {
-            if (!first)
-                s += ", ";
-            s += p->toString(depth);
-            first = false;
-        }
-        s += " ";
-    }
+    join(s, m_properties, ", ",
+        [depth](Property* p) { return p->toString(depth); });
+    s += " ";
 
     if (!m_children.empty() || (m_children.empty() && m_properties.empty())) {
         s += "{\n";

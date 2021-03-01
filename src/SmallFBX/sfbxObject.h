@@ -426,6 +426,7 @@ public:
     void setValues(span<float> v);
 
 protected:
+    float m_default{};
     RawVector<float> m_times;
     RawVector<float> m_values;
 };

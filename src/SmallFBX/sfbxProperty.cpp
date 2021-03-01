@@ -319,13 +319,7 @@ std::string Property::toString(int depth) const
             s += " {\n";
             AddTabs(s, depth + 1);
             s += "a: ";
-            bool first = true;
-            for (auto v : span) {
-                if (!first)
-                    s += ",";
-                s += std::to_string(v);
-                first = false;
-            }
+            join(s, span, ",");
             s += "\n";
             AddTabs(s, depth);
             s += "}";

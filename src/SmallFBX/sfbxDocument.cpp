@@ -415,6 +415,10 @@ void Document::createHeaderExtention()
 void Document::constructNodes()
 {
     createHeaderExtention();
+    createNode(sfbxS_GlobalSettings);
+    createNode(sfbxS_Documents);
+    createNode(sfbxS_References);
+    createNode(sfbxS_Definitions);
     createNode(sfbxS_Objects);
     createNode(sfbxS_Connections);
     createNode(sfbxS_Takes);

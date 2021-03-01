@@ -796,6 +796,12 @@ ObjectType AnimationCurve::getType() const { return ObjectType::AnimationCurve; 
 void AnimationCurve::constructObject()
 {
     super::constructObject();
+
+    auto n = getNode();
+    m_default = (float32)GetChildPropertyValue<float64>(n, sfbxS_Default);
+    transform(m_times, GetChildPropertyArray<int64>(n, sfbxS_KeyTime),
+        [](int64 v) { return float((double)v / sfbxI_TicksPerSecond); });
+    m_values = GetChildPropertyArray<float32>(n, sfbxS_KeyValueFloat);
 }
 
 void AnimationCurve::constructNodes()
