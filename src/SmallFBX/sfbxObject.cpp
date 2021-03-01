@@ -789,9 +789,88 @@ void Material::constructNodes()
     // todo
 }
 
+
+
 ObjectType AnimationStack::getType() const { return ObjectType::AnimationStack; }
+
+
 ObjectType AnimationLayer::getType() const { return ObjectType::AnimationLayer; }
+
+void AnimationLayer::constructObject()
+{
+    super::constructObject();
+    for (auto* n : getChildren()) {
+        if (auto* cnode = as<AnimationCurveNode>(n)) {
+            // operator== can't return the expected result because node names are like "T\0AnimCurveNode".
+            if (std::strcmp(cnode->getName().c_str(), sfbxS_T) == 0)
+                m_position = cnode;
+            else if (std::strcmp(cnode->getName().c_str(), sfbxS_R) == 0)
+                m_rotation = cnode;
+            else if (std::strcmp(cnode->getName().c_str(), sfbxS_S) == 0)
+                m_scale = cnode;
+            else if (std::strcmp(cnode->getName().c_str(), sfbxS_FocalLength) == 0)
+                m_focal_length = cnode;
+        }
+    }
+}
+
+void AnimationLayer::constructNodes()
+{
+    super::constructNodes();
+    // todo
+}
+
+AnimationCurveNode* AnimationLayer::getPosition() const     { return m_position; }
+AnimationCurveNode* AnimationLayer::getRotation() const     { return m_rotation; }
+AnimationCurveNode* AnimationLayer::getScale() const        { return m_scale; }
+AnimationCurveNode* AnimationLayer::getFocalLength() const  { return m_focal_length; }
+
+
 ObjectType AnimationCurveNode::getType() const { return ObjectType::AnimationCurveNode; }
+
+void AnimationCurveNode::constructObject()
+{
+    super::constructObject();
+    for (auto* n : getChildren()) {
+        if (auto* curve = as<AnimationCurve>(n))
+            m_curves.push_back(curve);
+    }
+}
+
+void AnimationCurveNode::constructNodes()
+{
+    super::constructNodes();
+    // todo
+}
+
+float AnimationCurveNode::getStartTime() const
+{
+    return m_curves.empty() ? 0.0f : m_curves[0]->getStartTime();
+}
+
+float AnimationCurveNode::getEndTime() const
+{
+    return m_curves.empty() ? 0.0f : m_curves[0]->getEndTime();
+}
+
+float AnimationCurveNode::evaluate(float time) const
+{
+    if (m_curves.empty())
+        return 0.0f;
+    return m_curves[0]->evaluate(time);
+}
+
+float3 AnimationCurveNode::evaluate3(float time) const
+{
+    if (m_curves.size() != 3)
+        return float3::zero();
+    return float3{
+        m_curves[0]->evaluate(time),
+        m_curves[1]->evaluate(time),
+        m_curves[2]->evaluate(time),
+    };
+}
+
 ObjectType AnimationCurve::getType() const { return ObjectType::AnimationCurve; }
 
 void AnimationCurve::constructObject()
@@ -813,6 +892,9 @@ void AnimationCurve::constructNodes()
 
 span<float> AnimationCurve::getTimes() const { return make_span(m_times); }
 span<float> AnimationCurve::getValues() const { return make_span(m_values); }
+
+float AnimationCurve::getStartTime() const { return m_times.empty() ? 0.0f : m_times.front(); }
+float AnimationCurve::getEndTime() const { return m_times.empty() ? 0.0f : m_times.back(); }
 
 float AnimationCurve::evaluate(float time) const
 {

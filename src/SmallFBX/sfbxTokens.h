@@ -121,6 +121,10 @@
 #define sfbxS_KeyAttrFlags      "KeyAttrFlags"
 #define sfbxS_KeyAttrDataFloat  "KeyAttrDataFloat"
 #define sfbxS_KeyAttrRefCount   "KeyAttrRefCount"
+#define sfbxS_T                 "T"
+#define sfbxS_R                 "R"
+#define sfbxS_S                 "S"
+#define sfbxS_FocalLength       "FocalLength"
 
 
 #define sfbxI_ModelVersion      232

@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include <vector>
+#include <iostream>
 #include <type_traits>
 #ifdef __cpp_lib_span
     #include <span>
@@ -33,6 +35,8 @@ public:
     span() {}
     span(const T* d, size_t s) : m_data(const_cast<T*>(d)), m_size(s) {}
     span(const span& v) : m_data(const_cast<T*>(v.m_data)), m_size(v.m_size) {}
+    template<class Cont>
+    span(const Cont& v) : m_data(const_cast<T*>(v.data())), m_size(v.size()) {}
     span& operator=(const span& v) { m_data = const_cast<T*>(v.m_data); m_size = v.m_size; return *this; }
 
     bool empty() const { return m_size == 0; }
@@ -61,11 +65,12 @@ private:
 };
 #endif
 
-template<class T> inline span<T> make_span(const T* v, size_t n) { return { (T*)v, n }; }
+template<class T>
+inline span<T> make_span(const T* v, size_t n) { return { const_cast<T*>(v), n }; }
 
 // Container must have data(), size() and value_type. mainly intended to std::vector and sfbx::RawVector.
-template<class Container>
-inline span<typename Container::value_type> make_span(const Container& v) { return { (typename Container::value_type*)v.data(), v.size() }; }
+template<class Cont>
+inline span<typename Cont::value_type> make_span(const Cont& v) { return { const_cast<typename Cont::value_type*>(v.data()), v.size() }; }
 
 
 class noncopyable

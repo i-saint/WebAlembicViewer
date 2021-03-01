@@ -366,7 +366,7 @@ std::string Property::toString(int depth) const
                     return make_span(s, i);
                 };
 
-                span<const char> first, second;
+                span<char> first, second;
                 {
                     size_t n = m_data.size();
                     const char* pos = m_data.data();

@@ -1,8 +1,5 @@
 #pragma once
 
-#include <iostream>
-#include <string>
-#include <vector>
 #include "sfbxTypes.h"
 #include "sfbxRawVector.h"
 

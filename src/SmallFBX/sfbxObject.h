@@ -397,6 +397,19 @@ friend class Document;
 using super = Object;
 public:
     ObjectType getType() const override;
+    void constructObject() override;
+    void constructNodes() override;
+
+    AnimationCurveNode* getPosition() const;
+    AnimationCurveNode* getRotation() const;
+    AnimationCurveNode* getScale() const;
+    AnimationCurveNode* getFocalLength() const;
+
+protected:
+    AnimationCurveNode* m_position{};
+    AnimationCurveNode* m_rotation{};
+    AnimationCurveNode* m_scale{};
+    AnimationCurveNode* m_focal_length{};
 };
 
 class AnimationCurveNode : public Object
@@ -405,6 +418,13 @@ friend class Document;
 using super = Object;
 public:
     ObjectType getType() const override;
+    void constructObject() override;
+    void constructNodes() override;
+
+    float getStartTime() const;
+    float getEndTime() const;
+    float evaluate(float time) const;
+    float3 evaluate3(float time) const;
 
 protected:
     std::vector<AnimationCurve*> m_curves;
@@ -421,6 +441,8 @@ public:
 
     span<float> getTimes() const;
     span<float> getValues() const;
+    float getStartTime() const;
+    float getEndTime() const;
     float evaluate(float time) const;
 
     void setTimes(span<float> v);

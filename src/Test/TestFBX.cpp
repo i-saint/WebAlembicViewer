@@ -20,6 +20,16 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
         auto matrices = skin->getJointMatrices();
         testPrint("");
     }
+    else if (auto anim = sfbx::as<sfbx::AnimationLayer>(obj)) {
+        if (auto pos = anim->getPosition()) {
+            float start = pos->getStartTime();
+            float end = pos->getEndTime();
+            for (float t = start; t <= end; t += 0.033334f) {
+                auto v = pos->evaluate3(t);
+                testPrint("");
+            }
+        }
+    }
 
     for (auto child : obj->getChildren())
         PrintObject(child, depth + 1);
