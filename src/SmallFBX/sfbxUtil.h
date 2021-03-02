@@ -35,77 +35,6 @@ inline void writev(std::ostream& os, const void* src, size_t size)
 }
 
 
-template<class Values, class Body>
-void each(Values& val, const Body& body)
-{
-    for (auto& v : val)
-        body(v);
-}
-
-template<class Values, class Indices, class Body>
-void each_indexed(Values& val, Indices& idx, const Body& body)
-{
-    for (auto i : idx)
-        body(val[i]);
-}
-
-template<class T>
-void copy(T* dst, const T* src, size_t n)
-{
-    for (size_t i = 0; i < n; ++i)
-        *dst++ = *src++;
-}
-template<class Dst, class Src>
-void copy(Dst& dst, const Src& src)
-{
-    dst.resize(src.size());
-    auto* d = dst.data();
-    for (const auto& v : src)
-        *d++ = v;
-}
-template<class T, class U>
-void copy(span<T> dst, const span<U> src)
-{
-    auto* d = dst.data();
-    for (const U& v : src)
-        *d++ = v;
-}
-
-template<class Dst, class Src, class Indices>
-void copy_indexed(Dst& dst, Src& src, Indices& idx)
-{
-    dst.resize(idx.size());
-    auto* d = dst.data();
-    for (auto i : idx)
-        *d++ = src[i];
-}
-
-template<class String, class Container, class ToString>
-void join(String& dst, const Container& cont, typename String::const_pointer sep, const ToString& to_s)
-{
-    bool first = true;
-    for (auto& v : cont) {
-        if (!first)
-            dst += sep;
-        dst += to_s(v);
-        first = false;
-    }
-}
-template<class Container>
-void join(std::string& dst, const Container& cont, const char* sep)
-{
-    join(dst, cont, sep,
-        [](typename Container::const_reference v) { return std::to_string(v); });
-}
-
-template<class Int, class Body>
-void times(Int n, const Body& body)
-{
-    for (Int i = 0; i < n; ++i)
-        body(i);
-}
-
-
 template<class T, class = void>
 struct resize_impl
 {
@@ -122,13 +51,77 @@ inline void resize(Cont& cont, size_t n)
     resize_impl<Cont>()(cont, n);
 }
 
+
+template<class Values, class Body>
+inline void each(Values& val, const Body& body)
+{
+    for (auto& v : val)
+        body(v);
+}
+
+template<class Values, class Indices, class Body>
+inline void each_indexed(Values& val, Indices& idx, const Body& body)
+{
+    for (auto i : idx)
+        body(val[i]);
+}
+
+template<class T>
+inline void copy(T* dst, const T* src, size_t n)
+{
+    for (size_t i = 0; i < n; ++i)
+        *dst++ = *src++;
+}
+template<class Dst, class Src>
+inline void copy(Dst& dst, const Src& src)
+{
+    resize(dst, src.size());
+    auto* d = dst.data();
+    for (auto& v : src)
+        *d++ = v;
+}
+template<class Dst, class Src, class Indices>
+inline void copy_indexed(Dst& dst, Src& src, Indices& idx)
+{
+    resize(dst, idx.size());
+    auto* d = dst.data();
+    for (auto i : idx)
+        *d++ = src[i];
+}
+
 template<class Dst, class Src, class Body>
 inline void transform(Dst& dst, const Src& src, const Body& body)
 {
-    size_t c = src.size();
-    resize(dst, c);
-    for (size_t i = 0; i < c; ++i)
-        dst[i] = body(src[i]);
+    resize(dst, src.size());
+    auto* d = dst.data();
+    for (auto& v : src)
+        *d++ = body(v);
+}
+template<class Dst, class Src, class Indices, class Body>
+inline void transform_indexed(Dst& dst, Src& src, Indices& idx, const Body& body)
+{
+    resize(dst, idx.size());
+    auto* d = dst.data();
+    for (auto i : idx)
+        *d++ = body(src[i]);
+}
+
+template<class String, class Container, class ToString>
+inline void join(String& dst, const Container& cont, typename String::const_pointer sep, const ToString& to_s)
+{
+    bool first = true;
+    for (auto& v : cont) {
+        if (!first)
+            dst += sep;
+        dst += to_s(v);
+        first = false;
+    }
+}
+template<class Container>
+inline void join(std::string& dst, const Container& cont, const char* sep)
+{
+    join(dst, cont, sep,
+        [](typename Container::const_reference v) { return std::to_string(v); });
 }
 
 
@@ -192,5 +185,7 @@ inline void AddTabs(std::string& dst, int n)
     for (int i = 0; i < n; ++i)
         dst += '\t';
 }
+
+RawVector<int> Triangulate(span<int> counts, span<int> indices);
 
 } // namespace sfbx

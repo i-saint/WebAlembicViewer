@@ -12,12 +12,13 @@ static const char g_fbx_magic[23]{
     'K', 'a', 'y', 'd', 'a', 'r', 'a', ' ', 'F', 'B', 'X', ' ', 'B', 'i', 'n', 'a', 'r', 'y', ' ', ' ', '\x00', '\x1A', '\x00',
 };
 
-void Document::read(std::istream& is)
+bool Document::read(std::istream& is)
 {
     char magic[23];
     readv(is, magic, 23);
     if (memcmp(magic, g_fbx_magic, 23) != 0) {
-        throw std::runtime_error("Not a FBX file");
+        // not a fbx file
+        return false;
     }
 
     m_version = (FileVersion)read1<uint32_t>(is);
@@ -71,22 +72,20 @@ void Document::read(std::istream& is)
         if (obj->getParents().empty())
             m_root_objects.push_back(obj.get());
     }
+    return true;
 }
 
-void Document::read(const std::string& path)
+bool Document::read(const std::string& path)
 {
     std::ifstream file;
     file.open(path, std::ios::in | std::ios::binary);
-    if (file) {
-        read(file);
-    }
-    else {
-        throw std::runtime_error("Cannot read from file: \"" + path + "\"");
-    }
+    if (file)
+        return read(file);
+    return false;
 }
 
 
-void Document::write(std::ostream& os)
+bool Document::writeBinary(std::ostream& os)
 {
     constructNodes();
 
@@ -116,19 +115,34 @@ void Document::write(std::ostream& os)
         0xde, 0xf5, 0xd9, 0x7e, 0xec, 0xe9, 0x0c, 0xe3, 0x75, 0x8f, 0x29, 0x0b
     };
     writev(os, (char*)footer, std::size(footer));
+    return true;
 }
 
-void Document::write(const std::string& path)
+bool Document::writeBinary(const std::string& path)
 {
     std::ofstream file;
     file.open(path, std::ios::out | std::ios::binary);
-    if (file) {
-        write(file);
-    }
-    else {
-        throw std::runtime_error("Cannot write to file: \"" + path + "\"");
-    }
+    if (file)
+        return writeBinary(file);
+    return false;
 }
+
+bool Document::writeAscii(std::ostream& output)
+{
+    auto data = toString();
+    output.write(data.data(), data.size());
+    return true;
+}
+
+bool Document::writeAscii(const std::string& path)
+{
+    std::ofstream file;
+    file.open(path, std::ios::out | std::ios::binary);
+    if (file)
+        return writeAscii(file);
+    return false;
+}
+
 
 
 FileVersion Document::getVersion()
@@ -296,14 +310,14 @@ void Document::createHeaderExtention()
     }
     header_extension->addPropertyNode(sfbxS_Creator, "SmallFBX 1.0.0");
     {
-        auto sceneInfo = header_extension->createChild(sfbxS_SceneInfo);
-        sceneInfo->addProperty(PropertyType::String,
+        auto scene_info = header_extension->createChild(sfbxS_SceneInfo);
+        scene_info->addProperty(PropertyType::String,
             RawVector<char>{'G', 'l', 'o', 'b', 'a', 'l', 'I', 'n', 'f', 'o', 0, 1, 'S', 'c', 'e', 'n', 'e', 'I', 'n', 'f', 'o'});
-        sceneInfo->addProperty(sfbxS_UserData);
-        sceneInfo->addPropertyNode(sfbxS_Type, sfbxS_UserData);
-        sceneInfo->addPropertyNode(sfbxS_Version, 100);
+        scene_info->addProperty(sfbxS_UserData);
+        scene_info->addPropertyNode(sfbxS_Type, sfbxS_UserData);
+        scene_info->addPropertyNode(sfbxS_Version, 100);
         {
-            auto meta = sceneInfo->createChild(sfbxS_MetaData);
+            auto meta = scene_info->createChild(sfbxS_MetaData);
             meta->addPropertyNode(sfbxS_Version, 100);
             meta->addPropertyNode(sfbxS_Title, "");
             meta->addPropertyNode(sfbxS_Subject, "");
@@ -313,7 +327,7 @@ void Document::createHeaderExtention()
             meta->addPropertyNode(sfbxS_Comment, "");
         }
         {
-            auto properties = sceneInfo->createChild(sfbxS_Properties70);
+            auto properties = scene_info->createChild(sfbxS_Properties70);
             {
                 //properties->createChild();
                 auto p = properties->createChild(sfbxS_P);
@@ -430,9 +444,21 @@ void Document::constructNodes()
 
 std::string Document::toString()
 {
+    char version[128];
+    sprintf(version, "; FBX %d.%d.0 project file\n", ((int)m_version / 1000), ((int)m_version / 100 % 10));
+
     std::string s;
-    for (auto node : getRootNodes())
+    s += version;
+    s += "; ----------------------------------------------------\n\n";
+
+    for (auto node : getRootNodes()) {
+        // these nodes seem required only in binary format.
+        if (node->getName() == sfbxS_FileId ||
+            node->getName() == sfbxS_CreationTime ||
+            node->getName() == sfbxS_Creator)
+            continue;
         s += node->toString();
+    }
     return s;
 }
 

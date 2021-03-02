@@ -5,8 +5,8 @@
 
 namespace sfbx {
 
-template<class T> struct is_propery_pod { static constexpr bool value = false; };
-#define PropPOD(T) template<> struct is_propery_pod<T> { static constexpr bool value = true; }
+template<class T> struct is_propery_pod : std::false_type {};
+#define PropPOD(T) template<> struct is_propery_pod<T> : std::true_type {}
 PropPOD(bool);
 PropPOD(int8);
 PropPOD(int16);
@@ -14,16 +14,6 @@ PropPOD(int32);
 PropPOD(int64);
 PropPOD(float32);
 PropPOD(float64);
-#undef PropPOD
-
-template<class T> struct is_propery_array { static constexpr bool value = is_propery_pod<T>::value; };
-#define PropPOD(T) template<> struct is_propery_array<T> { static constexpr bool value = true; }
-PropPOD(float2);
-PropPOD(float3);
-PropPOD(float4);
-PropPOD(double2);
-PropPOD(double3);
-PropPOD(double4);
 #undef PropPOD
 
 
@@ -61,11 +51,9 @@ public:
 
     // T: corresponding types with PropertyType (bool ... float64 and span<> & std::vector<>, std::string)
     template<class T, sfbxEnableIf(is_propery_pod<T>::value)> void assign(T v);
-    template<class T, sfbxEnableIf(is_propery_array<T>::value)> void assign(span<T> v);
+    template<class T> void assign(span<T> v);
     template<class T> void assign(const std::vector<T>& v) { assign(make_span(v)); }
     template<class T> void assign(const RawVector<T>& v) { assign(make_span(v)); }
-    // std::vector<bool> needs special care because it is actually a bit field.
-    void assign(const std::vector<bool>& v);
     void assign(const std::string& v);
     void assign(const char* v);
     void assign(PropertyType t, const RawVector<char>& v);

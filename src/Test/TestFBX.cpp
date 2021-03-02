@@ -43,14 +43,17 @@ testCase(fbxRead)
         return;
 
     sfbx::DocumentPtr doc = sfbx::MakeDocument();
-    doc->read(path);
+    if (doc->read(path)) {
+        testPrint("Nodes:\n");
+        testPuts(doc->toString().c_str());
 
-    testPrint("Nodes:\n");
-    testPuts(doc->toString().c_str());
+        testPrint("Objects:\n");
+        for (auto obj : doc->getRootObjects())
+            PrintObject(obj);
 
-    testPrint("Objects:\n");
-    for (auto obj : doc->getRootObjects())
-        PrintObject(obj);
+        doc->writeAscii("out_ascii.fbx");
+    }
+
 }
 
 testCase(fbxWrite)
@@ -62,7 +65,7 @@ testCase(fbxWrite)
         model->setName("model");
         // todo
 
-        doc->write("test.fbx");
+        doc->writeBinary("test.fbx");
     }
 
     {

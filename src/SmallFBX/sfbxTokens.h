@@ -8,6 +8,8 @@
 #define sfbxS_Creator               "Creator"
 #define sfbxS_SceneInfo             "SceneInfo"
 #define sfbxS_MetaData              "MetaData"
+#define sfbxS_FileId                "FileId"
+#define sfbxS_CreationTime          "CreationTime"
 
 #define sfbxS_Empty     ""
 #define sfbxS_A         "A"

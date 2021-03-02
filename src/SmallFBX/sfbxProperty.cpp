@@ -71,18 +71,13 @@ void Property::read(std::istream& is)
         uLong dest_size = SizeOfElement(m_type) * array_size;
         m_data.resize(dest_size);
 
-        if (encoding) {
-            std::vector<char> compressed_buffer(src_size);
+        if (encoding == 0) {
+            readv(is, m_data.data(), dest_size);
+        }
+        else if (encoding == 1) {
+            RawVector<char> compressed_buffer(src_size);
             readv(is, compressed_buffer.data(), src_size);
             uncompress2((Bytef*)m_data.data(), &dest_size, (const Bytef*)compressed_buffer.data(), &src_size);
-
-            if (src_size != compressed_buffer.size())
-                throw std::runtime_error("compressedLength does not match data");
-            if (dest_size != m_data.size())
-                throw std::runtime_error("uncompressedLength does not match data");
-        }
-        else {
-            readv(is, m_data.data(), dest_size);
         }
     }
 }
@@ -191,19 +186,9 @@ template<> void Property::assign(span<double2> v) { assign(span<float64>{ (float
 template<> void Property::assign(span<double3> v) { assign(span<float64>{ (float64*)v.data(), v.size() * 3 }); }
 template<> void Property::assign(span<double4> v) { assign(span<float64>{ (float64*)v.data(), v.size() * 4 }); }
 
-void Property::assign(const std::vector<bool>& v)
-{
-    m_type = PropertyType::BoolArray;
-    size_t s = v.size();
-    m_data.resize(s);
-    for (size_t i = 0; i < s; ++i)
-        m_data[i] = (int8)v[i];
-}
-
 void Property::assign(const std::string& v)
 {
     m_type = PropertyType::String;
-    m_data.reserve(16);
     m_data.assign(v.begin(), v.end());
 }
 
@@ -211,7 +196,6 @@ void Property::assign(const char* v)
 {
     m_type = PropertyType::String;
     m_data.clear();
-    m_data.reserve(16);
     if (v && *v != '\0')
         m_data.assign(v, v + (std::strlen(v) - 1));
 }

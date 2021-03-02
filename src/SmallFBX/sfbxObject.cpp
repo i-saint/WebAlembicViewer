@@ -801,7 +801,7 @@ void AnimationLayer::constructObject()
     super::constructObject();
     for (auto* n : getChildren()) {
         if (auto* cnode = as<AnimationCurveNode>(n)) {
-            // operator== can't return the expected result because node names are like "T\0AnimCurveNode".
+            // operator== doesn't return the expected result because node names may contain '\0' (e.g. "T\0AnimCurveNode")
             if (std::strcmp(cnode->getName().c_str(), sfbxS_T) == 0)
                 m_position = cnode;
             else if (std::strcmp(cnode->getName().c_str(), sfbxS_R) == 0)

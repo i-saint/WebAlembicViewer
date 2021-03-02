@@ -18,6 +18,7 @@
     <ClCompile Include="SmallFBX\sfbxNode.cpp" />
     <ClCompile Include="SmallFBX\sfbxObject.cpp" />
     <ClCompile Include="SmallFBX\sfbxProperty.cpp" />
+    <ClCompile Include="SmallFBX\sfbxUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SmallFBX\pch.h" />

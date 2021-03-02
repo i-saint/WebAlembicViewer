@@ -16,7 +16,7 @@ enum class FileVersion : int
     Fbx2017 = Fbx2016,
     Fbx2018 = Fbx2016,
 
-    Fbx2019 = 7600,
+    Fbx2019 = 7700,
     Fbx2020 = Fbx2019,
 
     Default = Fbx2020,
@@ -26,10 +26,12 @@ class Document
 {
 public:
     Document();
-    void read(std::istream &input);
-    void read(const std::string& path);
-    void write(std::ostream& output);
-    void write(const std::string& path);
+    bool read(std::istream &input);
+    bool read(const std::string& path);
+    bool writeBinary(std::ostream& output);
+    bool writeBinary(const std::string& path);
+    bool writeAscii(std::ostream& output);
+    bool writeAscii(const std::string& path);
 
     FileVersion getVersion();
     void setVersion(FileVersion v);

@@ -94,8 +94,10 @@ struct tvec2
 {
     T x, y;
 
-    T& operator[](int i) { return ((T*)this)[i]; }
-    const T& operator[](int i) const { return ((T*)this)[i]; }
+    T* data() { return (T*)this; }
+    const T* data() const { return (T*)this; }
+    T& operator[](int i) { return data()[i]; }
+    const T& operator[](int i) const { return data()[i]; }
     bool operator==(const tvec2& v) const { return x == v.x && y == v.y; }
     bool operator!=(const tvec2& v) const { return !((*this) == v); }
     template<class U> operator tvec2<U>() const { return { (U)x, (U)y }; }
@@ -109,8 +111,10 @@ struct tvec3
 {
     T x, y, z;
 
-    T& operator[](int i) { return ((T*)this)[i]; }
-    const T& operator[](int i) const { return ((T*)this)[i]; }
+    T* data() { return (T*)this; }
+    const T* data() const { return (T*)this; }
+    T& operator[](int i) { return data()[i]; }
+    const T& operator[](int i) const { return data()[i]; }
     bool operator==(const tvec3& v) const { return x == v.x && y == v.y && z == v.z; }
     bool operator!=(const tvec3& v) const { return !((*this) == v); }
     template<class U> operator tvec3<U>() const { return { (U)x, (U)y, (U)z }; }
@@ -124,8 +128,10 @@ struct tvec4
 {
     T x, y, z, w;
 
-    T& operator[](int i) { return ((T*)this)[i]; }
-    const T& operator[](int i) const { return ((T*)this)[i]; }
+    T* data() { return (T*)this; }
+    const T* data() const { return (T*)this; }
+    T& operator[](int i) { return data()[i]; }
+    const T& operator[](int i) const { return data()[i]; }
     bool operator==(const tvec4& v) const { return x == v.x && y == v.y && z == v.z && w == v.w; }
     bool operator!=(const tvec4& v) const { return !((*this) == v); }
     template<class U> operator tvec4<U>() const { return { (U)x, (U)y, (U)z, (U)w }; }
@@ -139,8 +145,10 @@ struct tquat
 {
     T x, y, z, w;
 
-    T& operator[](int i) { return ((T*)this)[i]; }
-    const T& operator[](int i) const { return ((T*)this)[i]; }
+    T* data() { return (T*)this; }
+    const T* data() const { return (T*)this; }
+    T& operator[](int i) { return data()[i]; }
+    const T& operator[](int i) const { return data()[i]; }
     bool operator==(const tquat& v) const { return x == v.x && y == v.y && z == v.z && w == v.w; }
     bool operator!=(const tquat& v) const { return !((*this) == v); }
     template<class U> operator tquat<U>() const { return { (U)x, (U)y, (U)z, (U)w }; }
@@ -153,6 +161,8 @@ struct tmat4x4
 {
     tvec4<T> m[4];
 
+    T* data() { return (T*)this; }
+    const T* data() const { return (T*)this; }
     tvec4<T>& operator[](int i) { return m[i]; }
     const tvec4<T>& operator[](int i) const { return m[i]; }
     bool operator==(const tmat4x4& v) const { return memcmp(m, v.m, sizeof(*this)) == 0; }
