@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Test.h"
-#include "SmallFBX/SmallFBX.h"
+#include "SmallFBX.h"
 
 static void PrintObject(sfbx::Object* obj, int depth = 0)
 {

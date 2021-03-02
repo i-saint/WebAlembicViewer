@@ -67,7 +67,7 @@ public:
     void setNode(Node* v);
 
     template<class T> T* createChild(const std::string& name = "");
-    void addChild(Object* v);
+    virtual void addChild(Object* v);
 
 protected:
     Object(const Object&) = delete;
@@ -280,6 +280,7 @@ using super = Deformer;
 public:
     void constructObject() override;
     void constructNodes() override;
+    void addChild(Object* v) override;
 
     span<Cluster*> getClusters() const;
     JointWeights getJointWeightsVariable();
@@ -338,6 +339,7 @@ public:
     void constructNodes() override;
 
 protected:
+    std::vector<Shape*> m_shapes;
 };
 
 
@@ -424,11 +426,15 @@ public:
     ObjectType getType() const override;
     void constructObject() override;
     void constructNodes() override;
+    void addChild(Object* v) override;
 
     float getStartTime() const;
     float getEndTime() const;
     float evaluate(float time) const;
     float3 evaluate3(float time) const;
+
+    void addValue(float time, float value);
+    void addValue(float time, float3 value);
 
 protected:
     std::vector<AnimationCurve*> m_curves;
@@ -451,6 +457,7 @@ public:
 
     void setTimes(span<float> v);
     void setValues(span<float> v);
+    void addValue(float time, float value);
 
 protected:
     float m_default{};

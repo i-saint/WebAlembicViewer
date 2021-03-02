@@ -1,10 +1,14 @@
 #pragma once
 #include "VectorMath.h"
+#include "SmallFBX.h"
 
 namespace wabc {
 
 template<class T>
 struct releaser { void operator()(T* v) { if (v) v->release(); } };
+
+template<class T>
+using span = sfbx::span<T>;
 
 
 class IEntity
@@ -36,35 +40,35 @@ struct JointWeight
 class ISkin : public IEntity
 {
 public:
-    virtual std::span<int> getJointCounts() const = 0;
-    virtual std::span<JointWeight> getJointWeights() const = 0;
-    virtual std::span<float4x4> getJointMatrices() const = 0;
+    virtual span<int> getJointCounts() const = 0;
+    virtual span<JointWeight> getJointWeights() const = 0;
+    virtual span<float4x4> getJointMatrices() const = 0;
 
-    virtual bool deformPoints(std::span<float3> dst, std::span<float3> src) const = 0;
-    virtual bool deformNormals(std::span<float3> dst, std::span<float3> src) const = 0;
+    virtual bool deformPoints(span<float3> dst, span<float3> src) const = 0;
+    virtual bool deformNormals(span<float3> dst, span<float3> src) const = 0;
 };
 
 class IBlendShape : public IEntity
 {
 public:
-    virtual std::span<int> getIndices() const = 0; // indices to vertices
-    virtual std::span<float3> getDeltaPoints() const = 0;
-    virtual std::span<float3> getDeltaNormals() const = 0;
+    virtual span<int> getIndices() const = 0; // indices to vertices
+    virtual span<float3> getDeltaPoints() const = 0;
+    virtual span<float3> getDeltaNormals() const = 0;
 
-    virtual bool deformPoints(std::span<float3> dst, std::span<float3> src, float w) const = 0;
-    virtual bool deformNormals(std::span<float3> dst, std::span<float3> src, float w) const = 0;
+    virtual bool deformPoints(span<float3> dst, span<float3> src, float w) const = 0;
+    virtual bool deformNormals(span<float3> dst, span<float3> src, float w) const = 0;
 };
 
 class IMesh : public IEntity
 {
 public:
-    virtual std::span<float3> getPoints() const = 0;
-    virtual std::span<float3> getNormals() const = 0;
-    virtual std::span<float3> getPointsEx() const = 0; // expanded (not indexed)
-    virtual std::span<float3> getNormalsEx() const = 0; // expanded (not indexed)
-    virtual std::span<int> getCounts() const = 0;
-    virtual std::span<int> getFaceIndices() const = 0;
-    virtual std::span<int> getWireframeIndices() const = 0;
+    virtual span<float3> getPoints() const = 0;
+    virtual span<float3> getNormals() const = 0;
+    virtual span<float3> getPointsEx() const = 0; // expanded (not indexed)
+    virtual span<float3> getNormalsEx() const = 0; // expanded (not indexed)
+    virtual span<int> getCounts() const = 0;
+    virtual span<int> getFaceIndices() const = 0;
+    virtual span<int> getWireframeIndices() const = 0;
 
 #ifdef wabcWithGL
     virtual GLuint getPointsBuffer() const = 0;
@@ -77,7 +81,7 @@ public:
 class IPoints : public IEntity
 {
 public:
-    virtual std::span<float3> getPoints() const = 0;
+    virtual span<float3> getPoints() const = 0;
 #ifdef wabcWithGL
     virtual GLuint getPointBuffer() const = 0;
 #endif
@@ -98,7 +102,7 @@ public:
     virtual double getTime() const = 0;
     virtual IMesh* getMesh() = 0;     // monolithic mesh
     virtual IPoints* getPoints() = 0; // monolithic points
-    virtual std::span<ICamera*> getCameras() = 0;
+    virtual span<ICamera*> getCameras() = 0;
 };
 IScene* CreateScene_();
 using IScenePtr = std::shared_ptr<IScene>;

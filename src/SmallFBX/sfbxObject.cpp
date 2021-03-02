@@ -566,6 +566,13 @@ void Skin::constructNodes()
     super::constructNodes();
 }
 
+void Skin::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto cluster = as<Cluster>(v))
+        m_clusters.push_back(cluster);
+}
+
 span<Cluster*> Skin::getClusters() const { return make_span(m_clusters); }
 
 JointWeights Skin::getJointWeightsVariable()
@@ -843,6 +850,13 @@ void AnimationCurveNode::constructNodes()
     // todo
 }
 
+void AnimationCurveNode::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto curve = as<AnimationCurve>(v))
+        m_curves.push_back(curve);
+}
+
 float AnimationCurveNode::getStartTime() const
 {
     return m_curves.empty() ? 0.0f : m_curves[0]->getStartTime();
@@ -864,11 +878,38 @@ float3 AnimationCurveNode::evaluate3(float time) const
 {
     if (m_curves.size() != 3)
         return float3::zero();
+
     return float3{
         m_curves[0]->evaluate(time),
         m_curves[1]->evaluate(time),
         m_curves[2]->evaluate(time),
     };
+}
+
+void AnimationCurveNode::addValue(float time, float value)
+{
+    if (m_curves.empty()) {
+        createChild<AnimationCurve>();
+    }
+    if (m_curves.size() != 1) {
+        printf("afbx::AnimationCurveNode::addValue() curve count mismatch\n");
+    }
+    m_curves[0]->addValue(time, value);
+}
+
+void AnimationCurveNode::addValue(float time, float3 value)
+{
+    if (m_curves.empty()) {
+        createChild<AnimationCurve>();
+        createChild<AnimationCurve>();
+        createChild<AnimationCurve>();
+    }
+    if (m_curves.size() != 3) {
+        printf("afbx::AnimationCurveNode::addValue() curve count mismatch\n");
+    }
+    m_curves[0]->addValue(time, value.x);
+    m_curves[1]->addValue(time, value.y);
+    m_curves[2]->addValue(time, value.z);
 }
 
 ObjectType AnimationCurve::getType() const { return ObjectType::AnimationCurve; }
@@ -924,5 +965,10 @@ float AnimationCurve::evaluate(float time) const
 void AnimationCurve::setTimes(span<float> v) { m_times = v; }
 void AnimationCurve::setValues(span<float> v) { m_values = v; }
 
+void AnimationCurve::addValue(float time, float value)
+{
+    m_times.push_back(time);
+    m_values.push_back(value);
+}
 
 } // namespace sfbx

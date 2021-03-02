@@ -21,6 +21,7 @@
     <ClCompile Include="SmallFBX\sfbxUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="SmallFBX.h" />
     <ClInclude Include="SmallFBX\pch.h" />
     <ClInclude Include="SmallFBX\sfbxDocument.h" />
     <ClInclude Include="SmallFBX\sfbxInternal.h" />
@@ -32,7 +33,6 @@
     <ClInclude Include="SmallFBX\sfbxTokens.h" />
     <ClInclude Include="SmallFBX\sfbxTypes.h" />
     <ClInclude Include="SmallFBX\sfbxUtil.h" />
-    <ClInclude Include="SmallFBX\SmallFBX.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="setup.vcxproj">

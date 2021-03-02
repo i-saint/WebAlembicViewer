@@ -1,0 +1,183 @@
+#pragma once
+#include "WebAlembicViewer.h"
+
+using namespace Alembic;
+
+namespace wabc {
+
+using sfbx::make_span;
+
+class Camera : public ICamera
+{
+public:
+    const std::string& getPath() const override { return m_path; }
+    float3 getPosition() const override { return m_position; }
+    float3 getDirection() const override { return m_direction; }
+    float3 getUp() const override { return m_up; }
+    float getFocalLength() const override { return m_focal_length; }
+    float2 getAperture() const override { return m_aperture; }
+    float2 getLensShift() const override { return m_lens_shift; }
+    float getNearPlane() const override { return m_near; }
+    float getFarPlane() const override { return m_far; }
+
+public:
+    std::string m_path;
+    float3 m_position{};
+    float3 m_direction{ 0.0f, 0.0f, 1.0f };
+    float3 m_up{ 0.0f, 1.0f, 0.0f };
+    float m_focal_length = 30.0f;
+    float2 m_aperture{ 36.0f, 24.0f };
+    float2 m_lens_shift{};
+    float m_near = 0.01f;
+    float m_far = 100.0f;
+};
+using CameraPtr = std::shared_ptr<Camera>;
+
+
+class Skin : public ISkin
+{
+public:
+    span<int> getJointCounts() const override { return make_span(m_counts); }
+    span<JointWeight> getJointWeights() const override { return make_span(m_weights); }
+    span<float4x4> getJointMatrices() const override { return make_span(m_matrices); }
+
+    template<class Vec, class Mul>
+    bool deformImpl(span<Vec> dst, span<Vec> src, const Mul& mul) const;
+
+    bool deformPoints(span<float3> dst, span<float3> src) const override;
+    bool deformNormals(span<float3> dst, span<float3> src) const override;
+
+public:
+    std::vector<int> m_counts;
+    std::vector<JointWeight> m_weights;
+    std::vector<float4x4> m_matrices;
+};
+using SkinPtr = std::shared_ptr<Skin>;
+
+
+class BlendShape : public IBlendShape
+{
+public:
+    span<int> getIndices() const override { return make_span(m_indices); }
+    span<float3> getDeltaPoints() const override { return make_span(m_delta_points); }
+    span<float3> getDeltaNormals() const override { return make_span(m_delta_normals); }
+
+    bool deformPoints(span<float3> dst, span<float3> src, float w) const override;
+    bool deformNormals(span<float3> dst, span<float3> src, float w) const override;
+
+public:
+    std::vector<int> m_indices;
+    std::vector<float3> m_delta_points;
+    std::vector<float3> m_delta_normals;
+};
+using BlendShapePtr = std::shared_ptr<BlendShape>;
+
+
+class Mesh : public IMesh
+{
+public:
+    Mesh();
+    ~Mesh() override;
+    span<float3> getPoints() const override { return make_span(m_points); }
+    span<float3> getNormals() const override { return make_span(m_normals); }
+    span<float3> getPointsEx() const override { return make_span(m_points_ex); }
+    span<float3> getNormalsEx() const override { return make_span(m_normals_ex); }
+    span<int> getCounts() const override { return make_span(m_counts); }
+    span<int> getFaceIndices() const override { return make_span(m_face_indices); }
+    span<int> getWireframeIndices() const override { return make_span(m_wireframe_indices); }
+
+#ifdef wabcWithGL
+    GLuint getPointsBuffer() const override { return m_buf_points; }
+    GLuint getPointsExBuffer() const override { return m_buf_points_ex; }
+    GLuint getNormalsExBuffer() const override { return m_buf_normals_ex; }
+    GLuint getWireframeIndicesBuffer() const override { return m_buf_wireframe_indices; }
+#endif
+
+    void clear();
+    void upload();
+
+public:
+    std::vector<float3> m_points;
+    std::vector<float3> m_normals;
+    std::vector<float3> m_points_ex;
+    std::vector<float3> m_normals_ex;
+
+    std::vector<int> m_counts;
+    std::vector<int> m_face_indices;
+    std::vector<int> m_wireframe_indices;
+
+#ifdef wabcWithGL
+    GLuint m_buf_points{};
+    GLuint m_buf_points_ex{};
+    GLuint m_buf_normals_ex{};
+    GLuint m_buf_wireframe_indices{};
+#endif
+};
+using MeshPtr = std::shared_ptr<Mesh>;
+
+
+class Points : public IPoints
+{
+public:
+    Points();
+    ~Points() override;
+    span<float3> getPoints() const override { return make_span(m_points); }
+#ifdef wabcWithGL
+    GLuint getPointBuffer() const override { return m_vb_points; }
+#endif
+
+    void clear();
+    void upload();
+
+public:
+    std::vector<float3> m_points;
+#ifdef wabcWithGL
+    GLuint m_vb_points{};
+#endif
+};
+using PointsPtr = std::shared_ptr<Points>;
+
+
+class Scene : public IScene
+{
+public:
+    struct ImportContext
+    {
+        Abc::IObject obj;
+        double time = 0.0;
+        float4x4 local_matrix = float4x4::identity();
+        float4x4 global_matrix = float4x4::identity();
+    };
+
+    void release() override;
+
+    bool load(const char* path) override;
+    void unload() override;
+
+    std::tuple<double, double> getTimeRange() const override;
+    void seek(double time) override;
+
+    void scanNodes(ImportContext ctx);
+    void seekImpl(ImportContext ctx);
+
+    double getTime() const override { return m_time; }
+    IMesh* getMesh() override { return m_mono_mesh.get(); }
+    IPoints* getPoints() override { return m_mono_points.get(); }
+    span<ICamera*> getCameras() override { return make_span(m_cameras); }
+
+private:
+    std::shared_ptr<std::fstream> m_stream;
+    Abc::IArchive m_archive;
+
+    std::map<void*, size_t> m_sample_counts;
+    std::tuple<double, double> m_time_range;
+
+    double m_time = -1.0;
+    MeshPtr m_mono_mesh;
+    PointsPtr m_mono_points;
+
+    std::map<std::string, CameraPtr> m_camera_table;
+    std::vector<ICamera*> m_cameras;
+};
+
+} // namespace wabc

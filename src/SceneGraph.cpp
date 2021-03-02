@@ -1,21 +1,19 @@
 #include "pch.h"
 #include "WebAlembicViewer.h"
+#include "SceneGraph.h"
 
 using namespace Alembic;
 
 namespace wabc {
 
-template<class T> inline std::span<T> MakeSpan(const T& v) { return { (T*)&v, 1 }; }
-template<class T> inline std::span<T> MakeSpan(const std::vector<T>& v) { return { (T*)v.data(), v.size() }; }
-template<class T> inline std::span<T> MakeSpan(const T* v, size_t n) { return { (T*)v, n }; }
 template<class T>
-inline auto MakeSpan(Alembic::Util::shared_ptr<Abc::TypedArraySample<T>> s)
+inline auto make_span(Alembic::Util::shared_ptr<Abc::TypedArraySample<T>> s)
 {
     using value_type = typename Abc::TypedArraySample<T>::value_type;
     if (s)
-        return std::span<value_type>{ (value_type*)s->get(), s->size() };
+        return span<value_type>{ (value_type*)s->get(), s->size() };
     else
-        return std::span<value_type>{ (value_type*)nullptr, (size_t)0 };
+        return span<value_type>{ (value_type*)nullptr, (size_t)0 };
 }
 
 template<class T> inline T* Expand(std::vector<T>& v, size_t n)
@@ -26,178 +24,11 @@ template<class T> inline T* Expand(std::vector<T>& v, size_t n)
 }
 
 
-class Camera : public ICamera
-{
-public:
-    const std::string& getPath() const override { return m_path; }
-    float3 getPosition() const override { return m_position; }
-    float3 getDirection() const override { return m_direction; }
-    float3 getUp() const override { return m_up; }
-    float getFocalLength() const override { return m_focal_length; }
-    float2 getAperture() const override { return m_aperture; }
-    float2 getLensShift() const override { return m_lens_shift; }
-    float getNearPlane() const override { return m_near; }
-    float getFarPlane() const override { return m_far; }
-
-public:
-    std::string m_path;
-    float3 m_position{};
-    float3 m_direction{ 0.0f, 0.0f, 1.0f };
-    float3 m_up{ 0.0f, 1.0f, 0.0f };
-    float m_focal_length = 30.0f;
-    float2 m_aperture{ 36.0f, 24.0f };
-    float2 m_lens_shift{};
-    float m_near = 0.01f;
-    float m_far = 100.0f;
-};
-using CameraPtr = std::shared_ptr<Camera>;
-
-class Skin : public ISkin
-{
-public:
-    std::span<int> getJointCounts() const override { return MakeSpan(m_counts); }
-    std::span<JointWeight> getJointWeights() const override { return MakeSpan(m_weights); }
-    std::span<float4x4> getJointMatrices() const override { return MakeSpan(m_matrices); }
-
-    template<class Vec, class Mul>
-    bool deformImpl(std::span<Vec> dst, std::span<Vec> src, const Mul& mul) const;
-
-    bool deformPoints(std::span<float3> dst, std::span<float3> src) const override;
-    bool deformNormals(std::span<float3> dst, std::span<float3> src) const override;
-
-public:
-    std::vector<int> m_counts;
-    std::vector<JointWeight> m_weights;
-    std::vector<float4x4> m_matrices;
-};
-
-class BlendShape : public IBlendShape
-{
-public:
-    std::span<int> getIndices() const override { return MakeSpan(m_indices); }
-    std::span<float3> getDeltaPoints() const override { return MakeSpan(m_delta_points); }
-    std::span<float3> getDeltaNormals() const override { return MakeSpan(m_delta_normals); }
-
-    bool deformPoints(std::span<float3> dst, std::span<float3> src, float w) const override;
-    bool deformNormals(std::span<float3> dst, std::span<float3> src, float w) const override;
-
-public:
-    std::vector<int> m_indices;
-    std::vector<float3> m_delta_points;
-    std::vector<float3> m_delta_normals;
-};
-
-class Mesh : public IMesh
-{
-public:
-    Mesh();
-    ~Mesh() override;
-    std::span<float3> getPoints() const override { return MakeSpan(m_points); }
-    std::span<float3> getNormals() const override { return MakeSpan(m_normals); }
-    std::span<float3> getPointsEx() const override { return MakeSpan(m_points_ex); }
-    std::span<float3> getNormalsEx() const override { return MakeSpan(m_normals_ex); }
-    std::span<int> getCounts() const override { return MakeSpan(m_counts); }
-    std::span<int> getFaceIndices() const override { return MakeSpan(m_face_indices); }
-    std::span<int> getWireframeIndices() const override { return MakeSpan(m_wireframe_indices); }
-
-#ifdef wabcWithGL
-    GLuint getPointsBuffer() const override { return m_buf_points; }
-    GLuint getPointsExBuffer() const override { return m_buf_points_ex; }
-    GLuint getNormalsExBuffer() const override { return m_buf_normals_ex; }
-    GLuint getWireframeIndicesBuffer() const override { return m_buf_wireframe_indices; }
-#endif
-
-    void clear();
-    void upload();
-
-public:
-    std::vector<float3> m_points;
-    std::vector<float3> m_normals;
-    std::vector<float3> m_points_ex;
-    std::vector<float3> m_normals_ex;
-
-    std::vector<int> m_counts;
-    std::vector<int> m_face_indices;
-    std::vector<int> m_wireframe_indices;
-
-#ifdef wabcWithGL
-    GLuint m_buf_points{};
-    GLuint m_buf_points_ex{};
-    GLuint m_buf_normals_ex{};
-    GLuint m_buf_wireframe_indices{};
-#endif
-};
-using MeshPtr = std::shared_ptr<Mesh>;
-
-class Points : public IPoints
-{
-public:
-    Points();
-    ~Points() override;
-    std::span<float3> getPoints() const override { return MakeSpan(m_points); }
-#ifdef wabcWithGL
-    GLuint getPointBuffer() const override { return m_vb_points; }
-#endif
-
-    void clear();
-    void upload();
-
-public:
-    std::vector<float3> m_points;
-#ifdef wabcWithGL
-    GLuint m_vb_points{};
-#endif
-};
-using PointsPtr = std::shared_ptr<Points>;
-
-
-class Scene : public IScene
-{
-public:
-    struct ImportContext
-    {
-        Abc::IObject obj;
-        double time = 0.0;
-        float4x4 local_matrix = float4x4::identity();
-        float4x4 global_matrix = float4x4::identity();
-    };
-
-    void release() override;
-
-    bool load(const char* path) override;
-    void unload() override;
-
-    std::tuple<double, double> getTimeRange() const override;
-    void seek(double time) override;
-
-    void scanNodes(ImportContext ctx);
-    void seekImpl(ImportContext ctx);
-
-    double getTime() const override { return m_time; }
-    IMesh* getMesh() override { return m_mono_mesh.get(); }
-    IPoints* getPoints() override { return m_mono_points.get(); }
-    std::span<ICamera*> getCameras() override { return MakeSpan(m_cameras); }
-
-private:
-    std::shared_ptr<std::fstream> m_stream;
-    Abc::IArchive m_archive;
-
-    std::map<void*, size_t> m_sample_counts;
-    std::tuple<double, double> m_time_range;
-
-    double m_time = -1.0;
-    MeshPtr m_mono_mesh;
-    PointsPtr m_mono_points;
-
-    std::map<std::string, CameraPtr> m_camera_table;
-    std::vector<ICamera*> m_cameras;
-};
-
 
 
 // Mul: e.g. [](float4x4, float3) -> float3
 template<class Vec, class Mul>
-bool Skin::deformImpl(std::span<Vec> dst, std::span<Vec> src, const Mul& mul) const
+bool Skin::deformImpl(span<Vec> dst, span<Vec> src, const Mul& mul) const
 {
     if (m_counts.size() != src.size() || m_counts.size() != dst.size()) {
         printf("Skin::deformImpl(): vertex count mismatch\n");
@@ -220,20 +51,20 @@ bool Skin::deformImpl(std::span<Vec> dst, std::span<Vec> src, const Mul& mul) co
     return true;
 }
 
-bool Skin::deformPoints(std::span<float3> dst, std::span<float3> src) const
+bool Skin::deformPoints(span<float3> dst, span<float3> src) const
 {
     return deformImpl(dst, src,
         [](float4x4 m, float3 p) { return mul_p(m, p); });
 }
 
-bool Skin::deformNormals(std::span<float3> dst, std::span<float3> src) const
+bool Skin::deformNormals(span<float3> dst, span<float3> src) const
 {
     return deformImpl(dst, src,
         [](float4x4 m, float3 p) { return mul_v(m, p); });
 }
 
 
-bool BlendShape::deformPoints(std::span<float3> dst, std::span<float3> src, float w) const
+bool BlendShape::deformPoints(span<float3> dst, span<float3> src, float w) const
 {
     if (dst.data() != src.data())
         memcpy(dst.data(), src.data(), src.size_bytes());
@@ -244,7 +75,7 @@ bool BlendShape::deformPoints(std::span<float3> dst, std::span<float3> src, floa
     return true;
 }
 
-bool BlendShape::deformNormals(std::span<float3> dst, std::span<float3> src, float w) const
+bool BlendShape::deformNormals(span<float3> dst, span<float3> src, float w) const
 {
     if (dst.data() != src.data())
         memcpy(dst.data(), src.data(), src.size_bytes());
@@ -583,9 +414,9 @@ void Scene::seekImpl(ImportContext ctx)
 
         AbcGeom::IPolyMeshSchema::Sample sample;
         schema.get(sample, ss);
-        auto counts = MakeSpan(sample.getFaceCounts());
-        auto indices = MakeSpan(sample.getFaceIndices());
-        auto points = MakeSpan(sample.getPositions());
+        auto counts = make_span(sample.getFaceCounts());
+        auto indices = make_span(sample.getFaceIndices());
+        auto points = make_span(sample.getPositions());
 
         // make points in global space
         int num_faces = (int)counts.size();
@@ -658,7 +489,7 @@ void Scene::seekImpl(ImportContext ctx)
         AbcGeom::IPointsSchema::Sample sample;
         schema.get(sample, ss);
 
-        auto points_orig = MakeSpan(sample.getPositions());
+        auto points_orig = make_span(sample.getPositions());
         size_t num_points = points_orig.size();
 
         float3* points = Expand(m_mono_points->m_points, num_points);

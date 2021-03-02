@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
+    <ClInclude Include="SceneGraph.h" />
     <ClInclude Include="VectorMath.h" />
     <ClInclude Include="WebAlembicViewer.h" />
   </ItemGroup>

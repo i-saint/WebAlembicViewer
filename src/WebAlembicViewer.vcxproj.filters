@@ -10,5 +10,6 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="VectorMath.h" />
     <ClInclude Include="WebAlembicViewer.h" />
+    <ClInclude Include="SceneGraph.h" />
   </ItemGroup>
 </Project>

@@ -12,7 +12,7 @@
 #define sfbxEnableIf(...) std::enable_if_t<__VA_ARGS__, bool> = true
 
 namespace sfbx {
-    
+
 #ifdef __cpp_lib_span
 
 template<class T> using span = std::span<T>;

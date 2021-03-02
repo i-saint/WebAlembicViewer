@@ -468,7 +468,7 @@ void Document::constructNodes()
 std::string Document::toString()
 {
     char version[128];
-    sprintf(version, "; FBX %d.%d.0 project file\n", ((int)m_version / 1000), ((int)m_version / 100 % 10));
+    sprintf(version, "; FBX %d.%d.0 project file\n", (int)m_version / 1000 % 10, (int)m_version / 100 % 10);
 
     std::string s;
     s += version;
