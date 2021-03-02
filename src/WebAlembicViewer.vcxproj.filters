@@ -5,6 +5,8 @@
     <ClCompile Include="SceneGraph.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="SceneFBX.cpp" />
+    <ClCompile Include="SceneABC.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />

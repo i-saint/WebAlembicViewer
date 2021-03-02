@@ -104,9 +104,13 @@ public:
     virtual IPoints* getPoints() = 0; // monolithic points
     virtual span<ICamera*> getCameras() = 0;
 };
-IScene* CreateScene_();
+IScene* CreateSceneABC_();
+IScene* CreateSceneFBX_();
+IScene* LoadScene_(const char* path);
 using IScenePtr = std::shared_ptr<IScene>;
-inline IScenePtr CreateScene() { return IScenePtr(CreateScene_(), releaser<IScene>()); }
+inline IScenePtr CreateSceneABC() { return IScenePtr(CreateSceneABC_(), releaser<IScene>()); }
+inline IScenePtr CreateSceneFBX() { return IScenePtr(CreateSceneFBX_(), releaser<IScene>()); }
+inline IScenePtr LoadScene(const char* path) { return IScenePtr(LoadScene_(path), releaser<IScene>()); }
 
 
 enum class SensorFitMode

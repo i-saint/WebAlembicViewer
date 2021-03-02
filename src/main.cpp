@@ -35,7 +35,7 @@ static double g_seek_time;
 #ifdef wabcWithGL
 static void Draw()
 {
-    if (!g_renderer)
+    if (!g_renderer || !g_scene)
         return;
 
     if (g_active_camera < 0) {
@@ -154,8 +154,8 @@ static void OnScroll(GLFWwindow* window, double x, double y)
 
 wabcAPI bool wabcLoadScene(std::string path)
 {
-    g_scene = wabc::CreateScene();
-    if (g_scene->load(path.c_str())) {
+    g_scene = wabc::LoadScene(path.c_str());
+    if (g_scene) {
         printf("wabcLoadScene(\"%s\"): succeeded\n", path.c_str());
         return true;
     }
@@ -307,14 +307,14 @@ int main(int argc, char** argv)
     glfwMakeContextCurrent(g_window);
 #endif
 
-    g_scene = wabc::CreateScene();
     g_renderer = wabc::CreateRenderer();
     if (g_renderer)
         g_renderer->initialize(g_window);
 
     if (argc >= 2) {
-        if (g_scene->load(argv[1])) {
-            wabcBenchmark();
+        g_scene = wabc::LoadScene(argv[1]);
+        if (g_scene) {
+            //wabcBenchmark();
 
             auto time_range = g_scene->getTimeRange();
             printf("%s\n", argv[1]);

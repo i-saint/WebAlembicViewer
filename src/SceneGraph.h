@@ -137,47 +137,4 @@ public:
 };
 using PointsPtr = std::shared_ptr<Points>;
 
-
-class Scene : public IScene
-{
-public:
-    struct ImportContext
-    {
-        Abc::IObject obj;
-        double time = 0.0;
-        float4x4 local_matrix = float4x4::identity();
-        float4x4 global_matrix = float4x4::identity();
-    };
-
-    void release() override;
-
-    bool load(const char* path) override;
-    void unload() override;
-
-    std::tuple<double, double> getTimeRange() const override;
-    void seek(double time) override;
-
-    void scanNodes(ImportContext ctx);
-    void seekImpl(ImportContext ctx);
-
-    double getTime() const override { return m_time; }
-    IMesh* getMesh() override { return m_mono_mesh.get(); }
-    IPoints* getPoints() override { return m_mono_points.get(); }
-    span<ICamera*> getCameras() override { return make_span(m_cameras); }
-
-private:
-    std::shared_ptr<std::fstream> m_stream;
-    Abc::IArchive m_archive;
-
-    std::map<void*, size_t> m_sample_counts;
-    std::tuple<double, double> m_time_range;
-
-    double m_time = -1.0;
-    MeshPtr m_mono_mesh;
-    PointsPtr m_mono_points;
-
-    std::map<std::string, CameraPtr> m_camera_table;
-    std::vector<ICamera*> m_cameras;
-};
-
 } // namespace wabc
