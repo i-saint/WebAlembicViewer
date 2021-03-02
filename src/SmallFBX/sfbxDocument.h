@@ -36,18 +36,18 @@ public:
     FileVersion getVersion();
     void setVersion(FileVersion v);
 
-    Property* createProperty();
-
     Node* createNode(const std::string& name = "");
     Node* createChildNode(const std::string& name = "");
     void eraseNode(Node* n);
     Node* findNode(const char* name) const;
     Node* findNode(const std::string& name) const { return findNode(name.c_str()); }
+    span<NodePtr> getAllNodes();
     span<Node*> getRootNodes();
 
     Object* createObject(ObjectType t, ObjectSubType s);
     template<class T> T* createObject(const std::string& name = "");
     Object* findObject(int64 id);
+    span<ObjectPtr> getAllObjects();
     span<Object*> getRootObjects();
 
     void constructNodes();
@@ -55,10 +55,10 @@ public:
 
 private:
     void createHeaderExtention();
+    template<class T> int32 countObject() const;
+    void createDefinitions();
 
     FileVersion m_version = FileVersion::Default;
-
-    std::vector<PropertyPtr> m_properties;
 
     std::vector<NodePtr> m_nodes;
     std::vector<Node*> m_root_nodes;

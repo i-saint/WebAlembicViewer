@@ -137,6 +137,8 @@ using super = Model;
 public:
     void constructObject() override;
     void constructNodes() override;
+
+protected:
 };
 
 class Camera : public Model
@@ -146,6 +148,8 @@ using super = Model;
 public:
     void constructObject() override;
     void constructNodes() override;
+
+protected:
 };
 
 class Root : public Model

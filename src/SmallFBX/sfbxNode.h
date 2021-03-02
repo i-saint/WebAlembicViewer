@@ -23,7 +23,7 @@ public:
     uint64_t getSizeInBytes() const;
     const std::string& getName() const;
 
-    span<Property*> getProperties() const;
+    span<PropertyPtr> getProperties() const;
     Property* getProperty(size_t i);
 
     Node* getParent() const;
@@ -43,7 +43,7 @@ private:
 
     Document* m_document{};
     std::string m_name;
-    std::vector<Property*> m_properties;
+    std::vector<PropertyPtr> m_properties;
 
     Node* m_parent{};
     std::vector<Node*> m_children;

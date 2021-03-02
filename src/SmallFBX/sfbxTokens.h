@@ -61,6 +61,9 @@
 #define sfbxS_Connections           "Connections"
 #define sfbxS_Takes                 "Takes"
 
+#define sfbxS_ObjectType            "ObjectType"
+#define sfbxS_Count                 "Count"
+
 #define sfbxS_NodeAttribute         "NodeAttribute"
 #define sfbxS_Model                 "Model"
 #define sfbxS_Geometry              "Geometry"

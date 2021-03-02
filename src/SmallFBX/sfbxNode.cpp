@@ -100,9 +100,9 @@ void Node::setName(const std::string& v)
 
 Property* Node::createProperty()
 {
-    auto p = m_document->createProperty();
+    auto p = std::make_shared<Property>();
     m_properties.push_back(p);
-    return p;
+    return p.get();
 }
 
 Node* Node::createChild(const std::string& name)
@@ -137,7 +137,7 @@ const std::string& Node::getName() const
     return m_name;
 }
 
-span<Property*> Node::getProperties() const
+span<PropertyPtr> Node::getProperties() const
 {
     return make_span(m_properties);
 }
@@ -145,7 +145,7 @@ span<Property*> Node::getProperties() const
 Property* Node::getProperty(size_t i)
 {
     if (i < m_properties.size())
-        return m_properties[i];
+        return m_properties[i].get();
     return nullptr;
 }
 
@@ -178,7 +178,7 @@ std::string Node::toString(int depth) const
     s += getName();
     s += ": ";
     join(s, m_properties, ", ",
-        [depth](Property* p) { return p->toString(depth); });
+        [depth](auto& p) { return p->toString(depth); });
     s += " ";
 
     if (!m_children.empty() || (m_children.empty() && m_properties.empty())) {

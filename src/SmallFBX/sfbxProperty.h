@@ -42,8 +42,8 @@ uint32_t SizeOfElement(PropertyType type);
 
 class Property
 {
-friend class Document;
 public:
+    Property();
     void read(std::istream& input);
     void write(std::ostream& output);
 
@@ -70,10 +70,6 @@ public:
     std::string toString(int depth = 0) const;
 
 private:
-    Property(const Property&) = delete;
-    Property& operator=(const Property) = delete;
-    Property();
-
     PropertyType m_type{};
     union {
         int8 i8;

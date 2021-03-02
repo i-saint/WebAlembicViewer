@@ -156,13 +156,6 @@ void Document::setVersion(FileVersion v)
     m_version = v;
 }
 
-Property* Document::createProperty()
-{
-    auto r = new Property();
-    m_properties.push_back(PropertyPtr(r));
-    return r;
-}
-
 
 Node* Document::createNode(const std::string& name)
 {
@@ -201,11 +194,8 @@ Node* Document::findNode(const char* name) const
     return it != m_nodes.end() ? it->get() : nullptr;
 }
 
-span<Node*> Document::getRootNodes()
-{
-    return make_span(m_root_nodes);
-}
-
+span<sfbx::NodePtr> Document::getAllNodes() { return make_span(m_nodes); }
+span<Node*> Document::getRootNodes() { return make_span(m_root_nodes); }
 
 Object* Document::createObject(ObjectType t, ObjectSubType s)
 {
@@ -282,10 +272,8 @@ Object* Document::findObject(int64 id)
     return it != m_objects.end() ? it->get() : nullptr;
 }
 
-span<Object*> Document::getRootObjects()
-{
-    return make_span(m_root_objects);
-}
+span<ObjectPtr> Document::getAllObjects() { return make_span(m_objects); }
+span<Object*> Document::getRootObjects() { return make_span(m_root_objects); }
 
 void Document::createHeaderExtention()
 {
@@ -427,13 +415,48 @@ void Document::createHeaderExtention()
     }
 }
 
+// avoid template lambda because it requires C++20
+template<class T>
+int32 Document::countObject() const
+{
+    return (int32)count(m_objects, [](auto& p) { return as<T>(p.get()) != nullptr; });
+}
+
+void Document::createDefinitions()
+{
+    auto definitions = createNode(sfbxS_Definitions);
+
+    auto add_object_type = [definitions](size_t n, const char* type) {
+        if (n == 0)
+            return;
+        auto ot = definitions->createChild(sfbxS_ObjectType);
+        ot->addProperty(sfbxS_NodeAttribute);
+        ot->addPropertyNode(sfbxS_Count, (int32)n);
+    };
+
+    add_object_type(1, sfbxS_GlobalSettings);
+
+    add_object_type(countObject<NodeAttribute>(), sfbxS_NodeAttribute);
+    add_object_type(countObject<Model>(), sfbxS_Model);
+    add_object_type(countObject<Geometry>(), sfbxS_Geometry);
+    add_object_type(countObject<Deformer>(), sfbxS_Deformer);
+    add_object_type(countObject<Pose>(), sfbxS_Pose);
+
+    add_object_type(countObject<AnimationStack>(), sfbxS_AnimationStack);
+    add_object_type(countObject<AnimationLayer>(), sfbxS_AnimationLayer);
+    add_object_type(countObject<AnimationCurveNode>(), sfbxS_AnimationCurveNode);
+    add_object_type(countObject<AnimationCurve>(), sfbxS_AnimationCurve);
+
+    add_object_type(countObject<Material>(), sfbxS_Material);
+}
+
 void Document::constructNodes()
 {
     createHeaderExtention();
     createNode(sfbxS_GlobalSettings);
     createNode(sfbxS_Documents);
     createNode(sfbxS_References);
-    createNode(sfbxS_Definitions);
+    createDefinitions();
     createNode(sfbxS_Objects);
     createNode(sfbxS_Connections);
     createNode(sfbxS_Takes);

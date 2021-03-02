@@ -45,6 +45,7 @@ struct resize_impl<T, std::void_t<decltype(std::declval<T>().resize(0))>>
 {
     void operator()(T& dst, size_t n) { dst.resize(n); }
 };
+// call resize() if Cont has. otherwise do nothing.
 template <class Cont>
 inline void resize(Cont& cont, size_t n)
 {
@@ -52,15 +53,15 @@ inline void resize(Cont& cont, size_t n)
 }
 
 
-template<class Values, class Body>
-inline void each(Values& val, const Body& body)
+template<class Container, class Body>
+inline void each(Container& val, const Body& body)
 {
     for (auto& v : val)
         body(v);
 }
 
-template<class Values, class Indices, class Body>
-inline void each_indexed(Values& val, Indices& idx, const Body& body)
+template<class Container, class Indices, class Body>
+inline void each_indexed(Container& val, Indices& idx, const Body& body)
 {
     for (auto i : idx)
         body(val[i]);
@@ -122,6 +123,16 @@ inline void join(std::string& dst, const Container& cont, const char* sep)
 {
     join(dst, cont, sep,
         [](typename Container::const_reference v) { return std::to_string(v); });
+}
+
+template<class Container, class Body>
+inline size_t count(const Container& cont, const Body& body)
+{
+    size_t r = 0;
+    for (auto& v : cont)
+        if (body(v))
+            ++r;
+    return r;
 }
 
 
