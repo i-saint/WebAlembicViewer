@@ -219,14 +219,21 @@ void Model::constructObject()
             if (pname == sfbxS_Visibility) {
                 m_visibility = GetPropertyValue<bool>(p, 4);
             }
-            else if (pname == sfbxS_RotationOrder) {
-                m_rotation_order = (RotationOrder)GetPropertyValue<int32>(p, 4);
-            }
             else if (pname == sfbxS_LclTranslation) {
                 m_position = float3{
                     (float)GetPropertyValue<float64>(p, 4),
                     (float)GetPropertyValue<float64>(p, 5),
                     (float)GetPropertyValue<float64>(p, 6),
+                };
+            }
+            else if (pname == sfbxS_RotationOrder) {
+                m_rotation_order = (RotationOrder)GetPropertyValue<int32>(p, 4);
+            }
+            else if (pname == sfbxS_PreRotation) {
+                m_pre_rotation = float3{
+                    -(float)GetPropertyValue<float64>(p, 4),
+                    (float)GetPropertyValue<float64>(p, 5),
+                    -(float)GetPropertyValue<float64>(p, 6),
                 };
             }
             else if (pname == sfbxS_LclRotation) {
@@ -306,6 +313,7 @@ void Model::constructNodes()
     }
 }
 
+Model* Model::getParentModel() const { return m_parent_model; }
 bool Model::getVisibility() const { return m_visibility; }
 RotationOrder Model::getRotationOrder() const { return m_rotation_order; }
 float3 Model::getPosition() const { return m_position; }
@@ -314,19 +322,19 @@ float3 Model::getScale() const { return m_scale; }
 
 float4x4 Model::getLocalMatrix() const
 {
-    return transform(m_position, rotate_euler(m_rotation_order, m_rotation), m_scale);
+    float4x4 ret = scale44(m_scale);
+    if (m_pre_rotation != float3::zero())
+        ret *= to_mat4x4(rotate_euler(m_rotation_order, m_pre_rotation * DegToRad));
+    if (m_rotation != float3::zero())
+        ret *= to_mat4x4(rotate_euler(m_rotation_order, m_rotation * DegToRad));
+    (float3&)ret[3] = m_position;
+    return ret;
 }
 
 float4x4 Model::getGlobalMatrix() const
 {
-    float4x4 pmat = float4x4::identity();
-    for (Object* p = getParent(); p; p = p->getParent()) {
-        if (Model* pm = as<Model>(p)) {
-            pmat = pm->getGlobalMatrix();
-            break;
-        }
-    }
-    return pmat * getLocalMatrix();
+    float4x4 pmat = m_parent_model ? m_parent_model->getGlobalMatrix() : float4x4::identity();
+    return getLocalMatrix() * pmat;
 }
 
 void Model::setVisibility(bool v) { m_visibility = v; }
@@ -335,6 +343,13 @@ void Model::setPosition(float3 v) { m_position = v; }
 void Model::setRotation(float3 v) { m_rotation = v; }
 void Model::setScale(float3 v) { m_scale = v; }
 
+void Model::addParent(Object* v)
+{
+    super::addParent(v);
+    if (auto model = as<Model>(v)) {
+        m_parent_model = model;
+    }
+}
 
 void Light::constructObject()
 {

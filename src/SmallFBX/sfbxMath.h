@@ -4,6 +4,9 @@
 
 namespace sfbx {
 
+constexpr float PI = 3.14159265358979323846264338327950288419716939937510f;
+constexpr float DegToRad = PI / 180.0f;
+
 template<class T> inline tvec2<T> operator-(const tvec2<T>& v) { return{ -v.x, -v.y }; }
 template<class T, class U> inline tvec2<T> operator+(const tvec2<T>& l, const tvec2<U>& r) { return{ l.x + r.x, l.y + r.y }; }
 template<class T, class U> inline tvec2<T> operator-(const tvec2<T>& l, const tvec2<U>& r) { return{ l.x - r.x, l.y - r.y }; }
@@ -114,61 +117,54 @@ template<class T> inline tquat<T> rotate_z(T angle)
     return{ T(0.0), T(0.0), s, c };
 }
 
-// euler -> quaternion
-template<class T> inline tquat<T> rotate_xyz(const tvec3<T>& euler)
+template<class T> inline tmat4x4<T> rotate44_x(T angle)
 {
-    auto rx = rotate_x(euler.x);
-    auto ry = rotate_y(euler.y);
-    auto rz = rotate_z(euler.z);
-    return (rz * ry) * rx;
+    T c = std::cos(angle);
+    T s = std::sin(angle);
+    return tmat4x4<T> { {
+        { 1, 0, 0, 0 },
+        { 0, c,-s, 0 },
+        { 0, s, c, 0 },
+        { 0, 0, 0, 1 },
+    }};
 }
-template<class T> inline tquat<T> rotate_xzy(const tvec3<T>& euler)
+template<class T> inline tmat4x4<T> rotate44_y(T angle)
 {
-    auto rx = rotate_x(euler.x);
-    auto ry = rotate_y(euler.y);
-    auto rz = rotate_z(euler.z);
-    return (ry * rz) * rx;
+    T c = std::cos(angle);
+    T s = std::sin(angle);
+    return tmat4x4<T> { {
+        { c, 0, s, 0 },
+        { 0, 1, 0, 0 },
+        {-s, 0, c, 0 },
+        { 0, 0, 0, 1 },
+    }};
 }
-template<class T> inline tquat<T> rotate_yxz(const tvec3<T>& euler)
+template<class T> inline tmat4x4<T> rotate44_z(T angle)
 {
-    auto rx = rotate_x(euler.x);
-    auto ry = rotate_y(euler.y);
-    auto rz = rotate_z(euler.z);
-    return (rz * rx) * ry;
-}
-template<class T> inline tquat<T> rotate_yzx(const tvec3<T>& euler)
-{
-    auto rx = rotate_x(euler.x);
-    auto ry = rotate_y(euler.y);
-    auto rz = rotate_z(euler.z);
-    return (rx * rz) * ry;
-}
-template<class T> inline tquat<T> rotate_zxy(const tvec3<T>& euler)
-{
-    auto rx = rotate_x(euler.x);
-    auto ry = rotate_y(euler.y);
-    auto rz = rotate_z(euler.z);
-    return (ry * rx) * rz;
-}
-template<class T> inline tquat<T> rotate_zyx(const tvec3<T>& euler)
-{
-    auto rx = rotate_x(euler.x);
-    auto ry = rotate_y(euler.y);
-    auto rz = rotate_z(euler.z);
-    return (rx * ry) * rz;
+    T c = std::cos(angle);
+    T s = std::sin(angle);
+    return tmat4x4<T> { {
+        { c,-s, 0, 0 },
+        { s, c, 0, 0 },
+        { 0, 0, 1, 0 },
+        { 0, 0, 0, 1 },
+    }};
 }
 
 template<class T> inline tquat<T> rotate_euler(RotationOrder order, const tvec3<T>& euler)
 {
+    auto rx = rotate_x(euler.x);
+    auto ry = rotate_y(euler.y);
+    auto rz = rotate_z(euler.z);
     switch (order)
     {
-    case RotationOrder::XYZ: return rotate_xyz(euler);
-    case RotationOrder::XZY: return rotate_xzy(euler);
-    case RotationOrder::YZX: return rotate_yzx(euler);
-    case RotationOrder::YXZ: return rotate_yxz(euler);
-    case RotationOrder::ZXY: return rotate_zxy(euler);
-    case RotationOrder::ZYX: return rotate_zyx(euler);
-    case RotationOrder::SphericXYZ: return rotate_xyz(euler); // todo
+    case RotationOrder::XYZ: return rz * ry * rx;
+    case RotationOrder::XZY: return ry * rz * rx;
+    case RotationOrder::YZX: return rx * rz * ry;
+    case RotationOrder::YXZ: return rz * rx * ry;
+    case RotationOrder::ZXY: return ry * rx * rz;
+    case RotationOrder::ZYX: return rx * ry * rz;
+    case RotationOrder::SphericXYZ: return rz * ry * rx; // todo
     default: return tquat<T>::identity();
     }
 }
@@ -255,6 +251,58 @@ inline static tvec3<T> mul_p(const tmat4x4<T>& m, const tvec3<T>& v)
         m[0][1] * v[0] + m[1][1] * v[1] + m[2][1] * v[2] + m[3][1],
         m[0][2] * v[0] + m[1][2] * v[1] + m[2][2] * v[2] + m[3][2],
     };
+}
+
+template<class T> inline tmat4x4<T> invert(const tmat4x4<T>& x)
+{
+    tmat4x4<T> s = {
+        x[1][1] * x[2][2] - x[2][1] * x[1][2],
+        x[2][1] * x[0][2] - x[0][1] * x[2][2],
+        x[0][1] * x[1][2] - x[1][1] * x[0][2],
+        0,
+
+        x[2][0] * x[1][2] - x[1][0] * x[2][2],
+        x[0][0] * x[2][2] - x[2][0] * x[0][2],
+        x[1][0] * x[0][2] - x[0][0] * x[1][2],
+        0,
+
+        x[1][0] * x[2][1] - x[2][0] * x[1][1],
+        x[2][0] * x[0][1] - x[0][0] * x[2][1],
+        x[0][0] * x[1][1] - x[1][0] * x[0][1],
+        0,
+
+        0, 0, 0, 1,
+    };
+
+    auto r = x[0][0] * s[0][0] + x[0][1] * s[1][0] + x[0][2] * s[2][0];
+
+    if (abs(r) >= 1) {
+        for (int i = 0; i < 3; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                s[i][j] /= r;
+            }
+        }
+    }
+    else {
+        auto mr = abs(r) / std::numeric_limits<T>::min();
+
+        for (int i = 0; i < 3; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                if (mr > abs(s[i][j])) {
+                    s[i][j] /= r;
+                }
+                else {
+                    // error
+                    return tmat4x4<T>::identity();
+                }
+            }
+        }
+    }
+
+    s[3][0] = -x[3][0] * s[0][0] - x[3][1] * s[1][0] - x[3][2] * s[2][0];
+    s[3][1] = -x[3][0] * s[0][1] - x[3][1] * s[1][1] - x[3][2] * s[2][1];
+    s[3][2] = -x[3][0] * s[0][2] - x[3][1] * s[1][2] - x[3][2] * s[2][2];
+    return s;
 }
 
 } // namespace sfbx

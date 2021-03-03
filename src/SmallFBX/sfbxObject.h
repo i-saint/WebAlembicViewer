@@ -108,6 +108,8 @@ public:
     void constructObject() override;
     void constructNodes() override;
 
+    Model* getParentModel() const;
+
     bool getVisibility() const;
     RotationOrder getRotationOrder() const;
     float3 getPosition() const;
@@ -123,9 +125,13 @@ public:
     void setScale(float3 v);
 
 protected:
+    void addParent(Object* v) override;
+
+    Model* m_parent_model = nullptr;
     bool m_visibility = true;
     RotationOrder m_rotation_order = RotationOrder::XYZ;
     float3 m_position{};
+    float3 m_pre_rotation{};
     float3 m_rotation{};
     float3 m_scale{1.0f, 1.0f, 1.0f};
 };

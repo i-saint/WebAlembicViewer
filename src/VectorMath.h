@@ -791,7 +791,7 @@ template<class T> inline tquat<T> rotate(const tvec3<T>& axis, T angle)
     };
 }
 
-template<class T> inline tmat2x2<T> rotate_2d(const tvec3<T>& axis, T angle)
+template<class T> inline tmat2x2<T> rotate_2d(T angle)
 {
     T c = cos(angle);
     T s = sin(angle);

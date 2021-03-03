@@ -90,6 +90,7 @@
 #define sfbxS_Properties70          "Properties70"
 #define sfbxS_Visibility            "Visibility"
 #define sfbxS_RotationOrder         "RotationOrder"
+#define sfbxS_PreRotation           "PreRotation"
 #define sfbxS_LclTranslation        "Lcl Translation"
 #define sfbxS_LclRotation           "Lcl Rotation"
 #define sfbxS_LclScale              "Lcl Scaling"
