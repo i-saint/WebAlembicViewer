@@ -550,15 +550,6 @@ ObjectType Deformer::getType() const
 void Skin::constructObject()
 {
     super::constructObject();
-
-    for (auto child : getChildren()) {
-        if (auto cluster = as<Cluster>(child)) {
-            m_clusters.push_back(cluster);
-        }
-        else {
-            printf("sfbx::Deformer::constructObject(): non-Deformer cluster object\n");
-        }
-    }
 }
 
 void Skin::constructNodes()
@@ -573,6 +564,14 @@ void Skin::addChild(Object* v)
         m_clusters.push_back(cluster);
 }
 
+void Skin::addParent(Object* v)
+{
+    super::addParent(v);
+    if (auto mesh = as<Mesh>(v))
+        m_mesh = mesh;
+}
+
+Mesh* Skin::getMesh() const { return m_mesh; }
 span<Cluster*> Skin::getClusters() const { return make_span(m_clusters); }
 
 JointWeights Skin::getJointWeightsVariable()
@@ -838,10 +837,6 @@ ObjectType AnimationCurveNode::getType() const { return ObjectType::AnimationCur
 void AnimationCurveNode::constructObject()
 {
     super::constructObject();
-    for (auto* n : getChildren()) {
-        if (auto* curve = as<AnimationCurve>(n))
-            m_curves.push_back(curve);
-    }
 }
 
 void AnimationCurveNode::constructNodes()

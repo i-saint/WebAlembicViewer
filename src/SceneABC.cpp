@@ -102,7 +102,7 @@ bool SceneABC::load(const char* path)
             return false;
         }
 
-        std::vector< std::istream*> streams{ m_stream.get() };
+        std::vector<std::istream*> streams{ m_stream.get() };
         Alembic::AbcCoreOgawa::ReadArchive archive_reader(streams);
         m_archive = Abc::IArchive(archive_reader(path), Abc::kWrapExisting, Abc::ErrorHandler::kThrowPolicy);
     }

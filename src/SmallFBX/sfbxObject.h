@@ -73,7 +73,7 @@ protected:
     Object(const Object&) = delete;
     Object& operator=(const Object) = delete;
     Object();
-    void addParent(Object* v);
+    virtual void addParent(Object* v);
 
     Document* m_document{};
     Node* m_node{};
@@ -282,12 +282,16 @@ public:
     void constructNodes() override;
     void addChild(Object* v) override;
 
+    Mesh* getMesh() const;
     span<Cluster*> getClusters() const;
     JointWeights getJointWeightsVariable();
     JointWeights getJointWeightsFixed(int joints_per_vertex);
     JointMatrices getJointMatrices();
 
 protected:
+    void addParent(Object* v) override;
+
+    Mesh* m_mesh{};
     std::vector<Cluster*> m_clusters;
 };
 

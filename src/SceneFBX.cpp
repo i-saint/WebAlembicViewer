@@ -17,6 +17,25 @@ public:
         float4x4 global_matrix = float4x4::identity();
     };
 
+    struct MeshData
+    {
+        sfbx::Mesh* mesh_fbx{};
+        RawVector<int> indices_tri;
+        size_t points_offset{};
+        size_t pointsex_offset{};
+    };
+    using MeshDataPtr = std::shared_ptr<MeshData>;
+
+    struct SkinData
+    {
+        sfbx::Skin* skin_fbx{};
+        sfbx::JointWeights weights;
+        sfbx::JointMatrices matrices;
+        RawVector<float3> points_deformed;
+        MeshDataPtr mesh;
+    };
+    using SkinDataPtr = std::shared_ptr<SkinData>;
+
     void release() override;
 
     bool load(const char* path) override;
@@ -33,12 +52,15 @@ public:
 private:
     // ctx is not a reference. that is intended.
     void scanObjects(ImportContext ctx);
+    void applyDeform();
 
     sfbx::DocumentPtr m_document;
     std::tuple<double, double> m_time_range;
 
     double m_time = -1.0;
     MeshPtr m_mono_mesh;
+    std::vector<MeshDataPtr> m_mesh_data;
+    std::vector<SkinDataPtr> m_skin_data;
 
     std::map<std::string, CameraPtr> m_camera_table;
     std::vector<ICamera*> m_cameras;
@@ -57,7 +79,6 @@ void SceneFBX::release()
     delete this;
 }
 
-// todo
 void SceneFBX::scanObjects(ImportContext ctx)
 {
     auto obj = ctx.obj;
@@ -71,6 +92,12 @@ void SceneFBX::scanObjects(ImportContext ctx)
         }
     }
     else if (auto mesh = as<sfbx::Mesh>(obj)) {
+        auto tmp = std::make_shared<MeshData>();
+        tmp->mesh_fbx = mesh;
+        tmp->points_offset = m_mono_mesh->m_points.size();
+        tmp->pointsex_offset = m_mono_mesh->m_points_ex.size();
+        m_mesh_data.push_back(tmp);
+
         auto counts = mesh->getCounts();
         auto indices = mesh->getIndices();
         auto points = mesh->getPoints();
@@ -104,6 +131,7 @@ void SceneFBX::scanObjects(ImportContext ctx)
         int* dst_findices = expand(m_mono_mesh->m_face_indices, num_indices);
         int* dst_windices = expand(m_mono_mesh->m_wireframe_indices, num_lines * 2);
         float3* dst_points_ex = expand(m_mono_mesh->m_points_ex, num_triangles * 3);
+        int* dst_indicex_ex = expand(tmp->indices_tri, num_triangles * 3);
 
         // setup indices & vertices
 
@@ -132,6 +160,9 @@ void SceneFBX::scanObjects(ImportContext ctx)
                     int i0 = src_indices[0];
                     int i1 = src_indices[1 + fi];
                     int i2 = src_indices[2 + fi];
+                    *dst_indicex_ex++ = i0;
+                    *dst_indicex_ex++ = i1;
+                    *dst_indicex_ex++ = i2;
                     *dst_points_ex++ = src_points[i0];
                     *dst_points_ex++ = src_points[i1];
                     *dst_points_ex++ = src_points[i2];
@@ -140,8 +171,20 @@ void SceneFBX::scanObjects(ImportContext ctx)
             src_indices += c;
         }
     }
-    else if (auto mesh = as<sfbx::Skin>(obj)) {
-        // todo
+    else if (auto skin = as<sfbx::Skin>(obj)) {
+        auto tmp = std::make_shared<SkinData>();
+        tmp->skin_fbx = skin;
+        auto mesh_fbx = skin->getMesh();
+        for (auto& p : m_mesh_data) {
+            if (p->mesh_fbx == mesh_fbx) {
+                tmp->mesh = p;
+                break;
+            }
+        }
+        tmp->weights = skin->getJointWeightsVariable();
+        tmp->points_deformed.resize(tmp->weights.counts.size());
+
+        m_skin_data.push_back(tmp);
     }
 
     for (auto child : obj->getChildren()) {
@@ -189,6 +232,34 @@ std::tuple<double, double> SceneFBX::getTimeRange() const
     return m_time_range;
 }
 
+void SceneFBX::applyDeform()
+{
+    bool needs_upload = false;
+    for (auto& skin : m_skin_data) {
+        if (!skin->mesh || skin->mesh->indices_tri.empty())
+            continue;
+
+        skin->matrices = skin->skin_fbx->getJointMatrices();
+        auto mesh = skin->mesh;
+        {
+            auto src = mesh->mesh_fbx->getPoints();
+            auto dst = make_span((sfbx::float3*)skin->points_deformed.data(), skin->points_deformed.size());
+            sfbx::DeformPoints(dst, skin->weights, skin->matrices, src);
+        }
+        {
+            auto src = make_span(skin->points_deformed.data(), skin->points_deformed.size());
+            auto dst = make_span(m_mono_mesh->m_points.data() + mesh->points_offset, m_mono_mesh->m_points.size());
+            auto dst_ex = make_span(m_mono_mesh->m_points_ex.data() + mesh->pointsex_offset, mesh->indices_tri.size());
+            sfbx::copy(dst, src);
+            sfbx::copy_indexed(dst_ex, src, mesh->indices_tri);
+        }
+        needs_upload = true;
+    }
+
+    if (needs_upload)
+        m_mono_mesh->upload();
+}
+
 void SceneFBX::seek(double time)
 {
     if (!m_document || time == m_time)
@@ -196,17 +267,7 @@ void SceneFBX::seek(double time)
 
     // todo: handle animation
 
-    //m_time = time;
-    //m_mono_mesh->clear();
-
-    //ImportContext ctx;
-    //ctx.time = time;
-    //for (auto obj : m_document->getRootObjects()) {
-    //    ctx.obj = obj;
-    //    scanObjects(ctx);
-    //}
-
-    //m_mono_mesh->upload();
+    applyDeform();
 }
 
 IScene* CreateSceneFBX_()

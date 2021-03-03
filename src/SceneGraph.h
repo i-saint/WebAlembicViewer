@@ -6,6 +6,7 @@ using namespace Alembic;
 namespace wabc {
 
 using sfbx::make_span;
+using sfbx::RawVector;
 
 class Camera : public ICamera
 {
@@ -48,9 +49,9 @@ public:
     bool deformNormals(span<float3> dst, span<float3> src) const override;
 
 public:
-    std::vector<int> m_counts;
-    std::vector<JointWeight> m_weights;
-    std::vector<float4x4> m_matrices;
+    RawVector<int> m_counts;
+    RawVector<JointWeight> m_weights;
+    RawVector<float4x4> m_matrices;
 };
 using SkinPtr = std::shared_ptr<Skin>;
 
@@ -66,9 +67,9 @@ public:
     bool deformNormals(span<float3> dst, span<float3> src, float w) const override;
 
 public:
-    std::vector<int> m_indices;
-    std::vector<float3> m_delta_points;
-    std::vector<float3> m_delta_normals;
+    RawVector<int> m_indices;
+    RawVector<float3> m_delta_points;
+    RawVector<float3> m_delta_normals;
 };
 using BlendShapePtr = std::shared_ptr<BlendShape>;
 
@@ -97,14 +98,14 @@ public:
     void upload();
 
 public:
-    std::vector<float3> m_points;
-    std::vector<float3> m_normals;
-    std::vector<float3> m_points_ex;
-    std::vector<float3> m_normals_ex;
+    RawVector<float3> m_points;
+    RawVector<float3> m_normals;
+    RawVector<float3> m_points_ex;
+    RawVector<float3> m_normals_ex;
 
-    std::vector<int> m_counts;
-    std::vector<int> m_face_indices;
-    std::vector<int> m_wireframe_indices;
+    RawVector<int> m_counts;
+    RawVector<int> m_face_indices;
+    RawVector<int> m_wireframe_indices;
 
 #ifdef wabcWithGL
     GLuint m_buf_points{};
@@ -130,7 +131,7 @@ public:
     void upload();
 
 public:
-    std::vector<float3> m_points;
+    RawVector<float3> m_points;
 #ifdef wabcWithGL
     GLuint m_vb_points{};
 #endif

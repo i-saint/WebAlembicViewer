@@ -5,3 +5,6 @@
 #include "SmallFBX/sfbxNode.h"
 #include "SmallFBX/sfbxObject.h"
 #include "SmallFBX/sfbxDocument.h"
+
+#include "SmallFBX/sfbxMath.h"
+#include "SmallFBX/sfbxUtil.h"
