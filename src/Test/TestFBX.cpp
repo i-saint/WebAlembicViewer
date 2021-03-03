@@ -61,11 +61,14 @@ testCase(fbxWrite)
     {
         sfbx::DocumentPtr doc = sfbx::MakeDocument();
 
-        auto model = doc->createObject<sfbx::Model>();
-        model->setName("model");
-        // todo
+        auto model = doc->createObject<sfbx::Model>("model");
+        model->setPosition({ 0.0f, 1.0f, 2.0f });
+        model->setRotation({ 0.0f, 30.0f, 60.0f });
+        model->setScale({ 1.0f, 2.0f, 3.0f });
 
-        doc->writeBinary("test.fbx");
+        doc->constructNodes();
+        doc->writeBinary("test_bin.fbx");
+        doc->writeAscii("test_ascii.fbx");
     }
 
     {

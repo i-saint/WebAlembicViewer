@@ -14,11 +14,15 @@ public:
     void setName(const std::string& v);
 
     Property* createProperty();
-    template<class... T> void addProperty(T&&... v) { createProperty()->assign(std::forward<T>(v)...); }
-
     Node* createChild(const std::string& name = "");
-    template<class... T> void addPropertyNode(const std::string& name, T&&... v) { createChild(name.c_str())->addProperty(std::forward<T>(v)...); }
     void eraseChild(Node* n);
+
+    // utils
+    template<class... T> void addProperty(T&&... v) { createProperty()->assign(std::forward<T>(v)...); }
+    void addProperties() {}
+    template<class T, class... U> void addProperties(T&& v, U&&... a) { addProperty(v); addProperties(std::forward<U>(a)...); }
+    template<class... T> void addChild(const std::string& name, T&&... v) { createChild(name.c_str())->addProperties(v...); }
+
 
     uint64_t getSizeInBytes() const;
     const std::string& getName() const;

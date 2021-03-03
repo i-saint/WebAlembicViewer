@@ -87,8 +87,6 @@ bool Document::read(const std::string& path)
 
 bool Document::writeBinary(std::ostream& os)
 {
-    constructNodes();
-
     writev(os, g_fbx_magic, 23);
     write1(os, m_version);
 
@@ -278,141 +276,64 @@ span<Object*> Document::getRootObjects() { return make_span(m_root_objects); }
 void Document::createHeaderExtention()
 {
     auto header_extension = createNode(sfbxS_FBXHeaderExtension);
-    header_extension->addPropertyNode(sfbxS_FBXHeaderVersion, (int32_t)1003);
-    header_extension->addPropertyNode(sfbxS_FBXVersion, (int32_t)getVersion());
-    header_extension->addPropertyNode(sfbxS_EncryptionType, (int32_t)0);
+    header_extension->addChild(sfbxS_FBXHeaderVersion, (int32_t)1003);
+    header_extension->addChild(sfbxS_FBXVersion, (int32_t)getVersion());
+    header_extension->addChild(sfbxS_EncryptionType, (int32_t)0);
 
     {
         std::time_t t = std::time(nullptr);   // get time now
         std::tm* now = std::localtime(&t);
 
         auto timestamp = header_extension->createChild(sfbxS_CreationTimeStamp);
-        timestamp->addPropertyNode(sfbxS_Version, 1000);
-        timestamp->addPropertyNode(sfbxS_Year, now->tm_year);
-        timestamp->addPropertyNode(sfbxS_Month, now->tm_mon);
-        timestamp->addPropertyNode(sfbxS_Day, now->tm_mday);
-        timestamp->addPropertyNode(sfbxS_Hour, now->tm_hour);
-        timestamp->addPropertyNode(sfbxS_Minute, now->tm_min);
-        timestamp->addPropertyNode(sfbxS_Second, now->tm_sec);
-        timestamp->addPropertyNode(sfbxS_Millisecond, 0);
+        timestamp->addChild(sfbxS_Version, 1000);
+        timestamp->addChild(sfbxS_Year, now->tm_year);
+        timestamp->addChild(sfbxS_Month, now->tm_mon);
+        timestamp->addChild(sfbxS_Day, now->tm_mday);
+        timestamp->addChild(sfbxS_Hour, now->tm_hour);
+        timestamp->addChild(sfbxS_Minute, now->tm_min);
+        timestamp->addChild(sfbxS_Second, now->tm_sec);
+        timestamp->addChild(sfbxS_Millisecond, 0);
     }
-    header_extension->addPropertyNode(sfbxS_Creator, "SmallFBX 1.0.0");
+    header_extension->addChild(sfbxS_Creator, "SmallFBX 1.0.0");
     {
         auto scene_info = header_extension->createChild(sfbxS_SceneInfo);
         scene_info->addProperty(PropertyType::String,
             RawVector<char>{'G', 'l', 'o', 'b', 'a', 'l', 'I', 'n', 'f', 'o', 0, 1, 'S', 'c', 'e', 'n', 'e', 'I', 'n', 'f', 'o'});
         scene_info->addProperty(sfbxS_UserData);
-        scene_info->addPropertyNode(sfbxS_Type, sfbxS_UserData);
-        scene_info->addPropertyNode(sfbxS_Version, 100);
+        scene_info->addChild(sfbxS_Type, sfbxS_UserData);
+        scene_info->addChild(sfbxS_Version, 100);
         {
             auto meta = scene_info->createChild(sfbxS_MetaData);
-            meta->addPropertyNode(sfbxS_Version, 100);
-            meta->addPropertyNode(sfbxS_Title, "");
-            meta->addPropertyNode(sfbxS_Subject, "");
-            meta->addPropertyNode(sfbxS_Author, "");
-            meta->addPropertyNode(sfbxS_Keywords, "");
-            meta->addPropertyNode(sfbxS_Revision, "");
-            meta->addPropertyNode(sfbxS_Comment, "");
+            meta->addChild(sfbxS_Version, 100);
+            meta->addChild(sfbxS_Title, "");
+            meta->addChild(sfbxS_Subject, "");
+            meta->addChild(sfbxS_Author, "");
+            meta->addChild(sfbxS_Keywords, "");
+            meta->addChild(sfbxS_Revision, "");
+            meta->addChild(sfbxS_Comment, "");
         }
         {
             auto properties = scene_info->createChild(sfbxS_Properties70);
-            {
-                //properties->createChild();
-                auto p = properties->createChild(sfbxS_P);
-                p->addProperty(sfbxS_DocumentUrl);
-                p->addProperty(sfbxS_KString);
-                p->addProperty(sfbxS_Url);
-                p->addProperty("");
-                p->addProperty("a.fbx");
-            }
-            {
-                auto p = properties->createChild(sfbxS_P);
-                p->addProperty(sfbxS_SrcDocumentUrl);
-                p->addProperty(sfbxS_KString);
-                p->addProperty(sfbxS_Url);
-                p->addProperty("");
-                p->addProperty("a.fbx");
-            }
-            {
-                auto p = properties->createChild(sfbxS_P);
-                p->addProperty(sfbxS_Original);
-                p->addProperty(sfbxS_Compound);
-                p->addProperty("");
-                p->addProperty("");
-            }
-            {
-                auto p = properties->createChild(sfbxS_P);
-                p->addProperty(sfbxS_OriginalApplicationVendor);
-                p->addProperty(sfbxS_KString);
-                p->addProperty("");
-                p->addProperty("");
-                p->addProperty("");
-            }
-            {
-                auto p = properties->createChild(sfbxS_P);
-                p->addProperty(sfbxS_OriginalApplicationName);
-                p->addProperty(sfbxS_KString);
-                p->addProperty("");
-                p->addProperty("");
-                p->addProperty("");
-            }
-            {
-                auto p = properties->createChild(sfbxS_P);
-                p->addProperty(sfbxS_OriginalApplicationVersion);
-                p->addProperty(sfbxS_KString);
-                p->addProperty("");
-                p->addProperty("");
-                p->addProperty("");
-            }
-            {
-                auto p = properties->createChild(sfbxS_P);
-                p->addProperty(sfbxS_OriginalDateTime_GMT);
-                p->addProperty(sfbxS_DateTime);
-                p->addProperty("");
-                p->addProperty("");
-                p->addProperty("");
-            }
-            {
-                auto p = properties->createChild(sfbxS_P);
-                p->addProperty(sfbxS_OriginalFileName);
-                p->addProperty(sfbxS_KString);
-                p->addProperty("");
-                p->addProperty("");
-                p->addProperty("");
-            }
-            {
-                auto p = properties->createChild(sfbxS_P);
-                p->addProperty(sfbxS_LastSaved);
-                p->addProperty(sfbxS_Compound);
-                p->addProperty("");
-                p->addProperty("");
-            }
-            {
-                auto p = properties->createChild(sfbxS_P);
-                p->addProperty(sfbxS_LastSavedApplicationVendor);
-                p->addProperty(sfbxS_KString);
-                p->addProperty("");
-                p->addProperty("");
-                p->addProperty("");
-            }
-            {
-                auto p = properties->createChild(sfbxS_P);
-                p->addProperty(sfbxS_LastSavedApplicationName);
-                p->addProperty(sfbxS_KString);
-                p->addProperty("");
-                p->addProperty("");
-                p->addProperty("");
-            }
-            {
-                auto p = properties->createChild(sfbxS_P);
-                p->addProperty(sfbxS_LastSavedDateTime_GMT);
-                p->addProperty(sfbxS_DateTime );
-                p->addProperty("");
-                p->addProperty("");
-                p->addProperty("");
-            }
+            properties->addChild(sfbxS_P, sfbxS_DocumentUrl, sfbxS_KString, sfbxS_Url, "", "a.fbx");
+            properties->addChild(sfbxS_P, sfbxS_SrcDocumentUrl, sfbxS_KString, sfbxS_Url, "", "a.fbx");
+            properties->addChild(sfbxS_P, sfbxS_Original, sfbxS_Compound, "", "");
+            properties->addChild(sfbxS_P, sfbxS_OriginalApplicationVendor, sfbxS_KString, "", "", "");
+            properties->addChild(sfbxS_P, sfbxS_OriginalApplicationName, sfbxS_KString, "", "", "");
+            properties->addChild(sfbxS_P, sfbxS_OriginalApplicationVersion, sfbxS_KString, "", "", "");
+            properties->addChild(sfbxS_P, sfbxS_OriginalDateTime_GMT, sfbxS_DateTime, "", "", "");
+            properties->addChild(sfbxS_P, sfbxS_OriginalFileName, sfbxS_KString, "", "", "");
+            properties->addChild(sfbxS_P, sfbxS_LastSaved, sfbxS_Compound, "", "");
+            properties->addChild(sfbxS_P, sfbxS_LastSavedApplicationVendor, sfbxS_KString, "", "", "");
+            properties->addChild(sfbxS_P, sfbxS_LastSavedApplicationName, sfbxS_KString, "", "", "");
+            properties->addChild(sfbxS_P, sfbxS_LastSavedDateTime_GMT, sfbxS_DateTime, "", "", "");
         }
     }
+}
+
+void Document::createDocuments()
+{
+    auto doc = createNode(sfbxS_Documents);
+    doc->addChild(sfbxS_Count, (int32)1);
 }
 
 // avoid template lambda because it requires C++20
@@ -430,8 +351,8 @@ void Document::createDefinitions()
         if (n == 0)
             return;
         auto ot = definitions->createChild(sfbxS_ObjectType);
-        ot->addProperty(sfbxS_NodeAttribute);
-        ot->addPropertyNode(sfbxS_Count, (int32)n);
+        ot->addProperty(type);
+        ot->addChild(sfbxS_Count, (int32)n);
     };
 
     add_object_type(1, sfbxS_GlobalSettings);
@@ -454,7 +375,7 @@ void Document::constructNodes()
 {
     createHeaderExtention();
     createNode(sfbxS_GlobalSettings);
-    createNode(sfbxS_Documents);
+    createDocuments();
     createNode(sfbxS_References);
     createDefinitions();
     createNode(sfbxS_Objects);

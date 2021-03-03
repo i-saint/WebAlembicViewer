@@ -119,7 +119,9 @@ public:
     bool getVisibility() const;
     RotationOrder getRotationOrder() const;
     float3 getPosition() const;
+    float3 getPreRotation() const;
     float3 getRotation() const;
+    float3 getPostRotation() const;
     float3 getScale() const;
     float4x4 getLocalMatrix() const;
     float4x4 getGlobalMatrix() const;
@@ -127,7 +129,9 @@ public:
     void setVisibility(bool v);
     void setRotationOrder(RotationOrder v);
     void setPosition(float3 v);
+    void setPreRotation(float3 v);
     void setRotation(float3 v);
+    void setPostRotation(float3 v);
     void setScale(float3 v);
 
 protected:
@@ -143,6 +147,7 @@ protected:
     float3 m_position{};
     float3 m_pre_rotation{};
     float3 m_rotation{};
+    float3 m_post_rotation{};
     float3 m_scale{1.0f, 1.0f, 1.0f};
 };
 

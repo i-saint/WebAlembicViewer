@@ -55,6 +55,7 @@ public:
 
 private:
     void createHeaderExtention();
+    void createDocuments();
     template<class T> int32 countObject() const;
     void createDefinitions();
 

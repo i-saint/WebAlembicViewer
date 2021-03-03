@@ -196,8 +196,8 @@ void Property::assign(const char* v)
 {
     m_type = PropertyType::String;
     m_data.clear();
-    if (v && *v != '\0')
-        m_data.assign(v, v + (std::strlen(v) - 1));
+    if (v)
+        m_data.assign(v, v + std::strlen(v));
 }
 
 void Property::assign(PropertyType t, const RawVector<char>& v)

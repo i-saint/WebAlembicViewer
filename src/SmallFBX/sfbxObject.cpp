@@ -236,6 +236,13 @@ void Model::constructObject()
                     (float)GetPropertyValue<float64>(p, 6),
                 };
             }
+            else if (pname == sfbxS_PostRotation) {
+                m_post_rotation = float3{
+                    (float)GetPropertyValue<float64>(p, 4),
+                    (float)GetPropertyValue<float64>(p, 5),
+                    (float)GetPropertyValue<float64>(p, 6),
+                };
+            }
             else if (pname == sfbxS_LclRotation) {
                 m_rotation = float3{
                     (float)GetPropertyValue<float64>(p, 4),
@@ -254,6 +261,8 @@ void Model::constructObject()
     }
 }
 
+#define sfbxVector3D(V) (float64)V.x, (float64)V.y, (float64)V.z
+
 void Model::constructNodes()
 {
     super::constructNodes();
@@ -268,48 +277,44 @@ void Model::constructNodes()
 
     // position
     if (m_position != float3::zero()) {
-        auto p = properties->createChild(sfbxS_P);
-        p->addProperty(sfbxS_LclTranslation);
-        p->addProperty(sfbxS_LclTranslation);
-        p->addProperty(sfbxS_Empty);
-        p->addProperty(sfbxS_A);
-        p->addProperty((float64)m_position.x);
-        p->addProperty((float64)m_position.y);
-        p->addProperty((float64)m_position.z);
+        properties->addChild(sfbxS_P,
+            sfbxS_LclTranslation, sfbxS_LclTranslation, sfbxS_Empty, sfbxS_A, sfbxVector3D(m_position));
     }
 
-    // rotation
-    if (m_rotation != float3::zero()) {
-        {
-            auto p = properties->createChild(sfbxS_P);
-            p->addProperty(sfbxS_RotationOrder);
-            p->addProperty(sfbxS_RotationOrder);
-            p->addProperty(sfbxS_Empty);
-            p->addProperty(sfbxS_A);
-            p->addProperty((int32)m_rotation_order);
+    // rotation active
+    if (m_pre_rotation != float3::zero() || m_post_rotation != float3::zero() || m_rotation != float3::zero()) {
+        properties->addChild(sfbxS_P,
+            sfbxS_RotationActive, sfbxS_bool, sfbxS_Empty, sfbxS_Empty, (int32)1);
+
+        // rotation order
+        if (m_rotation_order != RotationOrder::XYZ) {
+            properties->addChild(sfbxS_P,
+                sfbxS_RotationOrder, sfbxS_RotationOrder, sfbxS_Empty, sfbxS_A, (int32)m_rotation_order);
         }
-        {
-            auto p = properties->createChild(sfbxS_P);
-            p->addProperty(sfbxS_LclRotation);
-            p->addProperty(sfbxS_LclRotation);
-            p->addProperty(sfbxS_Empty);
-            p->addProperty(sfbxS_A);
-            p->addProperty((float64)m_rotation.x);
-            p->addProperty((float64)m_rotation.y);
-            p->addProperty((float64)m_rotation.z);
+
+        // pre-rotation
+        if (m_pre_rotation != float3::zero()) {
+            properties->addChild(sfbxS_P,
+                sfbxS_PreRotation, sfbxS_Vector3D, sfbxS_Vector, sfbxS_Empty, sfbxVector3D(m_pre_rotation));
+        }
+
+        // post-rotation
+        if (m_post_rotation != float3::zero()) {
+            properties->addChild(sfbxS_P,
+                sfbxS_PostRotation, sfbxS_Vector3D, sfbxS_Vector, sfbxS_Empty, sfbxVector3D(m_post_rotation));
+        }
+
+        // rotation
+        if (m_rotation != float3::zero()) {
+            properties->addChild(sfbxS_P,
+                sfbxS_LclRotation, sfbxS_LclRotation, sfbxS_Empty, sfbxS_A, sfbxVector3D(m_rotation));
         }
     }
 
     // scale
     if (m_scale!= float3::one()) {
-        auto p = properties->createChild(sfbxS_P);
-        p->addProperty(sfbxS_LclScale);
-        p->addProperty(sfbxS_LclScale);
-        p->addProperty(sfbxS_Empty);
-        p->addProperty(sfbxS_A);
-        p->addProperty((float64)m_scale.x);
-        p->addProperty((float64)m_scale.y);
-        p->addProperty((float64)m_scale.z);
+        properties->addChild(sfbxS_P,
+            sfbxS_LclScale, sfbxS_LclScale, sfbxS_Empty, sfbxS_A, sfbxVector3D(m_scale));
     }
 }
 
@@ -341,16 +346,26 @@ Mesh* Model::getMesh() const { return m_mesh; }
 bool Model::getVisibility() const { return m_visibility; }
 RotationOrder Model::getRotationOrder() const { return m_rotation_order; }
 float3 Model::getPosition() const { return m_position; }
+
+float3 Model::getPreRotation() const { return m_pre_rotation; }
 float3 Model::getRotation() const { return m_rotation; }
+float3 Model::getPostRotation() const { return m_post_rotation; }
 float3 Model::getScale() const { return m_scale; }
 
 float4x4 Model::getLocalMatrix() const
 {
+    // scale
     float4x4 ret = scale44(m_scale);
+
+    // position
     if (m_pre_rotation != float3::zero())
         ret *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_pre_rotation * DegToRad)));
     if (m_rotation != float3::zero())
         ret *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_rotation * DegToRad)));
+    if (m_post_rotation != float3::zero())
+        ret *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_post_rotation * DegToRad)));
+
+    // translation
     (float3&)ret[3] = m_position;
     return ret;
 }
@@ -364,7 +379,9 @@ float4x4 Model::getGlobalMatrix() const
 void Model::setVisibility(bool v) { m_visibility = v; }
 void Model::setRotationOrder(RotationOrder v) { m_rotation_order = v; }
 void Model::setPosition(float3 v) { m_position = v; }
+void Model::setPreRotation(float3 v) { m_pre_rotation = v; }
 void Model::setRotation(float3 v) { m_rotation = v; }
+void Model::setPostRotation(float3 v) { m_post_rotation = v; }
 void Model::setScale(float3 v) { m_scale = v; }
 
 void Light::constructObject()
@@ -468,7 +485,7 @@ void Mesh::constructObject()
 }
 
 template<class D, class S>
-static inline void CreatePropertyAndCopy(Node* dst_node, RawVector<S> src)
+static inline void CreatePropertyAndCopy(Node* dst_node, const RawVector<S>& src)
 {
     auto dst_prop = dst_node->createProperty();
     auto dst = dst_prop->allocateArray<D>(src.size());
