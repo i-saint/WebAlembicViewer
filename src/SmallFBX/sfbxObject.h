@@ -51,6 +51,9 @@ public:
     virtual void constructObject();
     virtual void constructNodes();
 
+    template<class T> T* createChild(const std::string& name = "");
+    virtual void addChild(Object* v);
+
     ObjectSubType getSubType() const;
     int64 getID() const;
     const std::string& getName() const;
@@ -65,9 +68,6 @@ public:
     void setID(int64 v);
     void setName(const std::string& v);
     void setNode(Node* v);
-
-    template<class T> T* createChild(const std::string& name = "");
-    virtual void addChild(Object* v);
 
 protected:
     Object(const Object&) = delete;
@@ -107,8 +107,14 @@ public:
     ObjectType getType() const override;
     void constructObject() override;
     void constructNodes() override;
+    void addChild(Object* v) override;
 
     Model* getParentModel() const;
+    span<NodeAttribute*> getNodeAttributes() const;
+    span<Material*> getMaterials() const;
+    Camera* getCamera() const;
+    Light* getLight() const;
+    Mesh* getMesh() const;
 
     bool getVisibility() const;
     RotationOrder getRotationOrder() const;
@@ -127,7 +133,11 @@ public:
 protected:
     void addParent(Object* v) override;
 
-    Model* m_parent_model = nullptr;
+    Model* m_parent_model{};
+    std::vector<NodeAttribute*> m_node_attributes;
+    std::vector<Material*> m_materials;
+    Mesh* m_mesh{};
+
     bool m_visibility = true;
     RotationOrder m_rotation_order = RotationOrder::XYZ;
     float3 m_position{};
@@ -179,6 +189,12 @@ friend class Document;
 using super = Object;
 public:
     ObjectType getType() const override;
+    void addChild(Object* v) override;
+
+    span<Deformer*> getDeformers() const;
+
+protected:
+    std::vector<Deformer*> m_deformers;
 };
 
 

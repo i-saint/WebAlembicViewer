@@ -235,6 +235,8 @@ std::tuple<double, double> SceneFBX::getTimeRange() const
 void SceneFBX::applyDeform()
 {
     bool needs_upload = false;
+
+    // skin
     for (auto& skin : m_skin_data) {
         if (!skin->mesh || skin->mesh->indices_tri.empty())
             continue;
@@ -256,6 +258,8 @@ void SceneFBX::applyDeform()
         needs_upload = true;
     }
 
+    // todo: blend shape
+
     if (needs_upload)
         m_mono_mesh->upload();
 }
@@ -264,8 +268,6 @@ void SceneFBX::seek(double time)
 {
     if (!m_document || time == m_time)
         return;
-
-    // todo: handle animation
 
     applyDeform();
 }

@@ -38,8 +38,8 @@ private:
     GLuint m_ia_normal{};
 
     float4x4 m_view_proj = float4x4::identity();
-    float4 m_clear_color{ 0.25f, 0.25f, 0.25f, 0.0f };
-    float4 m_face_color{ 0.4f, 0.4f, 0.4f, 1.0f };
+    float4 m_clear_color{ 0.2f, 0.2f, 0.2f, 0.0f };
+    float4 m_face_color{ 0.5f, 0.5f, 0.5f, 1.0f };
     float4 m_fill_color{ 0.0f, 0.0f, 0.0f, 1.0f };
     float m_point_size{ 4.0f };
 

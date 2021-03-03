@@ -139,20 +139,6 @@ void Object::constructNodes()
     }
 }
 
-ObjectSubType Object::getSubType() const { return m_subtype; }
-int64 Object::getID() const { return m_id; }
-const std::string& Object::getName() const { return m_name; }
-Node* Object::getNode() const { return m_node; }
-
-span<Object*> Object::getParents() const  { return make_span(m_parents); }
-span<Object*> Object::getChildren() const { return make_span(m_children); }
-Object* Object::getParent(size_t i) const { return i < m_parents.size() ? m_parents[i] : nullptr; }
-Object* Object::getChild(size_t i) const  { return i < m_children.size() ? m_children[i] : nullptr; }
-
-void Object::setSubType(ObjectSubType v) { m_subtype = v; }
-void Object::setID(int64 id) { m_id = id; }
-void Object::setName(const std::string& v) { m_name = v; }
-
 template<class T> T* Object::createChild(const std::string& name)
 {
     auto ret = m_document->createObject<T>();
@@ -179,6 +165,20 @@ void Object::addParent(Object* v)
         m_parents.push_back(v);
     }
 }
+
+ObjectSubType Object::getSubType() const { return m_subtype; }
+int64 Object::getID() const { return m_id; }
+const std::string& Object::getName() const { return m_name; }
+Node* Object::getNode() const { return m_node; }
+
+span<Object*> Object::getParents() const  { return make_span(m_parents); }
+span<Object*> Object::getChildren() const { return make_span(m_children); }
+Object* Object::getParent(size_t i) const { return i < m_parents.size() ? m_parents[i] : nullptr; }
+Object* Object::getChild(size_t i) const  { return i < m_children.size() ? m_children[i] : nullptr; }
+
+void Object::setSubType(ObjectSubType v) { m_subtype = v; }
+void Object::setID(int64 id) { m_id = id; }
+void Object::setName(const std::string& v) { m_name = v; }
 
 
 
@@ -231,9 +231,9 @@ void Model::constructObject()
             }
             else if (pname == sfbxS_PreRotation) {
                 m_pre_rotation = float3{
-                    -(float)GetPropertyValue<float64>(p, 4),
+                    (float)GetPropertyValue<float64>(p, 4),
                     (float)GetPropertyValue<float64>(p, 5),
-                    -(float)GetPropertyValue<float64>(p, 6),
+                    (float)GetPropertyValue<float64>(p, 6),
                 };
             }
             else if (pname == sfbxS_LclRotation) {
@@ -313,7 +313,31 @@ void Model::constructNodes()
     }
 }
 
+void Model::addParent(Object* v)
+{
+    super::addParent(v);
+    if (auto model = as<Model>(v))
+        m_parent_model = model;
+}
+
+void Model::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto attr = as<NodeAttribute>(v))
+        m_node_attributes.push_back(attr);
+    else if (auto material = as<Material>(v))
+        m_materials.push_back(material);
+    else if (auto mesh = as<Mesh>(v))
+        m_mesh = mesh;
+}
+
 Model* Model::getParentModel() const { return m_parent_model; }
+span<NodeAttribute*> Model::getNodeAttributes() const { return make_span(m_node_attributes); }
+span<Material*> Model::getMaterials() const { return make_span(m_materials); }
+Camera* Model::getCamera() const { return as<Camera>(const_cast<Model*>(this)); }
+Light* Model::getLight() const { return as<Light>(const_cast<Model*>(this)); }
+Mesh* Model::getMesh() const { return m_mesh; }
+
 bool Model::getVisibility() const { return m_visibility; }
 RotationOrder Model::getRotationOrder() const { return m_rotation_order; }
 float3 Model::getPosition() const { return m_position; }
@@ -324,9 +348,9 @@ float4x4 Model::getLocalMatrix() const
 {
     float4x4 ret = scale44(m_scale);
     if (m_pre_rotation != float3::zero())
-        ret *= to_mat4x4(rotate_euler(m_rotation_order, m_pre_rotation * DegToRad));
+        ret *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_pre_rotation * DegToRad)));
     if (m_rotation != float3::zero())
-        ret *= to_mat4x4(rotate_euler(m_rotation_order, m_rotation * DegToRad));
+        ret *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_rotation * DegToRad)));
     (float3&)ret[3] = m_position;
     return ret;
 }
@@ -342,14 +366,6 @@ void Model::setRotationOrder(RotationOrder v) { m_rotation_order = v; }
 void Model::setPosition(float3 v) { m_position = v; }
 void Model::setRotation(float3 v) { m_rotation = v; }
 void Model::setScale(float3 v) { m_scale = v; }
-
-void Model::addParent(Object* v)
-{
-    super::addParent(v);
-    if (auto model = as<Model>(v)) {
-        m_parent_model = model;
-    }
-}
 
 void Light::constructObject()
 {
@@ -380,13 +396,15 @@ void Camera::constructNodes()
 
 ObjectType Geometry::getType() const { return ObjectType::Geometry; }
 
-template<class D, class S>
-static inline void CreatePropertyAndCopy(Node* dst_node, RawVector<S> src)
+void Geometry::addChild(Object* v)
 {
-    auto dst_prop = dst_node->createProperty();
-    auto dst = dst_prop->allocateArray<D>(src.size());
-    copy(dst, make_span(src));
+    super::addChild(v);
+    if (auto deformer = as<Deformer>(v))
+        m_deformers.push_back(deformer);
 }
+
+span<Deformer*> Geometry::getDeformers() const { return make_span(m_deformers); }
+
 
 void Mesh::constructObject()
 {
@@ -447,6 +465,14 @@ void Mesh::constructObject()
             m_color_layers.push_back(tmp);
         }
     }
+}
+
+template<class D, class S>
+static inline void CreatePropertyAndCopy(Node* dst_node, RawVector<S> src)
+{
+    auto dst_prop = dst_node->createProperty();
+    auto dst = dst_prop->allocateArray<D>(src.size());
+    copy(dst, make_span(src));
 }
 
 void Mesh::constructNodes()
@@ -572,18 +598,18 @@ void Skin::constructNodes()
     super::constructNodes();
 }
 
-void Skin::addChild(Object* v)
-{
-    super::addChild(v);
-    if (auto cluster = as<Cluster>(v))
-        m_clusters.push_back(cluster);
-}
-
 void Skin::addParent(Object* v)
 {
     super::addParent(v);
     if (auto mesh = as<Mesh>(v))
         m_mesh = mesh;
+}
+
+void Skin::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto cluster = as<Cluster>(v))
+        m_clusters.push_back(cluster);
 }
 
 Mesh* Skin::getMesh() const { return m_mesh; }
