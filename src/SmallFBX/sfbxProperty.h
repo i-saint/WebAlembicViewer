@@ -58,7 +58,6 @@ public:
     void assign(const char* v);
     void assign(PropertyType t, const RawVector<char>& v);
 
-    uint64_t getSizeInBytes() const;
     PropertyType getType() const;
     bool isArray() const;
     uint64_t getArraySize() const;

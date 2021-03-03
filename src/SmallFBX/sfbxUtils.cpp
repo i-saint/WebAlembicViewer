@@ -65,4 +65,37 @@ bool DeformVectors(span<float3> dst, const JointWeights& jw, const JointMatrices
         [](float4x4 m, float3 p) { return mul_v(m, p); });
 }
 
+
+
+char CounterStream::StreamBuf::s_dummy_buf[1024];
+
+CounterStream::StreamBuf::StreamBuf()
+{
+    this->setp(s_dummy_buf, s_dummy_buf + std::size(s_dummy_buf));
+}
+
+int CounterStream::StreamBuf::overflow(int c)
+{
+    m_size += uint64_t(this->pptr() - this->pbase()) + 1;
+    this->setp(s_dummy_buf, s_dummy_buf + std::size(s_dummy_buf));
+    return c;
+}
+
+int CounterStream::StreamBuf::sync()
+{
+    m_size += uint64_t(this->pptr() - this->pbase());
+    this->setp(s_dummy_buf, s_dummy_buf + std::size(s_dummy_buf));
+    return 0;
+}
+
+void CounterStream::StreamBuf::reset()
+{
+    m_size = 0;
+    this->setp(s_dummy_buf, s_dummy_buf + std::size(s_dummy_buf));
+}
+
+CounterStream::CounterStream() : std::ostream(&m_buf) {}
+uint64_t CounterStream::size() { m_buf.sync(); return m_buf.m_size; }
+void CounterStream::reset() { m_buf.reset(); }
+
 } // namespace sfbx

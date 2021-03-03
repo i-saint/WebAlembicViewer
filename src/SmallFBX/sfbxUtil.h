@@ -204,4 +204,27 @@ struct JointMatrices;
 bool DeformPoints(span<float3> dst, const JointWeights& jw, const JointMatrices& jm, span<float3> src);
 bool DeformVectors(span<float3> dst, const JointWeights& jw, const JointMatrices& jm, span<float3> src);
 
+
+class CounterStream : public std::ostream
+{
+public:
+    CounterStream();
+    uint64_t size();
+    void reset();
+
+private:
+    class StreamBuf : public std::streambuf
+    {
+    public:
+        static char s_dummy_buf[1024];
+
+        StreamBuf();
+        int overflow(int c) override;
+        int sync() override;
+        void reset();
+
+        uint64_t m_size = 0;
+    } m_buf;
+};
+
 } // namespace sfbx

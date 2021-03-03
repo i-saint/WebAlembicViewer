@@ -9,7 +9,8 @@ friend class Document;
 public:
     uint64_t read(std::istream &input, uint64_t start_offset);
     uint64_t write(std::ostream &output, uint64_t start_offset);
-    bool isNull();
+    bool isNull() const;
+    bool isRoot() const;
 
     void setName(const std::string& v);
 
@@ -24,7 +25,6 @@ public:
     template<class... T> void addChild(const std::string& name, T&&... v) { createChild(name.c_str())->addProperties(v...); }
 
 
-    uint64_t getSizeInBytes() const;
     const std::string& getName() const;
 
     span<PropertyPtr> getProperties() const;

@@ -50,47 +50,65 @@ uint64_t Node::read(std::istream& is, uint64_t start_offset)
 
 uint64_t Node::write(std::ostream& os, uint64_t start_offset)
 {
-    uint32_t header_size = getHeaderSize();
+    Node null_node;
+    null_node.m_document = m_document;
+
+    uint32_t header_size = getHeaderSize() + m_name.size();
+    uint64_t property_size = 0;
+    uint64_t children_size = 0;
     if (isNull()) {
         for (uint32_t i = 0; i < header_size; i++)
             write1(os, (uint8_t)0);
         return header_size;
     }
 
-    uint64_t property_size = 0;
-    for (auto prop : m_properties)
-        property_size += prop->getSizeInBytes();
+    {
+        CounterStream cs;
+        for (auto prop : m_properties)
+            prop->write(cs);
+        property_size = cs.size();
+    }
+    {
+        CounterStream cs;
+        for (auto child : m_children)
+            child->write(cs, 0);
+        null_node.write(cs, 0);
+        children_size = cs.size();
+    }
 
-    uint64_t pos = header_size + m_name.length() + property_size;
-    for (auto child : m_children)
-        pos += child->getSizeInBytes();
-
+    uint64_t end_offset = start_offset + header_size + property_size + children_size;
     if (getDocumentVersion() >= sfbxI_FBX2016_FileVersion) {
         // size records are 64bit since FBX 2016
-        write1(os, uint64_t(start_offset + pos));
+        write1(os, uint64_t(end_offset));
         write1(os, uint64_t(m_properties.size()));
         write1(os, uint64_t(property_size));
     }
     else {
-        write1(os, uint32_t(start_offset + pos));
+        write1(os, uint32_t(end_offset));
         write1(os, uint32_t(m_properties.size()));
         write1(os, uint32_t(property_size));
     }
     write1(os, uint8_t(m_name.size()));
     writev(os, m_name.data(), m_name.size());
 
-    pos = header_size + m_name.length() + property_size;
     for (auto prop : m_properties)
         prop->write(os);
+
+    uint64_t pos = header_size + property_size;
     for (auto child : m_children)
         pos += child->write(os, start_offset + pos);
-
+    pos += null_node.write(os, start_offset + pos);
     return pos;
 }
 
-bool Node::isNull()
+bool Node::isNull() const
 {
     return m_name.empty() && m_children.empty() && m_properties.empty();
+}
+
+bool Node::isRoot() const
+{
+    return m_parent == nullptr;
 }
 
 void Node::setName(const std::string& v)
@@ -120,16 +138,6 @@ void Node::eraseChild(Node* n)
     auto it = std::find(m_children.begin(), m_children.end(), n);
     if (it != m_children.end())
         m_children.erase(it);
-}
-
-uint64_t Node::getSizeInBytes() const
-{
-    uint64_t ret = getHeaderSize() + m_name.length();
-    for (auto& prop : m_properties)
-        ret += prop->getSizeInBytes();
-    for (auto& child : m_children)
-        ret += child->getSizeInBytes();
-    return ret;
 }
 
 const std::string& Node::getName() const

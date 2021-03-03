@@ -90,6 +90,7 @@ void Property::write(std::ostream& os)
         writev(os, m_data.data(), m_data.size());
     }
     else if (!isArray()) {
+        // scalar
         switch (m_type) {
         case PropertyType::Bool:
         case PropertyType::Int8:
@@ -107,11 +108,9 @@ void Property::write(std::ostream& os)
             write1(os, m_scalar.i64);
             break;
         default:
-            throw std::runtime_error(std::string("Unsupported property type ") + std::to_string((char)m_type));
+            printf("sfbx::Property::write(): Unsupported property type %c\n", (char)m_type);
             break;
         }
-        // scalar
-        writev(os, m_data.data(), m_data.size());
     }
     else {
         // array
@@ -206,33 +205,6 @@ void Property::assign(PropertyType t, const RawVector<char>& v)
     m_data = v;
 }
 
-uint64_t Property::getSizeInBytes() const
-{
-    switch (m_type) {
-    case PropertyType::Bool:
-    case PropertyType::Int8:
-        return 1 + 1;
-
-    case PropertyType::Int16:
-        return 2 + 1;
-
-    case PropertyType::Int32:
-    case PropertyType::Float32:
-        return 4 + 1;
-
-    case PropertyType::Int64:
-    case PropertyType::Float64:
-        return 4 + 1;
-
-    case PropertyType::String:
-    case PropertyType::Blob:
-        return m_data.size() + 4 + 1;
-
-    default:
-        return m_data.size() + 12 + 1;
-    }
-}
-
 PropertyType Property::getType() const
 {
     return m_type;
@@ -279,19 +251,6 @@ template<> span<double4> Property::getArray() const { return make_span((double4*
 std::string Property::getString() const
 {
     return std::string(m_data.data(), m_data.size());
-}
-
-static inline char Base16Letter(uint8_t n)
-{
-    n %= 16;
-    if (n <= 9)
-        return n + '0';
-    return n + 'a' - 10;
-}
-
-static inline std::string Base16Number(uint8_t n)
-{
-    return std::string() + Base16Letter(n >> 4) + Base16Letter(n);
 }
 
 std::string Property::toString(int depth) const
