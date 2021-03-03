@@ -2,6 +2,11 @@
 #include "Test.h"
 #include "SmallFBX.h"
 
+using sfbx::as;
+using sfbx::span;
+using sfbx::RawVector;
+using sfbx::float3;
+
 static void PrintObject(sfbx::Object* obj, int depth = 0)
 {
     // indent
@@ -14,13 +19,13 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
         sfbx::GetFbxObjectName(obj->getType()),
         sfbx::GetFbxObjectSubName(obj->getSubType()));
 
-    if (auto skin = sfbx::as<sfbx::Skin>(obj)) {
+    if (auto skin = as<sfbx::Skin>(obj)) {
         auto weights_v = skin->getJointWeightsVariable();
         auto weights_4 = skin->getJointWeightsFixed(4);
         auto matrices = skin->getJointMatrices();
         testPrint("");
     }
-    else if (auto anim = sfbx::as<sfbx::AnimationLayer>(obj)) {
+    else if (auto anim = as<sfbx::AnimationLayer>(obj)) {
         if (auto pos = anim->getPosition()) {
             float start = pos->getStartTime();
             float end = pos->getEndTime();
@@ -61,10 +66,23 @@ testCase(fbxWrite)
     {
         sfbx::DocumentPtr doc = sfbx::MakeDocument();
 
-        auto model = doc->createObject<sfbx::Model>("model");
+        auto model = doc->createObject<sfbx::Model>("mesh");
         model->setPosition({ 0.0f, 1.0f, 2.0f });
         model->setRotation({ 0.0f, 30.0f, 60.0f });
         model->setScale({ 1.0f, 2.0f, 3.0f });
+
+        auto mesh = model->createChild<sfbx::Mesh>();
+        RawVector<int> counts{ 4 };
+        RawVector<int> indices{ 0, 1, 2, 3 };
+        RawVector<float3> points{
+            {-1, 0, -1},
+            { 1, 0, -1},
+            { 1, 0,  1},
+            {-1, 0,  1},
+        };
+        mesh->setCounts(counts);
+        mesh->setIndices(indices);
+        mesh->setPoints(points);
 
         doc->constructNodes();
         doc->writeBinary("test_bin.fbx");

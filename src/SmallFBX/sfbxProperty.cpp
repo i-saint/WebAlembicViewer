@@ -346,7 +346,7 @@ std::string Property::toString(int depth) const
             if (!m_data.empty()) {
                 auto get_span = [](const char* s, size_t n) {
                     size_t i = 0;
-                    for (; s[i] != 0 && i < n; ++i) {}
+                    for (; s[i] != '\0' && i < n; ++i) {}
                     return make_span(s, i);
                 };
 

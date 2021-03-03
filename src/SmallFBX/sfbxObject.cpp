@@ -122,19 +122,31 @@ void Object::constructObject()
 
 void Object::constructNodes()
 {
+    std::string name = m_name;
+    name += (char)0;
+    name += (char)1;
+    name += GetFbxObjectName(getType());
+
     auto objects = m_document->findNode(sfbxS_Objects);
     m_node = objects->createChild(GetFbxObjectName(getType()));
     m_node->addProperty(m_id);
-    m_node->addProperty(m_name);
-    m_node->addProperty(GetFbxObjectSubName(m_subtype));
+    m_node->addProperty(name);
+    m_node->addProperty(GetFbxObjectSubName(getSubType()));
 
-    if (!m_parents.empty()) {
+    {
         auto connections = m_document->findNode(sfbxS_Connections);
-        for (auto parent : getParents()) {
-            auto c = connections->createChild(sfbxS_C);
-            c->addProperty(sfbxS_OO);
-            c->addProperty(getID());
-            c->addProperty(parent->getID());
+        auto add_link = [connections, this](int64 id) {
+            connections->addChild(sfbxS_C, sfbxS_OO, getID(), id);
+        };
+
+        auto parents = getParents();
+        if (parents.empty()) {
+            // this seems required
+            add_link(0);
+        }
+        else {
+            for (auto parent : parents)
+                add_link(parent->getID());
         }
     }
 }
@@ -163,6 +175,8 @@ void Object::addParent(Object* v)
 {
     if (v) {
         m_parents.push_back(v);
+        if (getType() != ObjectType::Model)
+            setName(v->getName());
     }
 }
 
@@ -484,6 +498,13 @@ void Mesh::constructObject()
     }
 }
 
+void Mesh::addParent(Object* v)
+{
+    super::addParent(v);
+    if (auto model = as<Model>(v))
+        model->setSubType(ObjectSubType::Mesh);
+}
+
 template<class D, class S>
 static inline void CreatePropertyAndCopy(Node* dst_node, const RawVector<S>& src)
 {
@@ -494,6 +515,7 @@ static inline void CreatePropertyAndCopy(Node* dst_node, const RawVector<S>& src
 
 void Mesh::constructNodes()
 {
+    setSubType(ObjectSubType::Mesh);
     super::constructNodes();
 
     Node* n = getNode();
@@ -503,21 +525,32 @@ void Mesh::constructNodes()
 
     // indices
     {
-        auto* src_counts = m_counts.data();
-        auto dst_node = n->createChild(sfbxS_PolygonVertexIndex);
-        auto dst_prop = dst_node->createProperty();
-        auto dst_indices = dst_prop->allocateArray<int>(m_indices.size()).data();
+        size_t total_counts = 0;
+        for (int c : m_counts)
+            total_counts += c;
 
-        size_t cpoints = 0;
-        for (int i : m_indices) {
-            if (++cpoints == *src_counts) {
-                i = ~i; // negative value indicates the last index in the face
-                cpoints = 0;
-                ++src_counts;
+        if (total_counts != m_indices.size()) {
+            printf("sfbx::Mesh: *** indices mismatch with counts ***\n");
+        }
+        else {
+            auto* src_counts = m_counts.data();
+            auto dst_node = n->createChild(sfbxS_PolygonVertexIndex);
+            auto dst_prop = dst_node->createProperty();
+            auto dst_indices = dst_prop->allocateArray<int>(m_indices.size()).data();
+
+            size_t cpoints = 0;
+            for (int i : m_indices) {
+                if (++cpoints == *src_counts) {
+                    i = ~i; // negative value indicates the last index in the face
+                    cpoints = 0;
+                    ++src_counts;
+                }
+                *dst_indices++ = i;
             }
-            *dst_indices++ = i;
         }
     }
+
+    n->addChild(sfbxS_GeometryVersion, sfbxI_GeometryVersion);
 
     // normal layers
     for (auto& layer : m_normal_layers) {
@@ -572,6 +605,7 @@ void Shape::constructObject()
 
 void Shape::constructNodes()
 {
+    setSubType(ObjectSubType::Shape);
     super::constructNodes();
 
     Node* n = getNode();
@@ -612,6 +646,7 @@ void Skin::constructObject()
 
 void Skin::constructNodes()
 {
+    setSubType(ObjectSubType::Skin);
     super::constructNodes();
 }
 
@@ -768,6 +803,7 @@ void Cluster::constructObject()
 
 void Cluster::constructNodes()
 {
+    setSubType(ObjectSubType::Cluster);
     super::constructNodes();
 }
 
@@ -789,6 +825,7 @@ void BlendShape::constructObject()
 
 void BlendShape::constructNodes()
 {
+    setSubType(ObjectSubType::BlendShape);
     super::constructNodes();
 }
 
@@ -800,6 +837,7 @@ void BlendShapeChannel::constructObject()
 
 void BlendShapeChannel::constructNodes()
 {
+    setSubType(ObjectSubType::BlendShapeChannel);
     super::constructNodes();
 }
 
@@ -828,6 +866,7 @@ void BindPose::constructObject()
 
 void BindPose::constructNodes()
 {
+    setSubType(ObjectSubType::BindPose);
     super::constructNodes();
     // todo
 }
@@ -843,7 +882,7 @@ ObjectType Material::getType() const { return ObjectType::Material; }
 
 void Material::constructObject()
 {
-    super::constructNodes();
+    super::constructObject();
     // todo
 }
 

@@ -237,6 +237,8 @@ public:
     void addColorLayer(LayerElementF4&& v);
 
 protected:
+    void addParent(Object* v) override;
+
     RawVector<int> m_counts;
     RawVector<int> m_indices;
     RawVector<float3> m_points;
