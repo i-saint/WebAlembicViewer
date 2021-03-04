@@ -11,20 +11,26 @@ namespace sfbx {
 uint32_t SizeOfElement(PropertyType type)
 {
     switch (type) {
-    case PropertyType::BoolArray:
-        return 1;
-
+    case PropertyType::Int16:
     case PropertyType::Int16Array:
         return 2;
 
+    case PropertyType::Int32:
     case PropertyType::Int32Array:
+    case PropertyType::Float32:
     case PropertyType::Float32Array:
         return 4;
 
+    case PropertyType::Int64:
     case PropertyType::Int64Array:
+    case PropertyType::Float64:
     case PropertyType::Float64Array:
         return 8;
 
+    case PropertyType::Bool:
+    case PropertyType::BoolArray:
+    case PropertyType::String:
+    case PropertyType::Blob:
     default:
         return 1;
     }
@@ -57,13 +63,13 @@ void Property::read(std::istream& is)
             m_scalar.i64 = read1<int64>(is);
             break;
         default:
-            throw std::runtime_error(std::string("Unsupported property type ") + std::to_string((char)m_type));
+            throw std::runtime_error(std::string("sfbx::Property::read(): Unsupported property type ") + std::to_string((char)m_type));
             break;
         }
     }
     else {
-        uint32_t array_size = read1<uint32_t>(is); // number of elements in array
-        uint32_t encoding = read1<uint32_t>(is); // 0 .. uncompressed, 1 .. zlib-compressed
+        uint32_t array_size = read1<uint32_t>(is);
+        uint32_t encoding = read1<uint32_t>(is); // 0: plain 1: zlib-compressed
 
         uLong src_size = read1<uint32_t>(is);
         uLong dest_size = SizeOfElement(m_type) * array_size;
@@ -73,9 +79,9 @@ void Property::read(std::istream& is)
             readv(is, m_data.data(), dest_size);
         }
         else if (encoding == 1) {
-            RawVector<char> compressed_buffer(src_size);
-            readv(is, compressed_buffer.data(), src_size);
-            uncompress2((Bytef*)m_data.data(), &dest_size, (const Bytef*)compressed_buffer.data(), &src_size);
+            RawVector<char> compressed(src_size);
+            readv(is, compressed.data(), src_size);
+            uncompress2((Bytef*)m_data.data(), &dest_size, (const Bytef*)compressed.data(), &src_size);
         }
     }
 }
@@ -105,16 +111,36 @@ void Property::write(std::ostream& os)
             write1(os, m_scalar.i64);
             break;
         default:
-            printf("sfbx::Property::write(): Unsupported property type %c\n", (char)m_type);
+            sfbxPrint("sfbx::Property::write(): Unsupported property type %c\n", (char)m_type);
             break;
         }
     }
     else {
         // array
-        write1(os, (uint32_t)getArraySize()); // arrayLength
-        write1(os, (uint32_t)0); // encoding // TODO: support compression
-        write1(os, (uint32_t)m_data.size());
-        writev(os, m_data.data(), m_data.size());
+        // use zlib if the data size is reasonably large.
+        bool use_zlib = m_data.size() >= 128;
+
+        if (use_zlib) {
+            // with zlib compression
+            write1(os, (uint32_t)getArraySize());
+            write1(os, (uint32_t)1); // encoding: zlib
+
+            uLong src_size = m_data.size();
+            uLong dest_size = compressBound(src_size);
+            RawVector<char> compressed(dest_size);
+            compress((Bytef*)compressed.data(), &dest_size, (const Bytef*)m_data.data(), src_size);
+            compressed.resize(dest_size);
+
+            write1(os, (uint32_t)compressed.size());
+            writev(os, compressed.data(), compressed.size());
+        }
+        else {
+            // without zlib compression
+            write1(os, (uint32_t)getArraySize());
+            write1(os, (uint32_t)0); // encoding: plain
+            write1(os, (uint32_t)m_data.size());
+            writev(os, m_data.data(), m_data.size());
+        }
     }
 }
 
@@ -124,6 +150,13 @@ template<> span<int32> Property::allocateArray(size_t size)
     m_type = PropertyType::Int32Array;
     m_data.resize(size * sizeof(int32));
     return make_span((int32*)m_data.data(), size);
+}
+
+template<> span<float32> Property::allocateArray(size_t size)
+{
+    m_type = PropertyType::Float32Array;
+    m_data.resize(size * sizeof(float32));
+    return make_span((float32*)m_data.data(), size);
 }
 
 template<> span<float64> Property::allocateArray(size_t size)
@@ -166,6 +199,15 @@ template<> void Property::assign(int32 v)   { m_type = PropertyType::Int32; m_sc
 template<> void Property::assign(int64 v)   { m_type = PropertyType::Int64; m_scalar.i64 = v; }
 template<> void Property::assign(float32 v) { m_type = PropertyType::Float32; m_scalar.f32 = v; }
 template<> void Property::assign(float64 v) { m_type = PropertyType::Float64; m_scalar.f64 = v; }
+
+template<> void Property::assign(float2 v)      { m_type = PropertyType::Float32Array; Assign(m_data, make_span(v)); }
+template<> void Property::assign(float3 v)      { m_type = PropertyType::Float32Array; Assign(m_data, make_span(v)); }
+template<> void Property::assign(float4 v)      { m_type = PropertyType::Float32Array; Assign(m_data, make_span(v)); }
+template<> void Property::assign(float4x4 v)    { m_type = PropertyType::Float32Array; Assign(m_data, make_span(v)); }
+template<> void Property::assign(double2 v)     { m_type = PropertyType::Float64Array; Assign(m_data, make_span(v)); }
+template<> void Property::assign(double3 v)     { m_type = PropertyType::Float64Array; Assign(m_data, make_span(v)); }
+template<> void Property::assign(double4 v)     { m_type = PropertyType::Float64Array; Assign(m_data, make_span(v)); }
+template<> void Property::assign(double4x4 v)   { m_type = PropertyType::Float64Array; Assign(m_data, make_span(v)); }
 
 template<> void Property::assign(span<char> v)    { m_type = PropertyType::String; Assign(m_data, v); }
 template<> void Property::assign(span<uint8_t> v) { m_type = PropertyType::Blob; Assign(m_data, v); }

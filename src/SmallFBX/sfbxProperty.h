@@ -14,6 +14,15 @@ PropPOD(int32);
 PropPOD(int64);
 PropPOD(float32);
 PropPOD(float64);
+
+PropPOD(float2);
+PropPOD(float3);
+PropPOD(float4);
+PropPOD(float4x4);
+PropPOD(double2);
+PropPOD(double3);
+PropPOD(double4);
+PropPOD(double4x4);
 #undef PropPOD
 
 
@@ -27,7 +36,7 @@ enum class PropertyType : uint8_t
     Float64 = 'D', // float64
 
     String  = 'S', // std::string
-    Blob    = 'R', // span<char>
+    Blob    = 'R', // RawVector<char>
 
     BoolArray    = 'b', // span<boolean>
     Int16Array   = 'y', // span<int16>

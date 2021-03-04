@@ -96,7 +96,7 @@ template<class Vec, class Mul>
 static bool DeformImpl(span<Vec> dst, const JointWeights& jw, const JointMatrices& jm, span<Vec> src, const Mul& mul)
 {
     if (jw.counts.size() != src.size() || jw.counts.size() != dst.size()) {
-        printf("Skin::deformImpl(): vertex count mismatch\n");
+        sfbxPrint("Skin::deformImpl(): vertex count mismatch\n");
         return false;
     }
 

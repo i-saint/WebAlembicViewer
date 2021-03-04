@@ -17,60 +17,66 @@ bool Document::read(std::istream& is)
     char magic[23];
     readv(is, magic, 23);
     if (memcmp(magic, g_fbx_magic, 23) != 0) {
-        // not a fbx file
+        sfbxPrint("sfbx::Document::read(): not a fbx file\n");
         return false;
     }
-
     m_version = (FileVersion)read1<uint32_t>(is);
 
-    uint64_t pos = 27; // magic (23) + version (4)
-    for (;;) {
-        auto node = createNode();
-        pos += node->read(is, pos);
-        if (node->isNull()) {
-            eraseNode(node);
-            break;
-        }
-    }
 
-    if (auto objects = findNode(sfbxS_Objects)) {
-        for (auto n : objects->getChildren()) {
-            if (auto obj = createObject(GetFbxObjectType(n), GetFbxObjectSubType(n))) {
-                obj->setNode(n);
+    try {
+        uint64_t pos = 27; // magic (23) + version (4)
+        for (;;) {
+            auto node = createNode();
+            pos += node->read(is, pos);
+            if (node->isNull()) {
+                eraseNode(node);
+                break;
             }
         }
-    }
 
-    if (auto connections = findNode(sfbxS_Connections)) {
-        for (auto n : connections->getChildren()) {
-            if (n->getName() == sfbxS_C && GetPropertyString(n, 0) == sfbxS_OO) {
-                int64 cid = GetPropertyValue<int64>(n, 1);
-                int64 pid = GetPropertyValue<int64>(n, 2);
-                Object* child = findObject(cid);
-                Object* parent = findObject(pid);
-                if (child && parent)
-                    parent->addChild(child);
-            }
-            else if (n->getName() == sfbxS_C && GetPropertyString(n, 0) == sfbxS_OP) {
-                int64 cid = GetPropertyValue<int64>(n, 1);
-                int64 pid = GetPropertyValue<int64>(n, 2);
-                std::string name = GetPropertyString(n, 3); // todo
-                Object* child = findObject(cid);
-                Object* parent = findObject(pid);
-                if (child && parent) {
-                    parent->addChild(child);
+        if (auto objects = findNode(sfbxS_Objects)) {
+            for (auto n : objects->getChildren()) {
+                if (auto obj = createObject(GetFbxObjectType(n), GetFbxObjectSubType(n))) {
+                    obj->setNode(n);
                 }
             }
-            else {
-                printf("sfbx::Document::read(): unrecognized connection type\n");
+        }
+
+        if (auto connections = findNode(sfbxS_Connections)) {
+            for (auto n : connections->getChildren()) {
+                if (n->getName() == sfbxS_C && GetPropertyString(n, 0) == sfbxS_OO) {
+                    int64 cid = GetPropertyValue<int64>(n, 1);
+                    int64 pid = GetPropertyValue<int64>(n, 2);
+                    Object* child = findObject(cid);
+                    Object* parent = findObject(pid);
+                    if (child && parent)
+                        parent->addChild(child);
+                }
+                else if (n->getName() == sfbxS_C && GetPropertyString(n, 0) == sfbxS_OP) {
+                    int64 cid = GetPropertyValue<int64>(n, 1);
+                    int64 pid = GetPropertyValue<int64>(n, 2);
+                    std::string name = GetPropertyString(n, 3); // todo
+                    Object* child = findObject(cid);
+                    Object* parent = findObject(pid);
+                    if (child && parent) {
+                        parent->addChild(child);
+                    }
+                }
+                else {
+                    sfbxPrint("sfbx::Document::read(): unrecognized connection type\n");
+                }
             }
         }
-    }
 
-    for (auto& obj : m_objects) {
-        obj->constructObject();
-        if (obj->getParents().empty())
-            m_root_objects.push_back(obj.get());
+        for (auto& obj : m_objects) {
+            obj->constructObject();
+            if (obj->getParents().empty())
+                m_root_objects.push_back(obj.get());
+        }
+    }
+    catch (const std::runtime_error& e) {
+        sfbxPrint("sfbx::Document::read(): exception %s\n", e.what());
+        return false;
     }
     return true;
 }
@@ -252,7 +258,7 @@ Object* Document::createObject(ObjectType t, ObjectSubType s)
         m_objects.push_back(ObjectPtr(r));
     }
     else {
-        printf("sfbx::Document::createObject(): unrecongnized type \"%s\"\n", GetFbxObjectName(t));
+        sfbxPrint("sfbx::Document::createObject(): unrecongnized type \"%s\"\n", GetFbxObjectName(t));
     }
     return r;
 }
@@ -293,11 +299,11 @@ void Document::constructNodes()
 {
     const char* smallfbx = "SmallFBX 1.0.0";
 
-    // *** these must not be changed *** because it changes CRC
+    // *** these must not be changed *** because it leads to CRC check failure.
     const char time_id[] = "1970-01-01 10:00:00:000";
     const uint8_t file_id[]{ 0x28, 0xb3, 0x2a, 0xeb, 0xb6, 0x24, 0xcc, 0xc2, 0xbf, 0xc8, 0xb0, 0x2a, 0xa9, 0x2b, 0xfc, 0xf1 };
 
-    std::time_t t = std::time(nullptr);   // get time now
+    std::time_t t = std::time(nullptr);
     std::tm* now = std::localtime(&t);
 
     auto header_extension = createNode(sfbxS_FBXHeaderExtension);
@@ -451,11 +457,11 @@ std::string Document::toString()
     s += "; ----------------------------------------------------\n\n";
 
     for (auto node : getRootNodes()) {
-        //// these nodes seem required only in binary format.
-        //if (node->getName() == sfbxS_FileId ||
-        //    node->getName() == sfbxS_CreationTime ||
-        //    node->getName() == sfbxS_Creator)
-        //    continue;
+        // these nodes seem required only in binary format.
+        if (node->getName() == sfbxS_FileId ||
+            node->getName() == sfbxS_CreationTime ||
+            node->getName() == sfbxS_Creator)
+            continue;
         s += node->toString();
     }
     return s;

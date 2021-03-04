@@ -21,7 +21,7 @@ ObjectType GetFbxObjectType(const std::string& n)
     else if (n == sfbxS_AnimationCurveNode) return ObjectType::AnimationCurveNode;
     else if (n == sfbxS_AnimationCurve)     return ObjectType::AnimationCurve;
     else {
-        printf("GetFbxObjectType(): unknown type \"%s\"\n", n.c_str());
+        sfbxPrint("GetFbxObjectType(): unknown type \"%s\"\n", n.c_str());
         return ObjectType::Unknown;
     }
 }
@@ -63,7 +63,7 @@ ObjectSubType GetFbxObjectSubType(const std::string& n)
     else if (n == sfbxS_BlendShape) return ObjectSubType::BlendShape;
     else if (n == sfbxS_BlendShapeChannel) return ObjectSubType::BlendShapeChannel;
     else {
-        printf("GetFbxObjectSubType(): unknown subtype \"%s\"\n", n.c_str());
+        sfbxPrint("GetFbxObjectSubType(): unknown subtype \"%s\"\n", n.c_str());
         return ObjectSubType::Unknown;
     }
 }
@@ -498,13 +498,6 @@ void Mesh::constructObject()
     }
 }
 
-void Mesh::addParent(Object* v)
-{
-    super::addParent(v);
-    if (auto model = as<Model>(v))
-        model->setSubType(ObjectSubType::Mesh);
-}
-
 template<class D, class S>
 static inline void CreatePropertyAndCopy(Node* dst_node, const RawVector<S>& src)
 {
@@ -530,7 +523,7 @@ void Mesh::constructNodes()
             total_counts += c;
 
         if (total_counts != m_indices.size()) {
-            printf("sfbx::Mesh: *** indices mismatch with counts ***\n");
+            sfbxPrint("sfbx::Mesh: *** indices mismatch with counts ***\n");
         }
         else {
             auto* src_counts = m_counts.data();
@@ -569,6 +562,13 @@ void Mesh::constructNodes()
         auto color_layer = n->createChild(sfbxS_LayerElementColor);
         // todo
     }
+}
+
+void Mesh::addParent(Object* v)
+{
+    super::addParent(v);
+    if (auto model = as<Model>(v))
+        model->setSubType(ObjectSubType::Mesh);
 }
 
 span<int> Mesh::getCounts() const { return make_span(m_counts); }
@@ -782,7 +782,7 @@ JointMatrices Skin::getJointMatrices()
         }
         else {
             // should not be here
-            printf("sfbx::Deformer::skinMakeJointMatrices(): Cluster has non-Model child\n");
+            sfbxPrint("sfbx::Deformer::skinMakeJointMatrices(): Cluster has non-Model child\n");
             ret.global_transform[ci] = ret.joint_transform[ci] = float4x4::identity();
         }
     }
@@ -858,7 +858,7 @@ void BindPose::constructObject()
                 m_pose_data.push_back({ model, float4x4(mat) });
             }
             else {
-                printf("sfbx::Pose::constructObject(): non-Model joint object\n");
+                sfbxPrint("sfbx::Pose::constructObject(): non-Model joint object\n");
             }
         }
     }
@@ -984,7 +984,7 @@ void AnimationCurveNode::addValue(float time, float value)
         createChild<AnimationCurve>();
     }
     if (m_curves.size() != 1) {
-        printf("afbx::AnimationCurveNode::addValue() curve count mismatch\n");
+        sfbxPrint("afbx::AnimationCurveNode::addValue() curve count mismatch\n");
     }
     m_curves[0]->addValue(time, value);
 }
@@ -997,7 +997,7 @@ void AnimationCurveNode::addValue(float time, float3 value)
         createChild<AnimationCurve>();
     }
     if (m_curves.size() != 3) {
-        printf("afbx::AnimationCurveNode::addValue() curve count mismatch\n");
+        sfbxPrint("afbx::AnimationCurveNode::addValue() curve count mismatch\n");
     }
     m_curves[0]->addValue(time, value.x);
     m_curves[1]->addValue(time, value.y);

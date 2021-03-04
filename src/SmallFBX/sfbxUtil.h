@@ -1,5 +1,7 @@
 #pragma once
 
+#define sfbxPrint(...) printf(__VA_ARGS__)
+
 namespace sfbx {
 
 template<class T>

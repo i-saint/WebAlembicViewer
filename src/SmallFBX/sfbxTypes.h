@@ -65,12 +65,14 @@ private:
 };
 #endif
 
-template<class T, size_t N> struct make_span_impl
+template<class T, size_t N>
+struct make_span_impl
 {
     span<T> operator()(const T(&v)[N]) const { return { const_cast<T*>(v), N }; }
 };
 // specialization for char array to ignore last '\0'
-template<size_t N> struct make_span_impl<char, N>
+template<size_t N>
+struct make_span_impl<char, N>
 {
     span<char> operator()(const char(&v)[N]) const { return { const_cast<char*>(v), N - 1 }; }
 };
@@ -104,8 +106,11 @@ using float64 = double;
 template<class T>
 struct tvec2
 {
+    using value_type = T;
+
     T x, y;
 
+    static constexpr size_t size() { return 2; }
     T* data() { return (T*)this; }
     const T* data() const { return (T*)this; }
     T& operator[](int i) { return data()[i]; }
@@ -121,8 +126,11 @@ struct tvec2
 template<class T>
 struct tvec3
 {
+    using value_type = T;
+
     T x, y, z;
 
+    static constexpr size_t size() { return 3; }
     T* data() { return (T*)this; }
     const T* data() const { return (T*)this; }
     T& operator[](int i) { return data()[i]; }
@@ -138,8 +146,11 @@ struct tvec3
 template<class T>
 struct tvec4
 {
+    using value_type = T;
+
     T x, y, z, w;
 
+    static constexpr size_t size() { return 4; }
     T* data() { return (T*)this; }
     const T* data() const { return (T*)this; }
     T& operator[](int i) { return data()[i]; }
@@ -155,8 +166,11 @@ struct tvec4
 template<class T>
 struct tquat
 {
+    using value_type = T;
+
     T x, y, z, w;
 
+    static constexpr size_t size() { return 4; }
     T* data() { return (T*)this; }
     const T* data() const { return (T*)this; }
     T& operator[](int i) { return data()[i]; }
@@ -171,8 +185,11 @@ struct tquat
 template<class T>
 struct tmat4x4
 {
+    using value_type = T;
+
     tvec4<T> m[4];
 
+    static constexpr size_t size() { return 16; }
     T* data() { return (T*)this; }
     const T* data() const { return (T*)this; }
     tvec4<T>& operator[](int i) { return m[i]; }
@@ -203,17 +220,6 @@ struct tmat4x4
     }
 };
 
-enum class RotationOrder : int
-{
-    XYZ,
-    XZY,
-    YZX,
-    YXZ,
-    ZXY,
-    ZYX,
-    SphericXYZ
-};
-
 using int2 = tvec2<int>;
 using int3 = tvec3<int>;
 using int4 = tvec4<int>;
@@ -230,6 +236,17 @@ using double4 = tvec4<double>;
 using quatd = tquat<double>;
 using double4x4 = tmat4x4<double>;
 
+
+enum class RotationOrder : int
+{
+    XYZ,
+    XZY,
+    YZX,
+    YXZ,
+    ZXY,
+    ZYX,
+    SphericXYZ
+};
 
 // FBX's bool property represents true as 'Y' and false as 'T'
 struct boolean
@@ -251,13 +268,11 @@ struct boolean
     Body(AnimationStack) Body(AnimationLayer) Body(AnimationCurveNode) Body(AnimationCurve)
 
 #define Decl(T) class T; using T##Ptr = std::shared_ptr<T>;
+Decl(Document)
 Decl(Property)
 Decl(Node)
-
 Decl(Object)
 sfbxEachObjectType(Decl)
-
-Decl(Document)
 #undef Decl
 
 template<class T, class U>

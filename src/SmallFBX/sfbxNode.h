@@ -19,7 +19,7 @@ public:
     void eraseChild(Node* n);
 
     // utils
-    template<class... T> void addProperty(T&&... v) { createProperty()->assign(v...); }
+    template<class T> void addProperty(const T& v) { createProperty()->assign(v); }
     void addProperties() {}
     template<class T, class... U> void addProperties(T&& v, U&&... a) { addProperty(v); addProperties(a...); }
     template<class... T> void addChild(const std::string& name, T&&... v) { createChild(name.c_str())->addProperties(v...); }
