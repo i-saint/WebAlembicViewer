@@ -8,7 +8,7 @@ namespace sfbx {
 template<class T> struct is_propery_pod : std::false_type {};
 #define PropPOD(T) template<> struct is_propery_pod<T> : std::true_type {}
 PropPOD(bool);
-PropPOD(int8);
+PropPOD(boolean);
 PropPOD(int16);
 PropPOD(int32);
 PropPOD(int64);
@@ -19,8 +19,7 @@ PropPOD(float64);
 
 enum class PropertyType : uint8_t
 {
-    Bool    = 'B', // bool
-    Int8    = 'C', // int8
+    Bool    = 'C', // boolean (not built-in bool. see struct boolean in sfbxTypes.h)
     Int16   = 'Y', // int16
     Int32   = 'I', // int32
     Int64   = 'L', // int64
@@ -30,8 +29,7 @@ enum class PropertyType : uint8_t
     String  = 'S', // std::string
     Blob    = 'R', // span<char>
 
-    BoolArray    = 'b', // span<bool>
-    Int8Array    = 'c', // span<int8>
+    BoolArray    = 'b', // span<boolean>
     Int16Array   = 'y', // span<int16>
     Int32Array   = 'i', // span<int32>
     Int64Array   = 'l', // span<int64>
@@ -49,7 +47,7 @@ public:
 
     template<class T> span<T> allocateArray(size_t size);
 
-    // T: corresponding types with PropertyType (bool ... float64 and span<> & std::vector<>, std::string)
+    // T: corresponding types with PropertyType (boolean ... float64 and span<> & std::vector<>, std::string)
     template<class T, sfbxEnableIf(is_propery_pod<T>::value)> void assign(T v);
     template<class T> void assign(span<T> v);
     template<class T> void assign(const std::vector<T>& v) { assign(make_span(v)); }
@@ -71,7 +69,7 @@ public:
 private:
     PropertyType m_type{};
     union {
-        int8 i8;
+        boolean b;
         int16 i16;
         int32 i32;
         int64 i64;

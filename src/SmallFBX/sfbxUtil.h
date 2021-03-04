@@ -197,6 +197,10 @@ inline void AddTabs(std::string& dst, int n)
         dst += '\t';
 }
 
+// return false if no ecape is needed
+bool Escape(std::string& v);
+std::string Base64Encode(span<char> src);
+
 RawVector<int> Triangulate(span<int> counts, span<int> indices);
 
 struct JointWeights;

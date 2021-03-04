@@ -219,6 +219,16 @@ using quatd = tquat<double>;
 using double4x4 = tmat4x4<double>;
 
 
+// FBX's bool property represents true as 'Y' and false as 'T'
+struct boolean
+{
+    char value;
+
+    operator bool() const { return value == 'Y'; }
+    void operator=(bool v) { value = v ? 'Y' : 'T'; }
+};
+
+
 #define sfbxEachObjectType(Body)\
     Body(NodeAttribute)\
     Body(Model) Body(Light) Body(Camera) Body(Root) Body(LimbNode)\
@@ -242,3 +252,15 @@ template<class T, class U>
 T* as(U* v) { return dynamic_cast<T*>(v); }
 
 } // namespace sfbx
+
+
+namespace std {
+
+inline std::string to_string(sfbx::boolean v)
+{
+    std::string ret;
+    ret += v.value;
+    return ret;
+}
+
+} // namespace std

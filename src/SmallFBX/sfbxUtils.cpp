@@ -5,6 +5,70 @@
 
 namespace sfbx {
 
+bool Escape(std::string& v)
+{
+    bool ret = false;
+    for (char c : v) {
+        if (c == '"' || c == '\n' || c == '\r') {
+            ret = true;
+            break;
+        }
+    }
+    if (!ret)
+        return ret;
+
+    std::string tmp;
+    for (char c : v) {
+        if (c == '"')
+            tmp += "&quot;";
+        else if (c == '\n')
+            tmp += "&lf;";
+        else if (c == '\r')
+            tmp += "&cr;";
+        else
+            tmp += c;
+    }
+    v.swap(tmp);
+    return ret;
+}
+
+std::string Base64Encode(span<char> src)
+{
+    static const char* s_table = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    std::string dst;
+    // result size will be about 133% of src. so this is a bit overkill.
+    dst.reserve(src.size() * 2);
+
+    size_t n = src.size();
+    for (size_t i = 0; i < n; ++i) {
+        switch (i % 3) {
+        case 0:
+            dst.push_back(s_table[(src[i] & 0xFC) >> 2]);
+            if (i + 1 == n) {
+                dst.push_back(s_table[(src[i] & 0x03) << 4]);
+                dst.push_back('=');
+                dst.push_back('=');
+            }
+            break;
+
+        case 1:
+            dst.push_back(s_table[((src[i - 1] & 0x03) << 4) | ((src[i + 0] & 0xF0) >> 4)]);
+            if (i + 1 == n) {
+                dst.push_back(s_table[(src[i] & 0x0F) << 2]);
+                dst.push_back('=');
+            }
+            break;
+
+        case 2:
+            dst.push_back(s_table[((src[i - 1] & 0x0F) << 2) | ((src[i + 0] & 0xC0) >> 6)]);
+            dst.push_back(s_table[src[i] & 0x3F]);
+            break;
+        }
+    }
+    return dst;
+}
+
 RawVector<int> Triangulate(span<int> counts, span<int> indices)
 {
     size_t num_triangles = 0;

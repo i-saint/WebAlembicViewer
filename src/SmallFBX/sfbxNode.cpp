@@ -50,18 +50,19 @@ uint64_t Node::read(std::istream& is, uint64_t start_offset)
 
 uint64_t Node::write(std::ostream& os, uint64_t start_offset)
 {
-    Node null_node;
-    null_node.m_document = m_document;
-
     uint32_t header_size = getHeaderSize() + m_name.size();
-    uint64_t property_size = 0;
-    uint64_t children_size = 0;
     if (isNull()) {
         for (uint32_t i = 0; i < header_size; i++)
             write1(os, (uint8_t)0);
         return header_size;
     }
 
+    Node null_node;
+    null_node.m_document = m_document;
+
+    uint64_t property_size = 0;
+    uint64_t children_size = 0;
+    bool null_terminate = !m_children.empty() || m_properties.empty();
     {
         CounterStream cs;
         for (auto prop : m_properties)
@@ -72,7 +73,8 @@ uint64_t Node::write(std::ostream& os, uint64_t start_offset)
         CounterStream cs;
         for (auto child : m_children)
             child->write(cs, 0);
-        null_node.write(cs, 0);
+        if (null_terminate)
+            null_node.write(cs, 0);
         children_size = cs.size();
     }
 
@@ -97,7 +99,8 @@ uint64_t Node::write(std::ostream& os, uint64_t start_offset)
     uint64_t pos = header_size + property_size;
     for (auto child : m_children)
         pos += child->write(os, start_offset + pos);
-    pos += null_node.write(os, start_offset + pos);
+    if (null_terminate)
+        pos += null_node.write(os, start_offset + pos);
     return pos;
 }
 

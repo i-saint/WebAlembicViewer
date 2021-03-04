@@ -12,7 +12,6 @@ uint32_t SizeOfElement(PropertyType type)
 {
     switch (type) {
     case PropertyType::BoolArray:
-    case PropertyType::Int8Array:
         return 1;
 
     case PropertyType::Int16Array:
@@ -44,8 +43,7 @@ void Property::read(std::istream& is)
     else if (!isArray()) {
         switch (m_type) {
         case PropertyType::Bool:
-        case PropertyType::Int8:
-            m_scalar.i8 = read1<int8>(is);
+            m_scalar.b = read1<boolean>(is);
             break;
         case PropertyType::Int16:
             m_scalar.i16 = read1<int16>(is);
@@ -93,8 +91,7 @@ void Property::write(std::ostream& os)
         // scalar
         switch (m_type) {
         case PropertyType::Bool:
-        case PropertyType::Int8:
-            write1(os, m_scalar.i8);
+            write1(os, m_scalar.b);
             break;
         case PropertyType::Int16:
             write1(os, m_scalar.i16);
@@ -162,16 +159,15 @@ static inline void Assign(RawVector<char>& dst, const span<T>& v)
     dst.assign((char*)v.data(), (char*)v.data() + s);
 }
 
-template<> void Property::assign(bool v)    { m_type = PropertyType::Bool; m_scalar.i8 = v; }
-template<> void Property::assign(int8 v)    { m_type = PropertyType::Int8; m_scalar.i8 = v; }
+template<> void Property::assign(boolean v) { m_type = PropertyType::Bool; m_scalar.b = v; }
+template<> void Property::assign(bool v)    { m_type = PropertyType::Bool; m_scalar.b = v; }
 template<> void Property::assign(int16 v)   { m_type = PropertyType::Int16; m_scalar.i16 = v; }
 template<> void Property::assign(int32 v)   { m_type = PropertyType::Int32; m_scalar.i32 = v; }
 template<> void Property::assign(int64 v)   { m_type = PropertyType::Int64; m_scalar.i64 = v; }
 template<> void Property::assign(float32 v) { m_type = PropertyType::Float32; m_scalar.f32 = v; }
 template<> void Property::assign(float64 v) { m_type = PropertyType::Float64; m_scalar.f64 = v; }
 
-template<> void Property::assign(span<bool> v)    { m_type = PropertyType::BoolArray; Assign(m_data, v); }
-template<> void Property::assign(span<int8> v)    { m_type = PropertyType::Int8Array; Assign(m_data, v); }
+template<> void Property::assign(span<boolean> v) { m_type = PropertyType::BoolArray; Assign(m_data, v); }
 template<> void Property::assign(span<int16> v)   { m_type = PropertyType::Int16Array; Assign(m_data, v); }
 template<> void Property::assign(span<int32> v)   { m_type = PropertyType::Int32Array; Assign(m_data, v); }
 template<> void Property::assign(span<int64> v)   { m_type = PropertyType::Int64Array; Assign(m_data, v); }
@@ -220,8 +216,8 @@ uint64_t Property::getArraySize() const
     return m_data.size() / SizeOfElement(m_type);
 }
 
-template<> bool    Property::getValue() const { return m_scalar.i8; }
-template<> int8    Property::getValue() const { return m_scalar.i8; }
+template<> boolean Property::getValue() const { return m_scalar.b; }
+template<> bool    Property::getValue() const { return m_scalar.b; }
 template<> int16   Property::getValue() const { return m_scalar.i16; }
 template<> int32   Property::getValue() const { return m_scalar.i32; }
 template<> int64   Property::getValue() const { return m_scalar.i64; }
@@ -233,8 +229,7 @@ template<> double3 Property::getValue() const { return *(double3*)m_data.data();
 template<> double4 Property::getValue() const { return *(double4*)m_data.data(); }
 template<> double4x4 Property::getValue() const { return *(double4x4*)m_data.data(); }
 
-template<> span<bool>    Property::getArray() const { return make_span((bool*)m_data.data(), getArraySize()); }
-template<> span<int8>    Property::getArray() const { return make_span((int8*)m_data.data(), getArraySize()); }
+template<> span<boolean> Property::getArray() const { return make_span((boolean*)m_data.data(), getArraySize()); }
 template<> span<int16>   Property::getArray() const { return make_span((int16*)m_data.data(), getArraySize()); }
 template<> span<int32>   Property::getArray() const { return make_span((int32*)m_data.data(), getArraySize()); }
 template<> span<int64>   Property::getArray() const { return make_span((int64*)m_data.data(), getArraySize()); }
@@ -269,8 +264,7 @@ std::string Property::toString(int depth) const
             return s;
         };
         switch (m_type) {
-        case PropertyType::BoolArray:
-        case PropertyType::Int8Array: return toS(getArray<int8>());
+        case PropertyType::BoolArray: return toS(getArray<boolean>());
         case PropertyType::Int16Array: return toS(getArray<int16>());
         case PropertyType::Int32Array: return toS(getArray<int32>());
         case PropertyType::Int64Array: return toS(getArray<int64>());
@@ -281,8 +275,7 @@ std::string Property::toString(int depth) const
     }
     else {
         switch (m_type) {
-        case PropertyType::Bool:
-        case PropertyType::Int8: return std::to_string(getValue<int8>());
+        case PropertyType::Bool: return std::to_string(getValue<boolean>());
         case PropertyType::Int16: return std::to_string(getValue<int16>());
         case PropertyType::Int32: return std::to_string(getValue<int32>());
         case PropertyType::Int64: return std::to_string(getValue<int64>());
@@ -292,16 +285,15 @@ std::string Property::toString(int depth) const
         case PropertyType::Blob:
         {
             std::string s;
-            s += "\"";
-            // todo: this should be incorrect
-            s.insert(s.end(), m_data.begin(), m_data.end());
-            s += "\"";
+            s += '"';
+            s += Base64Encode(make_span(m_data));
+            s += '"';
             return s;
         }
         case PropertyType::String:
         {
             std::string s;
-            s += "\"";
+            s += " "; // just reserve space to avoid escape
             if (!m_data.empty()) {
                 auto get_span = [](const char* s, size_t n) {
                     size_t i = 0;
@@ -326,8 +318,10 @@ std::string Property::toString(int depth) const
                     s += "::";
                 }
                 s.insert(s.end(), first.data(), first.data() + first.size());
+                Escape(s);
             }
-            s += "\"";
+            s[0] = '"'; // replace reserved space
+            s += '"';
             return s;
         }
 
