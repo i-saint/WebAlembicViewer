@@ -5,6 +5,8 @@
 #define sfbxS_FBXVersion            "FBXVersion"
 #define sfbxS_EncryptionType        "EncryptionType"
 #define sfbxS_CreationTimeStamp     "CreationTimeStamp"
+#define sfbxS_OtherFlags            "OtherFlags"
+#define sfbxS_TCDefinition          "TCDefinition"
 #define sfbxS_Creator               "Creator"
 #define sfbxS_SceneInfo             "SceneInfo"
 #define sfbxS_MetaData              "MetaData"
@@ -50,7 +52,9 @@
 #define sfbxS_OriginalFileName              "Original|FileName"
 #define sfbxS_LastSavedApplicationVendor    "LastSaved|ApplicationVendor"
 #define sfbxS_LastSavedApplicationName      "LastSaved|ApplicationName"
+#define sfbxS_LastSavedApplicationVersion   "LastSaved|ApplicationVersion"
 #define sfbxS_LastSavedDateTime_GMT         "LastSaved|DateTime_GMT"
+
 
 
 #define sfbxS_GlobalSettings        "GlobalSettings"
@@ -63,6 +67,9 @@
 
 #define sfbxS_ObjectType            "ObjectType"
 #define sfbxS_Count                 "Count"
+#define sfbxS_Current               "Current"
+#define sfbxS_Document              "Document"
+#define sfbxS_RootNode              "RootNode"
 
 #define sfbxS_NodeAttribute         "NodeAttribute"
 #define sfbxS_Model                 "Model"
@@ -138,6 +145,8 @@
 #define sfbxS_FocalLength       "FocalLength"
 
 
+#define sfbxI_TCDefinition      127
+#define sfbxI_GlobalSettingsVersion 1000
 #define sfbxI_ModelVersion      232
 #define sfbxI_GeometryVersion   124
 #define sfbxI_ShapeVersion      100

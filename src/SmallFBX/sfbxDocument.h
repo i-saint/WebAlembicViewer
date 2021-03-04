@@ -54,10 +54,7 @@ public:
     std::string toString();
 
 private:
-    void createHeaderExtention();
-    void createDocuments();
     template<class T> int32 countObject() const;
-    void createDefinitions();
 
     FileVersion m_version = FileVersion::Default;
 

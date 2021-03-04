@@ -65,12 +65,24 @@ private:
 };
 #endif
 
-template<class T>
-inline span<T> make_span(const T* v, size_t n) { return { const_cast<T*>(v), n }; }
+template<class T, size_t N> struct make_span_impl
+{
+    span<T> operator()(const T(&v)[N]) const { return { const_cast<T*>(v), N }; }
+};
+// specialization for char array to ignore last '\0'
+template<size_t N> struct make_span_impl<char, N>
+{
+    span<char> operator()(const char(&v)[N]) const { return { const_cast<char*>(v), N - 1 }; }
+};
+template<class T, size_t N>
+inline span<T> make_span(const T (&v)[N]) { return make_span_impl<T, N>()(v); }
 
 // Container must have data(), size() and value_type. mainly intended to std::vector and sfbx::RawVector.
 template<class Cont>
 inline span<typename Cont::value_type> make_span(const Cont& v) { return { const_cast<typename Cont::value_type*>(v.data()), v.size() }; }
+
+template<class T>
+inline span<T> make_span(const T* v, size_t n) { return { const_cast<T*>(v), n }; }
 
 
 class noncopyable

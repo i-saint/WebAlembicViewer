@@ -167,6 +167,8 @@ template<> void Property::assign(int64 v)   { m_type = PropertyType::Int64; m_sc
 template<> void Property::assign(float32 v) { m_type = PropertyType::Float32; m_scalar.f32 = v; }
 template<> void Property::assign(float64 v) { m_type = PropertyType::Float64; m_scalar.f64 = v; }
 
+template<> void Property::assign(span<char> v)    { m_type = PropertyType::String; Assign(m_data, v); }
+template<> void Property::assign(span<uint8_t> v) { m_type = PropertyType::Blob; Assign(m_data, v); }
 template<> void Property::assign(span<boolean> v) { m_type = PropertyType::BoolArray; Assign(m_data, v); }
 template<> void Property::assign(span<int16> v)   { m_type = PropertyType::Int16Array; Assign(m_data, v); }
 template<> void Property::assign(span<int32> v)   { m_type = PropertyType::Int32Array; Assign(m_data, v); }
@@ -193,12 +195,6 @@ void Property::assign(const char* v)
     m_data.clear();
     if (v)
         m_data.assign(v, v + std::strlen(v));
-}
-
-void Property::assign(PropertyType t, const RawVector<char>& v)
-{
-    m_type = t;
-    m_data = v;
 }
 
 PropertyType Property::getType() const

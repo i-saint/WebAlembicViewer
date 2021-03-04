@@ -54,7 +54,6 @@ public:
     template<class T> void assign(const RawVector<T>& v) { assign(make_span(v)); }
     void assign(const std::string& v);
     void assign(const char* v);
-    void assign(PropertyType t, const RawVector<char>& v);
 
     PropertyType getType() const;
     bool isArray() const;

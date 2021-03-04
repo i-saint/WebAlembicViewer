@@ -193,11 +193,14 @@ int main(int argc, char *argv[])
             *(sep++) = '\0';
             test::GetArgs().push_back({ argv[i] , sep });
         }
-        else {
+    }
+    for (int i = 1; i < argc; ++i) {
+        if (!std::strstr(argv[i], "=")) {
             RunTest(argv[i]);
             ++run_count;
         }
     }
+
     if (run_count == 0) {
         RunAllTests();
     }

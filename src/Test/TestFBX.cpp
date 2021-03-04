@@ -56,6 +56,7 @@ testCase(fbxRead)
         for (auto obj : doc->getRootObjects())
             PrintObject(obj);
 
+        doc->writeBinary("out_binary.fbx");
         doc->writeAscii("out_ascii.fbx");
     }
 
