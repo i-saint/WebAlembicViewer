@@ -64,7 +64,7 @@ public:
     Object* getParent(size_t i = 0) const;
     Object* getChild(size_t i = 0) const;
 
-    void setSubType(ObjectSubType v);
+    virtual void setSubType(ObjectSubType v);
     void setID(int64 v);
     void setName(const std::string& v);
     void setNode(Node* v);
@@ -73,6 +73,7 @@ protected:
     Object(const Object&) = delete;
     Object& operator=(const Object) = delete;
     Object();
+    virtual std::string getObjectName() const;
     virtual void addParent(Object* v);
 
     Document* m_document{};
@@ -151,6 +152,7 @@ protected:
     float3 m_scale{1.0f, 1.0f, 1.0f};
 };
 
+
 class Light : public Model
 {
 friend class Document;
@@ -158,9 +160,12 @@ using super = Model;
 public:
     void constructObject() override;
     void constructNodes() override;
+    void addChild(Object* v) override;
 
 protected:
+    NodeAttribute* m_attr{};
 };
+
 
 class Camera : public Model
 {
@@ -169,22 +174,36 @@ using super = Model;
 public:
     void constructObject() override;
     void constructNodes() override;
+    void addChild(Object* v) override;
 
 protected:
+    NodeAttribute* m_attr{};
 };
+
 
 class Root : public Model
 {
 friend class Document;
 using super = Model;
 public:
+    void constructNodes() override;
+    void addChild(Object* v) override;
+
+protected:
+    NodeAttribute* m_attr{};
 };
+
 
 class LimbNode : public Model
 {
 friend class Document;
 using super = Model;
 public:
+    void constructNodes() override;
+    void addChild(Object* v) override;
+
+protected:
+    NodeAttribute* m_attr{};
 };
 
 
@@ -344,6 +363,8 @@ public:
     void setTransformLink(float4x4 v);
 
 protected:
+    std::string getObjectName() const override;
+
     RawVector<int> m_indices;
     RawVector<float> m_weights;
     float4x4 m_transform = float4x4::identity();

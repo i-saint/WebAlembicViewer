@@ -117,6 +117,15 @@ testCase(fbxWrite)
             mesh->addColorLayer(std::move(colors));
         }
 
+        auto root = doc->createObject<sfbx::Root>("joint1");
+        auto limb = root->createChild<sfbx::LimbNode>("joint2");
+
+        auto skin = mesh->createChild<sfbx::Skin>();
+        auto cluster = skin->createChild<sfbx::Cluster>();
+        cluster->addChild(root);
+        mesh->addChild(skin);
+
+
         doc->constructNodes();
         doc->writeBinary("test_bin.fbx");
         doc->writeAscii("test_ascii.fbx");

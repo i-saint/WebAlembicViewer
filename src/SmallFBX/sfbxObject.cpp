@@ -91,6 +91,15 @@ const char* GetFbxObjectSubName(ObjectSubType t)
     }
 }
 
+inline std::string MakeObjectName(const std::string& name, const std::string& type)
+{
+    std::string ret = name;
+    ret += (char)0;
+    ret += (char)1;
+    ret += type;
+    return ret;
+}
+
 
 Object::Object()
 {
@@ -104,6 +113,11 @@ Object::~Object()
 ObjectType Object::getType() const
 {
     return ObjectType::Unknown;
+}
+
+std::string Object::getObjectName() const
+{
+    return MakeObjectName(m_name, GetFbxObjectName(getType()));
 }
 
 void Object::setNode(Node* n)
@@ -122,25 +136,18 @@ void Object::constructObject()
 
 void Object::constructNodes()
 {
-    std::string name = m_name;
-    name += (char)0;
-    name += (char)1;
-    name += GetFbxObjectName(getType());
-
     auto objects = m_document->findNode(sfbxS_Objects);
     m_node = objects->createChild(GetFbxObjectName(getType()));
-    m_node->addProperty(m_id);
-    m_node->addProperty(name);
-    m_node->addProperty(GetFbxObjectSubName(getSubType()));
+    m_node->addProperties(m_id, getObjectName(), GetFbxObjectSubName(getSubType()));
 
     if (auto connections = m_document->findNode(sfbxS_Connections)) {
         auto add_link_oo = [connections, this](int64 id) {
-            connections->addChild(sfbxS_C, sfbxS_OO, getID(), id);
+            connections->createChild(sfbxS_C, sfbxS_OO, getID(), id);
         };
 
         auto parents = getParents();
         if (parents.empty()) {
-            // this seems required
+            // this cannot be omitted
             add_link_oo(0);
         }
         else {
@@ -209,7 +216,27 @@ void NodeAttribute::constructObject()
 void NodeAttribute::constructNodes()
 {
     super::constructNodes();
-    // todo
+
+    switch (getSubType()) {
+    case ObjectSubType::Light:
+        // todo
+        break;
+
+    case ObjectSubType::Camera:
+        // todo
+        break;
+
+    case ObjectSubType::Root:
+        getNode()->createChild(sfbxS_TypeFlags, sfbxS_Null, sfbxS_Skeleton, sfbxS_Root);
+        break;
+
+    case ObjectSubType::LimbNode:
+        getNode()->createChild(sfbxS_TypeFlags, sfbxS_Skeleton);
+        break;
+
+    default:
+        break;
+    }
 }
 
 
@@ -284,49 +311,49 @@ void Model::constructNodes()
         return;
 
     // version
-    n->createChild(sfbxS_Version)->addProperty(sfbxI_ModelVersion);
+    n->createChild(sfbxS_Version, sfbxI_ModelVersion);
 
     auto properties = n->createChild(sfbxS_Properties70);
 
     // position
     if (m_position != float3::zero()) {
-        properties->addChild(sfbxS_P,
+        properties->createChild(sfbxS_P,
             sfbxS_LclTranslation, sfbxS_LclTranslation, sfbxS_Empty, sfbxS_A, sfbxVector3d(m_position));
     }
 
     // rotation active
     if (m_pre_rotation != float3::zero() || m_post_rotation != float3::zero() || m_rotation != float3::zero()) {
-        properties->addChild(sfbxS_P,
+        properties->createChild(sfbxS_P,
             sfbxS_RotationActive, sfbxS_bool, sfbxS_Empty, sfbxS_Empty, (int32)1);
 
         // rotation order
         if (m_rotation_order != RotationOrder::XYZ) {
-            properties->addChild(sfbxS_P,
+            properties->createChild(sfbxS_P,
                 sfbxS_RotationOrder, sfbxS_RotationOrder, sfbxS_Empty, sfbxS_A, (int32)m_rotation_order);
         }
 
         // pre-rotation
         if (m_pre_rotation != float3::zero()) {
-            properties->addChild(sfbxS_P,
+            properties->createChild(sfbxS_P,
                 sfbxS_PreRotation, sfbxS_Vector3D, sfbxS_Vector, sfbxS_Empty, sfbxVector3d(m_pre_rotation));
         }
 
         // post-rotation
         if (m_post_rotation != float3::zero()) {
-            properties->addChild(sfbxS_P,
+            properties->createChild(sfbxS_P,
                 sfbxS_PostRotation, sfbxS_Vector3D, sfbxS_Vector, sfbxS_Empty, sfbxVector3d(m_post_rotation));
         }
 
         // rotation
         if (m_rotation != float3::zero()) {
-            properties->addChild(sfbxS_P,
+            properties->createChild(sfbxS_P,
                 sfbxS_LclRotation, sfbxS_LclRotation, sfbxS_Empty, sfbxS_A, sfbxVector3d(m_rotation));
         }
     }
 
     // scale
     if (m_scale!= float3::one()) {
-        properties->addChild(sfbxS_P,
+        properties->createChild(sfbxS_P,
             sfbxS_LclScale, sfbxS_LclScale, sfbxS_Empty, sfbxS_A, sfbxVector3d(m_scale));
     }
 }
@@ -397,32 +424,102 @@ void Model::setRotation(float3 v) { m_rotation = v; }
 void Model::setPostRotation(float3 v) { m_post_rotation = v; }
 void Model::setScale(float3 v) { m_scale = v; }
 
+
 void Light::constructObject()
 {
     super::constructObject();
+    auto n = getNode();
     // todo
 }
 
 void Light::constructNodes()
 {
     super::constructNodes();
+
+    if (!m_attr) {
+        m_attr = createChild<NodeAttribute>();
+        m_attr->setSubType(ObjectSubType::Light);
+    }
     // todo
+}
+
+
+void Light::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto attr = as<NodeAttribute>(v))
+        if (attr->getSubType() == ObjectSubType::Light)
+            m_attr = attr;
 }
 
 
 void Camera::constructObject()
 {
     super::constructObject();
+    auto n = getNode();
     // todo
 }
 
 void Camera::constructNodes()
 {
     super::constructNodes();
+
+    if (!m_attr) {
+        m_attr = createChild<NodeAttribute>();
+        m_attr->setSubType(ObjectSubType::Camera);
+    }
     // todo
 }
 
+void Camera::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto attr = as<NodeAttribute>(v))
+        if (attr->getSubType() == ObjectSubType::Camera)
+            m_attr = attr;
+}
 
+
+void Root::constructNodes()
+{
+    setSubType(ObjectSubType::Root);
+    super::constructNodes();
+
+    if (!m_attr) {
+        m_attr = createChild<NodeAttribute>();
+        m_attr->setSubType(ObjectSubType::Root);
+    }
+}
+
+void Root::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto attr = as<NodeAttribute>(v)) {
+        if (attr->getSubType() == ObjectSubType::Root)
+            m_attr = attr;
+    }
+}
+
+void LimbNode::constructNodes()
+{
+    setSubType(ObjectSubType::LimbNode);
+    super::constructNodes();
+
+    if (!m_attr) {
+        m_attr = createChild<NodeAttribute>();
+        m_attr->setSubType(ObjectSubType::LimbNode);
+    }
+}
+
+
+void LimbNode::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto attr = as<NodeAttribute>(v)) {
+        if (attr->getSubType() == ObjectSubType::LimbNode)
+            m_attr = attr;
+    }
+}
 
 ObjectType Geometry::getType() const { return ObjectType::Geometry; }
 
@@ -504,10 +601,10 @@ void Mesh::constructNodes()
 
     Node* n = getNode();
 
-    n->addChild(sfbxS_GeometryVersion, sfbxI_GeometryVersion);
+    n->createChild(sfbxS_GeometryVersion, sfbxI_GeometryVersion);
 
     // points
-    n->addChild(sfbxS_Vertices, MakeAdaptor<double3>(m_points));
+    n->createChild(sfbxS_Vertices, MakeAdaptor<double3>(m_points));
 
     // indices
     {
@@ -523,7 +620,7 @@ void Mesh::constructNodes()
             auto* src_counts = m_counts.data();
             auto dst_node = n->createChild(sfbxS_PolygonVertexIndex);
             auto dst_prop = dst_node->createProperty();
-            auto dst_indices = dst_prop->allocateArray<int>(m_indices.size()).data();
+            auto dst = dst_prop->allocateArray<int>(m_indices.size()).data();
 
             size_t cpoints = 0;
             for (int i : m_indices) {
@@ -532,82 +629,90 @@ void Mesh::constructNodes()
                     cpoints = 0;
                     ++src_counts;
                 }
-                *dst_indices++ = i;
+                *dst++ = i;
             }
         }
     }
 
     auto add_mapping_and_reference_info = [this](Node* node, const auto& layer) {
         if (layer.data.size() == m_indices.size() || layer.indices.size() == m_indices.size())
-            node->addChild(sfbxS_MappingInformationType, "ByPolygonVertex");
+            node->createChild(sfbxS_MappingInformationType, "ByPolygonVertex");
         else if (layer.data.size() == m_points.size() && layer.indices.empty())
-            node->addChild(sfbxS_MappingInformationType, "ByControllPoint");
+            node->createChild(sfbxS_MappingInformationType, "ByControllPoint");
 
         if (!layer.indices.empty())
-            node->addChild(sfbxS_ReferenceInformationType, "IndexToDirect");
+            node->createChild(sfbxS_ReferenceInformationType, "IndexToDirect");
         else
-            node->addChild(sfbxS_ReferenceInformationType, "Direct");
+            node->createChild(sfbxS_ReferenceInformationType, "Direct");
     };
 
     int clayers = 0;
 
     // normal layers
     for (auto& layer : m_normal_layers) {
+        if (layer.data.empty())
+            continue;
+
         ++clayers;
         auto l = n->createChild(sfbxS_LayerElementNormal);
-        l->addChild(sfbxS_Version, sfbxI_LayerElementNormalVersion);
-        l->addChild(sfbxS_Name, layer.name);
+        l->createChild(sfbxS_Version, sfbxI_LayerElementNormalVersion);
+        l->createChild(sfbxS_Name, layer.name);
 
         add_mapping_and_reference_info(l, layer);
-        l->addChild(sfbxS_Normals, MakeAdaptor<double3>(layer.data));
+        l->createChild(sfbxS_Normals, MakeAdaptor<double3>(layer.data));
         if (!layer.indices.empty())
-            l->addChild(sfbxS_NormalsIndex, layer.indices);
+            l->createChild(sfbxS_NormalsIndex, layer.indices);
     }
 
     // uv layers
     for (auto& layer : m_uv_layers) {
+        if (layer.data.empty())
+            continue;
+
         ++clayers;
         auto l = n->createChild(sfbxS_LayerElementUV);
-        l->addChild(sfbxS_Version, sfbxI_LayerElementUVVersion);
-        l->addChild(sfbxS_Name, layer.name);
+        l->createChild(sfbxS_Version, sfbxI_LayerElementUVVersion);
+        l->createChild(sfbxS_Name, layer.name);
 
         add_mapping_and_reference_info(l, layer);
-        l->addChild(sfbxS_UV, MakeAdaptor<double2>(layer.data));
+        l->createChild(sfbxS_UV, MakeAdaptor<double2>(layer.data));
         if (!layer.indices.empty())
-            l->addChild(sfbxS_UVIndex, layer.indices);
+            l->createChild(sfbxS_UVIndex, layer.indices);
     }
 
     // color layers
     for (auto& layer : m_color_layers) {
+        if (layer.data.empty())
+            continue;
+
         ++clayers;
         auto l = n->createChild(sfbxS_LayerElementColor);
-        l->addChild(sfbxS_Version, sfbxI_LayerElementColorVersion);
-        l->addChild(sfbxS_Name, layer.name);
+        l->createChild(sfbxS_Version, sfbxI_LayerElementColorVersion);
+        l->createChild(sfbxS_Name, layer.name);
 
         add_mapping_and_reference_info(l, layer);
-        l->addChild(sfbxS_Colors, MakeAdaptor<double4>(layer.data));
+        l->createChild(sfbxS_Colors, MakeAdaptor<double4>(layer.data));
         if (!layer.indices.empty())
-            l->addChild(sfbxS_ColorIndex, layer.indices);
+            l->createChild(sfbxS_ColorIndex, layer.indices);
     }
 
     if (clayers) {
-        auto l = n->createChild(sfbxS_Layer);
-        l->addProperties(0);
-        l->addChild(sfbxS_Version, sfbxI_LayerVersion);
+        auto l = n->createChild(sfbxS_Layer, 0);
+        l->createChild(sfbxS_Version, sfbxI_LayerVersion);
         if (!m_normal_layers.empty()) {
             auto le = l->createChild(sfbxS_LayerElement);
-            le->addChild(sfbxS_Type, sfbxS_LayerElementNormal);
-            le->addChild(sfbxS_TypeIndex, 0);
+            le->createChild(sfbxS_Type, sfbxS_LayerElementNormal);
+            le->createChild(sfbxS_TypeIndex, 0);
         }
         if (!m_uv_layers.empty()) {
             auto le = l->createChild(sfbxS_LayerElement);
-            le->addChild(sfbxS_Type, sfbxS_LayerElementUV);
-            le->addChild(sfbxS_TypeIndex, 0);
+            le->createChild(sfbxS_Type, sfbxS_LayerElementUV);
+            le->createChild(sfbxS_TypeIndex, 0);
         }
         if (!m_color_layers.empty()) {
             auto le = l->createChild(sfbxS_LayerElement);
-            le->addChild(sfbxS_Type, sfbxS_LayerElementColor);
-            le->addChild(sfbxS_TypeIndex, 0);
+            le->createChild(sfbxS_Type, sfbxS_LayerElementColor);
+            le->createChild(sfbxS_TypeIndex, 0);
         }
     }
 }
@@ -657,14 +762,14 @@ void Shape::constructNodes()
     super::constructNodes();
 
     Node* n = getNode();
-    n->addChild(sfbxS_Vertices, MakeAdaptor<double3>(m_delta_points));
-    n->addChild(sfbxS_Indexes, m_indices);
-    n->addChild(sfbxS_Normals, MakeAdaptor<double3>(m_delta_normals));
+    n->createChild(sfbxS_Vertices, MakeAdaptor<double3>(m_delta_points));
+    n->createChild(sfbxS_Indexes, m_indices);
+    n->createChild(sfbxS_Normals, MakeAdaptor<double3>(m_delta_normals));
 }
 
 Mesh* Shape::getBaseMesh()
 {
-    for (auto* p = getParent(); p; p=p->getParent()) {
+    for (auto* p = getParent(); p; p = p->getParent()) {
         if (auto mesh = as<Mesh>(p))
             return mesh;
     }
@@ -696,6 +801,11 @@ void Skin::constructNodes()
 {
     setSubType(ObjectSubType::Skin);
     super::constructNodes();
+
+    auto n = getNode();
+    n->createChild(sfbxS_Version, sfbxI_SkinVersion);
+    n->createChild(sfbxS_Link_DeformAcuracy, 50);
+
 }
 
 void Skin::addParent(Object* v)
@@ -838,6 +948,11 @@ JointMatrices Skin::getJointMatrices()
 }
 
 
+std::string Cluster::getObjectName() const
+{
+    return MakeObjectName(m_name, sfbxS_SubDeformer);
+}
+
 void Cluster::constructObject()
 {
     super::constructObject();
@@ -853,6 +968,19 @@ void Cluster::constructNodes()
 {
     setSubType(ObjectSubType::Cluster);
     super::constructNodes();
+
+    auto n = getNode();
+    n->createChild(sfbxS_Version, sfbxI_ClusterVersion);
+    n->createChild(sfbxS_Mode, sfbxS_Total1);
+    n->createChild(sfbxS_UserData, "", "");
+    if (!m_indices.empty())
+        n->createChild(sfbxS_Indexes, m_indices);
+    if (!m_weights.empty())
+        n->createChild(sfbxS_Weights, m_weights);
+    if (m_transform != float4x4::identity())
+        n->createChild(sfbxS_Transform, m_transform);
+    if (m_transform_link != float4x4::identity())
+        n->createChild(sfbxS_TransformLink, m_transform_link);
 }
 
 span<int> Cluster::getIndices() const { return make_span(m_indices); }
