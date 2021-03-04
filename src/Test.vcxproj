@@ -53,8 +53,8 @@
   <PropertyGroup>
     <IncludePath>$(ProjectDir);$(ProjectDir)Externals\include;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)Externals\lib_win64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
-    <OutDir>$(SolutionDir)_out\$(Platform)_$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)_tmp\$(Platform)_$(Configuration)\$(ProjectName)\</IntDir>
+    <OutDir>$(SolutionDir)_build_msvc\$(Platform)_$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)_build_msvc\obj\$(Platform)_$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
@@ -69,9 +69,6 @@
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
-    <PostBuildEvent>
-      <Command>if not exist "$(OutDir)bin" mklink /d "$(OutDir)bin" "$(ProjectDir)Externals\lib"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
