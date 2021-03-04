@@ -14,8 +14,7 @@
   </Type>
 
   <Type Name="sfbx::Property">
-    <DisplayString Condition="m_type==PropertyType::Bool">{{ value={(bool)m_scalar.i8} type={m_type} }}</DisplayString>
-    <DisplayString Condition="m_type==PropertyType::Int8">{{ value={m_scalar.i8} type={m_type} }}</DisplayString>
+    <DisplayString Condition="m_type==PropertyType::Bool">{{ value={m_scalar.b.value} type={m_type} }}</DisplayString>
     <DisplayString Condition="m_type==PropertyType::Int16">{{ value={m_scalar.i16} type={m_type} }}</DisplayString>
     <DisplayString Condition="m_type==PropertyType::Int32">{{ value={m_scalar.i32} type={m_type} }}</DisplayString>
     <DisplayString Condition="m_type==PropertyType::Int64">{{ value={m_scalar.i64} type={m_type} }}</DisplayString>
@@ -23,7 +22,6 @@
     <DisplayString Condition="m_type==PropertyType::Float64">{{ value={m_scalar.f64} type={m_type} }}</DisplayString>
 
     <DisplayString Condition="m_type==PropertyType::BoolArray">{{ size={m_data.m_size/1} type={m_type} }}</DisplayString>
-    <DisplayString Condition="m_type==PropertyType::Int8Array">{{ size={m_data.m_size/1} type={m_type} }}</DisplayString>
     <DisplayString Condition="m_type==PropertyType::Int16Array">{{ size={m_data.m_size/2} type={m_type} }}</DisplayString>
     <DisplayString Condition="m_type==PropertyType::Int32Array">{{ size={m_data.m_size/4} type={m_type} }}</DisplayString>
     <DisplayString Condition="m_type==PropertyType::Int64Array">{{ size={m_data.m_size/8} type={m_type} }}</DisplayString>
@@ -35,18 +33,17 @@
     <DisplayString Condition="m_type==PropertyType::Blob">{{ value={m_data.m_data,s} type={m_type} }}</DisplayString>
 
     <Expand>
-      <Item Name="value" Condition="m_type==PropertyType::Bool">(bool)m_scalar.i8</Item>
-      <Item Name="value" Condition="m_type==PropertyType::Int8">m_scalar.i8</Item>
+      <Item Name="value" Condition="m_type==PropertyType::Bool">m_scalar.b.value</Item>
       <Item Name="value" Condition="m_type==PropertyType::Int16">m_scalar.i16</Item>
       <Item Name="value" Condition="m_type==PropertyType::Int32">m_scalar.i32</Item>
       <Item Name="value" Condition="m_type==PropertyType::Int64">m_scalar.i64</Item>
       <Item Name="value" Condition="m_type==PropertyType::Float32">m_scalar.f32</Item>
       <Item Name="value" Condition="m_type==PropertyType::Float64">m_scalar.f64</Item>
 
-      <Item Name="[size]" Condition="m_type==PropertyType::Int8Array">m_data.m_size/1</Item>
-      <ArrayItems Condition="m_type==PropertyType::Int8Array">
-        <Size>m_data.m_size/1</Size>
-        <ValuePointer>(int8*)m_data.m_data</ValuePointer>
+      <Item Name="[size]" Condition="m_type==PropertyType::BoolArray">m_data.m_size</Item>
+      <ArrayItems Condition="m_type==PropertyType::BoolArray">
+        <Size>m_data.m_size</Size>
+        <ValuePointer>(sfbx::boolean*)m_data.m_data</ValuePointer>
       </ArrayItems>
 
       <Item Name="[size]" Condition="m_type==PropertyType::Int16Array">m_data.m_size/2</Item>

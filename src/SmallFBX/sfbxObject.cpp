@@ -133,20 +133,19 @@ void Object::constructNodes()
     m_node->addProperty(name);
     m_node->addProperty(GetFbxObjectSubName(getSubType()));
 
-    {
-        auto connections = m_document->findNode(sfbxS_Connections);
-        auto add_link = [connections, this](int64 id) {
+    if (auto connections = m_document->findNode(sfbxS_Connections)) {
+        auto add_link_oo = [connections, this](int64 id) {
             connections->addChild(sfbxS_C, sfbxS_OO, getID(), id);
         };
 
         auto parents = getParents();
         if (parents.empty()) {
             // this seems required
-            add_link(0);
+            add_link_oo(0);
         }
         else {
             for (auto parent : parents)
-                add_link(parent->getID());
+                add_link_oo(parent->getID());
         }
     }
 }
@@ -275,7 +274,7 @@ void Model::constructObject()
     }
 }
 
-#define sfbxVector3D(V) (float64)V.x, (float64)V.y, (float64)V.z
+#define sfbxVector3d(V) (float64)V.x, (float64)V.y, (float64)V.z
 
 void Model::constructNodes()
 {
@@ -292,7 +291,7 @@ void Model::constructNodes()
     // position
     if (m_position != float3::zero()) {
         properties->addChild(sfbxS_P,
-            sfbxS_LclTranslation, sfbxS_LclTranslation, sfbxS_Empty, sfbxS_A, sfbxVector3D(m_position));
+            sfbxS_LclTranslation, sfbxS_LclTranslation, sfbxS_Empty, sfbxS_A, sfbxVector3d(m_position));
     }
 
     // rotation active
@@ -309,26 +308,26 @@ void Model::constructNodes()
         // pre-rotation
         if (m_pre_rotation != float3::zero()) {
             properties->addChild(sfbxS_P,
-                sfbxS_PreRotation, sfbxS_Vector3D, sfbxS_Vector, sfbxS_Empty, sfbxVector3D(m_pre_rotation));
+                sfbxS_PreRotation, sfbxS_Vector3D, sfbxS_Vector, sfbxS_Empty, sfbxVector3d(m_pre_rotation));
         }
 
         // post-rotation
         if (m_post_rotation != float3::zero()) {
             properties->addChild(sfbxS_P,
-                sfbxS_PostRotation, sfbxS_Vector3D, sfbxS_Vector, sfbxS_Empty, sfbxVector3D(m_post_rotation));
+                sfbxS_PostRotation, sfbxS_Vector3D, sfbxS_Vector, sfbxS_Empty, sfbxVector3d(m_post_rotation));
         }
 
         // rotation
         if (m_rotation != float3::zero()) {
             properties->addChild(sfbxS_P,
-                sfbxS_LclRotation, sfbxS_LclRotation, sfbxS_Empty, sfbxS_A, sfbxVector3D(m_rotation));
+                sfbxS_LclRotation, sfbxS_LclRotation, sfbxS_Empty, sfbxS_A, sfbxVector3d(m_rotation));
         }
     }
 
     // scale
     if (m_scale!= float3::one()) {
         properties->addChild(sfbxS_P,
-            sfbxS_LclScale, sfbxS_LclScale, sfbxS_Empty, sfbxS_A, sfbxVector3D(m_scale));
+            sfbxS_LclScale, sfbxS_LclScale, sfbxS_Empty, sfbxS_A, sfbxVector3d(m_scale));
     }
 }
 
@@ -477,7 +476,7 @@ void Mesh::constructObject()
             tmp.name = GetChildPropertyString(n, sfbxS_Name);
             tmp.data = GetChildPropertyArray<double3>(n, sfbxS_Normals);
             tmp.indices = GetChildPropertyArray<int>(n, sfbxS_NormalsIndex);
-            m_normal_layers.push_back(tmp);
+            m_normal_layers.push_back(std::move(tmp));
         }
         else if (n->getName() == sfbxS_LayerElementUV) {
             // uv
@@ -485,7 +484,7 @@ void Mesh::constructObject()
             tmp.name = GetChildPropertyString(n, sfbxS_Name);
             tmp.data = GetChildPropertyArray<double2>(n, sfbxS_UV);
             tmp.indices = GetChildPropertyArray<int>(n, sfbxS_UVIndex);
-            m_uv_layers.push_back(tmp);
+            m_uv_layers.push_back(std::move(tmp));
         }
         else if (n->getName() == sfbxS_LayerElementColor) {
             // colors
@@ -493,17 +492,9 @@ void Mesh::constructObject()
             tmp.name = GetChildPropertyString(n, sfbxS_Name);
             tmp.data = GetChildPropertyArray<double4>(n, sfbxS_Colors);
             tmp.indices = GetChildPropertyArray<int>(n, sfbxS_ColorIndex);
-            m_color_layers.push_back(tmp);
+            m_color_layers.push_back(std::move(tmp));
         }
     }
-}
-
-template<class D, class S>
-static inline void CreatePropertyAndCopy(Node* dst_node, const RawVector<S>& src)
-{
-    auto dst_prop = dst_node->createProperty();
-    auto dst = dst_prop->allocateArray<D>(src.size());
-    copy(dst, make_span(src));
 }
 
 void Mesh::constructNodes()
@@ -513,11 +504,14 @@ void Mesh::constructNodes()
 
     Node* n = getNode();
 
+    n->addChild(sfbxS_GeometryVersion, sfbxI_GeometryVersion);
+
     // points
-    CreatePropertyAndCopy<double3>(n->createChild(sfbxS_Vertices), m_points);
+    n->addChild(sfbxS_Vertices, MakeAdaptor<double3>(m_points));
 
     // indices
     {
+        // check if counts and indices are valid
         size_t total_counts = 0;
         for (int c : m_counts)
             total_counts += c;
@@ -543,24 +537,78 @@ void Mesh::constructNodes()
         }
     }
 
-    n->addChild(sfbxS_GeometryVersion, sfbxI_GeometryVersion);
+    auto add_mapping_and_reference_info = [this](Node* node, const auto& layer) {
+        if (layer.data.size() == m_indices.size() || layer.indices.size() == m_indices.size())
+            node->addChild(sfbxS_MappingInformationType, "ByPolygonVertex");
+        else if (layer.data.size() == m_points.size() && layer.indices.empty())
+            node->addChild(sfbxS_MappingInformationType, "ByControllPoint");
+
+        if (!layer.indices.empty())
+            node->addChild(sfbxS_ReferenceInformationType, "IndexToDirect");
+        else
+            node->addChild(sfbxS_ReferenceInformationType, "Direct");
+    };
+
+    int clayers = 0;
 
     // normal layers
     for (auto& layer : m_normal_layers) {
-        auto normals_layer = n->createChild(sfbxS_LayerElementNormal);
-        // todo
+        ++clayers;
+        auto l = n->createChild(sfbxS_LayerElementNormal);
+        l->addChild(sfbxS_Version, sfbxI_LayerElementNormalVersion);
+        l->addChild(sfbxS_Name, layer.name);
+
+        add_mapping_and_reference_info(l, layer);
+        l->addChild(sfbxS_Normals, MakeAdaptor<double3>(layer.data));
+        if (!layer.indices.empty())
+            l->addChild(sfbxS_NormalsIndex, layer.indices);
     }
 
     // uv layers
     for (auto& layer : m_uv_layers) {
-        auto uv_layer = n->createChild(sfbxS_LayerElementUV);
-        // todo
+        ++clayers;
+        auto l = n->createChild(sfbxS_LayerElementUV);
+        l->addChild(sfbxS_Version, sfbxI_LayerElementUVVersion);
+        l->addChild(sfbxS_Name, layer.name);
+
+        add_mapping_and_reference_info(l, layer);
+        l->addChild(sfbxS_UV, MakeAdaptor<double2>(layer.data));
+        if (!layer.indices.empty())
+            l->addChild(sfbxS_UVIndex, layer.indices);
     }
 
     // color layers
     for (auto& layer : m_color_layers) {
-        auto color_layer = n->createChild(sfbxS_LayerElementColor);
-        // todo
+        ++clayers;
+        auto l = n->createChild(sfbxS_LayerElementColor);
+        l->addChild(sfbxS_Version, sfbxI_LayerElementColorVersion);
+        l->addChild(sfbxS_Name, layer.name);
+
+        add_mapping_and_reference_info(l, layer);
+        l->addChild(sfbxS_Colors, MakeAdaptor<double4>(layer.data));
+        if (!layer.indices.empty())
+            l->addChild(sfbxS_ColorIndex, layer.indices);
+    }
+
+    if (clayers) {
+        auto l = n->createChild(sfbxS_Layer);
+        l->addProperties(0);
+        l->addChild(sfbxS_Version, sfbxI_LayerVersion);
+        if (!m_normal_layers.empty()) {
+            auto le = l->createChild(sfbxS_LayerElement);
+            le->addChild(sfbxS_Type, sfbxS_LayerElementNormal);
+            le->addChild(sfbxS_TypeIndex, 0);
+        }
+        if (!m_uv_layers.empty()) {
+            auto le = l->createChild(sfbxS_LayerElement);
+            le->addChild(sfbxS_Type, sfbxS_LayerElementUV);
+            le->addChild(sfbxS_TypeIndex, 0);
+        }
+        if (!m_color_layers.empty()) {
+            auto le = l->createChild(sfbxS_LayerElement);
+            le->addChild(sfbxS_Type, sfbxS_LayerElementColor);
+            le->addChild(sfbxS_TypeIndex, 0);
+        }
     }
 }
 
@@ -609,9 +657,9 @@ void Shape::constructNodes()
     super::constructNodes();
 
     Node* n = getNode();
-    CreatePropertyAndCopy<double3>(n->createChild(sfbxS_Vertices), m_delta_points);
-    CreatePropertyAndCopy<int>(n->createChild(sfbxS_Indexes), m_indices);
-    CreatePropertyAndCopy<double3>(n->createChild(sfbxS_Normals), m_delta_normals);
+    n->addChild(sfbxS_Vertices, MakeAdaptor<double3>(m_delta_points));
+    n->addChild(sfbxS_Indexes, m_indices);
+    n->addChild(sfbxS_Normals, MakeAdaptor<double3>(m_delta_normals));
 }
 
 Mesh* Shape::getBaseMesh()

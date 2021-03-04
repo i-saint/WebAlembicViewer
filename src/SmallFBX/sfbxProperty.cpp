@@ -283,6 +283,7 @@ template<> span<double4> Property::getArray() const { return make_span((double4*
 
 std::string Property::getString() const
 {
+    // make new one because m_data is not null-terminated
     return std::string(m_data.data(), m_data.size());
 }
 

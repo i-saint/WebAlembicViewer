@@ -73,17 +73,49 @@ testCase(fbxWrite)
         model->setScale({ 1.0f, 2.0f, 3.0f });
 
         auto mesh = model->createChild<sfbx::Mesh>();
-        RawVector<int> counts{ 4 };
-        RawVector<int> indices{ 0, 1, 2, 3 };
-        RawVector<float3> points{
-            {-1, 0, -1},
-            { 1, 0, -1},
-            { 1, 0,  1},
-            {-1, 0,  1},
-        };
-        mesh->setCounts(counts);
-        mesh->setIndices(indices);
-        mesh->setPoints(points);
+        {
+            RawVector<int> counts{ 4 };
+            RawVector<int> indices{ 0, 1, 2, 3 };
+            RawVector<float3> points{
+                {-1, 0, -1},
+                {-1, 0,  1},
+                { 1, 0,  1},
+                { 1, 0, -1},
+            };
+            mesh->setCounts(counts);
+            mesh->setIndices(indices);
+            mesh->setPoints(points);
+        }
+        {
+            sfbx::LayerElementF3 normals;
+            normals.data = {
+                { 0, 1, 0},
+                { 0, 1, 0},
+                { 0, 1, 0},
+                { 0, 1, 0},
+            };
+            mesh->addNormalLayer(std::move(normals));
+        }
+        {
+            sfbx::LayerElementF2 uv;
+            uv.data = {
+                { 0, 0 },
+                { 0, 1 },
+                { 1, 1 },
+                { 1, 0 },
+            };
+            mesh->addUVLayer(std::move(uv));
+        }
+        {
+            sfbx::LayerElementF4 colors;
+            colors.data = {
+                { 1, 0, 0, 1},
+                { 0, 1, 0, 1},
+                { 0, 0, 1, 1},
+                { 0, 0, 0, 1},
+            };
+            mesh->addColorLayer(std::move(colors));
+        }
 
         doc->constructNodes();
         doc->writeBinary("test_bin.fbx");

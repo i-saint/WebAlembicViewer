@@ -75,14 +75,20 @@ inline void copy(T* dst, const T* src, size_t n)
     for (size_t i = 0; i < n; ++i)
         *dst++ = *src++;
 }
-template<class Dst, class Src>
-inline void copy(Dst& dst, const Src& src)
+template<class D, class Src>
+inline void copy(span<D> dst, const Src& src)
 {
-    resize(dst, src.size());
     auto* d = dst.data();
     for (auto& v : src)
         *d++ = v;
 }
+template<class Dst, class Src>
+inline void copy(Dst& dst, const Src& src)
+{
+    resize(dst, src.size());
+    copy(make_span(dst), src);
+}
+
 template<class Dst, class Src, class Indices>
 inline void copy_indexed(Dst& dst, Src& src, Indices& idx)
 {

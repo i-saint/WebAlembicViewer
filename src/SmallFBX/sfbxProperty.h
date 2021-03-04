@@ -5,6 +5,28 @@
 
 namespace sfbx {
 
+enum class PropertyType : uint8_t
+{
+    Bool = 'C', // boolean (not built-in bool. see struct boolean in sfbxTypes.h)
+    Int16 = 'Y', // int16
+    Int32 = 'I', // int32
+    Int64 = 'L', // int64
+    Float32 = 'F', // float32
+    Float64 = 'D', // float64
+
+    String = 'S', // std::string
+    Blob = 'R', // span<uint8_t>
+
+    BoolArray = 'b', // span<boolean>
+    Int16Array = 'y', // span<int16>
+    Int32Array = 'i', // span<int32>
+    Int64Array = 'l', // span<int64>
+    Float32Array = 'f', // span<float32>
+    Float64Array = 'd', // span<float64>
+};
+uint32_t SizeOfElement(PropertyType type);
+
+
 template<class T> struct is_propery_pod : std::false_type {};
 #define PropPOD(T) template<> struct is_propery_pod<T> : std::true_type {}
 PropPOD(bool);
@@ -25,27 +47,19 @@ PropPOD(double4);
 PropPOD(double4x4);
 #undef PropPOD
 
-
-enum class PropertyType : uint8_t
+template<class D, class S>
+struct ArrayAdaptor
 {
-    Bool    = 'C', // boolean (not built-in bool. see struct boolean in sfbxTypes.h)
-    Int16   = 'Y', // int16
-    Int32   = 'I', // int32
-    Int64   = 'L', // int64
-    Float32 = 'F', // float32
-    Float64 = 'D', // float64
+    using dst_type = D;
+    using src_type = S;
 
-    String  = 'S', // std::string
-    Blob    = 'R', // RawVector<char>
-
-    BoolArray    = 'b', // span<boolean>
-    Int16Array   = 'y', // span<int16>
-    Int32Array   = 'i', // span<int32>
-    Int64Array   = 'l', // span<int64>
-    Float32Array = 'f', // span<float32>
-    Float64Array = 'd', // span<float64>
+    span<S> values;
+    ArrayAdaptor(const RawVector<S>& v) : values(make_span(v)) {}
+    ArrayAdaptor(span<S> v) : values(v) {}
 };
-uint32_t SizeOfElement(PropertyType type);
+template<class D, class Cont>
+inline auto MakeAdaptor(const Cont& src) { return ArrayAdaptor<D, typename Cont::value_type>(src); }
+
 
 class Property
 {
@@ -59,10 +73,11 @@ public:
     // T: corresponding types with PropertyType (boolean ... float64 and span<> & std::vector<>, std::string)
     template<class T, sfbxEnableIf(is_propery_pod<T>::value)> void assign(T v);
     template<class T> void assign(span<T> v);
-    template<class T> void assign(const std::vector<T>& v) { assign(make_span(v)); }
     template<class T> void assign(const RawVector<T>& v) { assign(make_span(v)); }
+    template<class D, class S> void assign(const ArrayAdaptor<D, S>& v) { copy(allocateArray<D>(v.values.size()), v.values); }
     void assign(const std::string& v);
     void assign(const char* v);
+
 
     PropertyType getType() const;
     bool isArray() const;

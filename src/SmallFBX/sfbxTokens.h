@@ -31,6 +31,8 @@
 #define sfbxS_Millisecond       "Millisecond"
 #define sfbxS_UserData          "UserData"
 #define sfbxS_Type              "Type"
+#define sfbxS_TypeIndex         "TypeIndex"
+
 #define sfbxS_Title             "Title"
 #define sfbxS_Subject           "Subject"
 #define sfbxS_Author            "Author"
@@ -131,6 +133,9 @@
 #define sfbxS_LayerLayerElementMaterial "LayerElementMaterial"
 #define sfbxS_MappingInformationType    "MappingInformationType"
 #define sfbxS_ReferenceInformationType  "ReferenceInformationType"
+#define sfbxS_Layer                     "Layer"
+#define sfbxS_LayerElement              "LayerElement"
+
 
 #define sfbxS_Default           "Default"
 #define sfbxS_KeyVer            "KeyVer"
@@ -149,6 +154,11 @@
 #define sfbxI_GlobalSettingsVersion 1000
 #define sfbxI_ModelVersion      232
 #define sfbxI_GeometryVersion   124
+#define sfbxI_LayerVersion      100
+#define sfbxI_LayerElementNormalVersion     101
+#define sfbxI_LayerElementUVVersion         101
+#define sfbxI_LayerElementColorVersion      101
+#define sfbxI_LayerElementMaterialVersion   101
 #define sfbxI_ShapeVersion      100
 #define sfbxI_BindPoseVersion   100
 #define sfbxI_SkinVersion       101
