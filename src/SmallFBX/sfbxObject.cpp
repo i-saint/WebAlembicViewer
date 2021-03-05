@@ -91,7 +91,7 @@ const char* GetFbxObjectSubName(ObjectSubType t)
     }
 }
 
-inline std::string MakeObjectName(const std::string& name, const std::string& type)
+std::string MakeObjectName(const std::string& name, const std::string& type)
 {
     std::string ret = name;
     ret += (char)0;
@@ -315,6 +315,10 @@ void Model::constructNodes()
 
     auto properties = n->createChild(sfbxS_Properties70);
 
+    // attribute
+    if (!m_node_attributes.empty())
+        properties->createChild(sfbxS_P, "DefaultAttributeIndex", "int", "Integer", "", 0);
+
     // position
     if (m_position != float3::zero()) {
         properties->createChild(sfbxS_P,
@@ -434,12 +438,12 @@ void Light::constructObject()
 
 void Light::constructNodes()
 {
-    super::constructNodes();
-
     if (!m_attr) {
         m_attr = createChild<NodeAttribute>();
         m_attr->setSubType(ObjectSubType::Light);
     }
+    super::constructNodes();
+
     // todo
 }
 
@@ -462,12 +466,12 @@ void Camera::constructObject()
 
 void Camera::constructNodes()
 {
-    super::constructNodes();
-
     if (!m_attr) {
         m_attr = createChild<NodeAttribute>();
         m_attr->setSubType(ObjectSubType::Camera);
     }
+    super::constructNodes();
+
     // todo
 }
 
@@ -483,12 +487,11 @@ void Camera::addChild(Object* v)
 void Root::constructNodes()
 {
     setSubType(ObjectSubType::Root);
-    super::constructNodes();
-
     if (!m_attr) {
         m_attr = createChild<NodeAttribute>();
         m_attr->setSubType(ObjectSubType::Root);
     }
+    super::constructNodes();
 }
 
 void Root::addChild(Object* v)
@@ -503,12 +506,11 @@ void Root::addChild(Object* v)
 void LimbNode::constructNodes()
 {
     setSubType(ObjectSubType::LimbNode);
-    super::constructNodes();
-
     if (!m_attr) {
         m_attr = createChild<NodeAttribute>();
         m_attr->setSubType(ObjectSubType::LimbNode);
     }
+    super::constructNodes();
 }
 
 
@@ -1028,7 +1030,7 @@ void BindPose::constructObject()
     for (auto n : getNode()->getChildren()) {
         if (n->getName() == sfbxS_PoseNode) {
             auto nid = GetChildPropertyValue<int64>(n, sfbxS_Node);
-            auto mat = GetChildPropertyValue<double4x4>(n, sfbxS_Marix);
+            auto mat = GetChildPropertyValue<double4x4>(n, sfbxS_Matrix);
             auto model = as<Model>(m_document->findObject(nid));
             if (model) {
                 m_pose_data.push_back({ model, float4x4(mat) });
@@ -1044,11 +1046,20 @@ void BindPose::constructNodes()
 {
     setSubType(ObjectSubType::BindPose);
     super::constructNodes();
-    // todo
+
+    auto n = getNode();
+    n->createChild(sfbxS_Type, sfbxS_BindPose);
+    n->createChild(sfbxS_Version, sfbxI_BindPoseVersion);
+    n->createChild(sfbxS_NbPoseNodes, (int32)m_pose_data.size());
+    for (auto& d : m_pose_data) {
+        auto pn = n->createChild(sfbxS_PoseNode);
+        pn->createChild(sfbxS_Node, (int64)d.object);
+        pn->createChild(sfbxS_Matrix, (double4x4)d.matrix);
+    }
 }
 
 span<BindPose::PoseData> BindPose::getPoseData() const { return make_span(m_pose_data); }
-void BindPose::addPoseData(const PoseData& v) { m_pose_data.push_back(v); }
+void BindPose::addPoseData(Model* joint, float4x4 bind_matrix) { m_pose_data.push_back({ joint, bind_matrix }); }
 
 
 
@@ -1159,8 +1170,9 @@ void AnimationCurveNode::addValue(float time, float value)
     if (m_curves.empty()) {
         createChild<AnimationCurve>();
     }
-    if (m_curves.size() != 1) {
+    else if (m_curves.size() != 1) {
         sfbxPrint("afbx::AnimationCurveNode::addValue() curve count mismatch\n");
+        return;
     }
     m_curves[0]->addValue(time, value);
 }
@@ -1172,8 +1184,9 @@ void AnimationCurveNode::addValue(float time, float3 value)
         createChild<AnimationCurve>();
         createChild<AnimationCurve>();
     }
-    if (m_curves.size() != 3) {
+    else if (m_curves.size() != 3) {
         sfbxPrint("afbx::AnimationCurveNode::addValue() curve count mismatch\n");
+        return;
     }
     m_curves[0]->addValue(time, value.x);
     m_curves[1]->addValue(time, value.y);

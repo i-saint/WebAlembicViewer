@@ -220,6 +220,20 @@ struct tmat4x4
     }
 };
 
+template<class T> struct get_vector_size { static constexpr size_t value = 1; };
+template<class T> struct get_vector_size<tvec2<T>> { static constexpr size_t value = 2; };
+template<class T> struct get_vector_size<tvec3<T>> { static constexpr size_t value = 3; };
+template<class T> struct get_vector_size<tvec4<T>> { static constexpr size_t value = 4; };
+template<class T> struct get_vector_size<tquat<T>> { static constexpr size_t value = 4; };
+template<class T> struct get_vector_size<tmat4x4<T>> { static constexpr size_t value = 16; };
+
+template<class T> struct get_scalar_type { using type = T; };
+template<class T> struct get_scalar_type<tvec2<T>> { using type = T; };
+template<class T> struct get_scalar_type<tvec3<T>> { using type = T; };
+template<class T> struct get_scalar_type<tvec4<T>> { using type = T; };
+template<class T> struct get_scalar_type<tquat<T>> { using type = T; };
+template<class T> struct get_scalar_type<tmat4x4<T>> { using type = T; };
+
 using int2 = tvec2<int>;
 using int3 = tvec3<int>;
 using int4 = tvec4<int>;

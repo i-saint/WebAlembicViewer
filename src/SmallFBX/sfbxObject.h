@@ -40,6 +40,7 @@ const char*   GetFbxObjectName(ObjectType t);
 ObjectSubType GetFbxObjectSubType(const std::string& n);
 ObjectSubType GetFbxObjectSubType(Node* n);
 const char*   GetFbxObjectSubName(ObjectSubType t);
+std::string   MakeObjectName(const std::string& name, const std::string& type);
 
 
 class Object
@@ -65,9 +66,9 @@ public:
     Object* getChild(size_t i = 0) const;
 
     virtual void setSubType(ObjectSubType v);
-    void setID(int64 v);
-    void setName(const std::string& v);
-    void setNode(Node* v);
+    virtual void setID(int64 v);
+    virtual void setName(const std::string& v);
+    virtual void setNode(Node* v);
 
 protected:
     Object(const Object&) = delete;
@@ -421,7 +422,7 @@ public:
     void constructNodes() override;
 
     span<PoseData> getPoseData() const;
-    void addPoseData(const PoseData& v);
+    void addPoseData(Model* joint, float4x4 bind_matrix);
 
 protected:
     std::vector<PoseData> m_pose_data;

@@ -331,9 +331,7 @@ void Document::constructNodes()
             other_flags->createChild(sfbxS_TCDefinition, sfbxI_TCDefinition);
         }
         {
-            const char global_info[]{ "GlobalInfo\x00\x01SceneInfo" };
-
-            auto scene_info = header_extension->createChild(sfbxS_SceneInfo, make_span(global_info), sfbxS_UserData);
+            auto scene_info = header_extension->createChild(sfbxS_SceneInfo, MakeObjectName(sfbxS_GlobalInfo, sfbxS_SceneInfo), sfbxS_UserData);
             scene_info->createChild(sfbxS_Type, sfbxS_UserData);
             scene_info->createChild(sfbxS_Version, 100);
             {
@@ -413,6 +411,16 @@ void Document::constructNodes()
     auto references = createNode(sfbxS_References);
 
     auto definitions = createNode(sfbxS_Definitions);
+
+    createNode(sfbxS_Objects);
+    createNode(sfbxS_Connections);
+
+    createNode(sfbxS_Takes)->createChild(sfbxS_Current, "");
+
+    // index based loop because m_objects maybe push_backed in the loop
+    for (size_t i = 0; i < m_objects.size(); ++i)
+        m_objects[i]->constructNodes();
+
     {
         auto add_object_type = [definitions](size_t n, const char* type) -> Node* {
             if (n == 0)
@@ -438,15 +446,6 @@ void Document::constructNodes()
 
         add_object_type(countObject<Material>(), sfbxS_Material);
     }
-
-    createNode(sfbxS_Objects);
-    createNode(sfbxS_Connections);
-
-    createNode(sfbxS_Takes)->createChild(sfbxS_Current, "");
-
-    // index based loop because m_objects maybe push_backed in the loop
-    for (size_t i = 0; i < m_objects.size(); ++i)
-        m_objects[i]->constructNodes();
 }
 
 std::string Document::toString()

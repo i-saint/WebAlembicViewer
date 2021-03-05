@@ -4,6 +4,7 @@
 
 using sfbx::as;
 using sfbx::span;
+using sfbx::make_span;
 using sfbx::RawVector;
 using sfbx::float3;
 
@@ -68,19 +69,27 @@ testCase(fbxWrite)
         sfbx::DocumentPtr doc = sfbx::MakeDocument();
 
         auto model = doc->createObject<sfbx::Model>("mesh");
-        model->setPosition({ 0.0f, 1.0f, 2.0f });
-        model->setRotation({ 0.0f, 30.0f, 60.0f });
-        model->setScale({ 1.0f, 2.0f, 3.0f });
+        model->setPosition({ 0.0f, 0.0f, 0.0f });
+        model->setRotation({ 0.0f, 0.0f, 0.0f });
+        model->setScale({ 1.0f, 1.0f, 1.0f });
 
+        float s = 10.0f;
         auto mesh = model->createChild<sfbx::Mesh>();
         {
-            RawVector<int> counts{ 4 };
-            RawVector<int> indices{ 0, 1, 2, 3 };
+            RawVector<int> counts{ 4, 4, 4, 4 };
+            RawVector<int> indices{
+                0, 1, 3, 2,
+                2, 3, 5, 4,
+                4, 5, 7, 6,
+                6, 7, 9, 8,
+            };
+
             RawVector<float3> points{
-                {-1, 0, -1},
-                {-1, 0,  1},
-                { 1, 0,  1},
-                { 1, 0, -1},
+                {-s * 0.5f, s * 0, 0}, {s * 0.5f, s * 0, 0},
+                {-s * 0.5f, s * 1, 0}, {s * 0.5f, s * 1, 0},
+                {-s * 0.5f, s * 2, 0}, {s * 0.5f, s * 2, 0},
+                {-s * 0.5f, s * 3, 0}, {s * 0.5f, s * 3, 0},
+                {-s * 0.5f, s * 4, 0}, {s * 0.5f, s * 4, 0},
             };
             mesh->setCounts(counts);
             mesh->setIndices(indices);
@@ -89,41 +98,65 @@ testCase(fbxWrite)
         {
             sfbx::LayerElementF3 normals;
             normals.data = {
-                { 0, 1, 0},
-                { 0, 1, 0},
-                { 0, 1, 0},
-                { 0, 1, 0},
+                { 0, 0, -1}, { 0, 0, -1},
+                { 0, 0, -1}, { 0, 0, -1},
+                { 0, 0, -1}, { 0, 0, -1},
+                { 0, 0, -1}, { 0, 0, -1},
+                { 0, 0, -1}, { 0, 0, -1},
             };
             mesh->addNormalLayer(std::move(normals));
         }
         {
             sfbx::LayerElementF2 uv;
             uv.data = {
-                { 0, 0 },
-                { 0, 1 },
-                { 1, 1 },
-                { 1, 0 },
+                { 0, 0.00f }, { 1, 0.00f },
+                { 0, 0.25f }, { 1, 0.25f },
+                { 0, 0.50f }, { 1, 0.50f },
+                { 0, 0.75f }, { 1, 0.75f },
+                { 0, 1.00f }, { 1, 1.00f },
             };
             mesh->addUVLayer(std::move(uv));
         }
         {
             sfbx::LayerElementF4 colors;
             colors.data = {
-                { 1, 0, 0, 1},
-                { 0, 1, 0, 1},
-                { 0, 0, 1, 1},
-                { 0, 0, 0, 1},
+                { 1, 0, 0, 1}, { 0, 1, 0, 1},
+                { 0, 0, 1, 1}, { 0, 0, 0, 1},
+                { 1, 0, 0, 1}, { 0, 1, 0, 1},
+                { 0, 0, 1, 1}, { 0, 0, 0, 1},
+                { 0, 0, 1, 1}, { 0, 0, 0, 1},
             };
             mesh->addColorLayer(std::move(colors));
         }
 
-        auto root = doc->createObject<sfbx::Root>("joint1");
-        auto limb = root->createChild<sfbx::LimbNode>("joint2");
+        sfbx::Model* bones[5]{};
+        bones[0] = doc->createObject<sfbx::Root>("joint1");
+        bones[1] = bones[0]->createChild<sfbx::LimbNode>("joint2");
+        bones[2] = bones[1]->createChild<sfbx::LimbNode>("joint3");
+        bones[3] = bones[2]->createChild<sfbx::LimbNode>("joint4");
+        bones[4] = bones[3]->createChild<sfbx::LimbNode>("joint5");
+
+        sfbx::BindPose* bindpose = doc->createObject<sfbx::BindPose>();
+        for (int i = 0; i < 5; ++i) {
+            bones[i]->setPosition({ 0.0f, i == 0 ? 0.0f : s, 0.0f });
+            bindpose->addPoseData(bones[i], bones[i]->getGlobalMatrix());
+        }
+
 
         auto skin = mesh->createChild<sfbx::Skin>();
-        auto cluster = skin->createChild<sfbx::Cluster>();
-        cluster->addChild(root);
-        mesh->addChild(skin);
+        skin->setName("");
+
+        sfbx::Cluster* clusters[5]{};
+        for (int i = 0; i < 5; ++i) {
+            clusters[i] = skin->createChild<sfbx::Cluster>();
+            clusters[i]->addChild(bones[i]);
+            bones[i]->addChild(clusters[i]);
+
+            int indices[2]{ i * 2 + 0, i * 2 + 1 };
+            float weights[2]{ 1.0f, 1.0f };
+            clusters[i]->setIndices(make_span(indices));
+            clusters[i]->setWeights(make_span(weights));
+        }
 
 
         doc->constructNodes();
