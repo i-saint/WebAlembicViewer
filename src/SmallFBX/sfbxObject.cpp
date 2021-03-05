@@ -140,15 +140,8 @@ void Object::constructNodes()
     m_node = objects->createChild(GetFbxClassName(getClass()));
     m_node->addProperties(m_id, getObjectName(), GetFbxSubClassName(getSubClass()));
 
-    auto parents = getParents();
-    if (parents.empty()) {
-        // this cannot be omitted
-        addLinkOO(0);
-    }
-    else {
-        for (auto parent : parents)
-            addLinkOO(parent->getID());
-    }
+    for (auto parent : getParents())
+        addLinkOO(parent->getID());
 }
 
 template<class T> T* Object::createChild(const std::string& name)
@@ -173,11 +166,8 @@ void Object::addChild(Object* v)
 
 void Object::addParent(Object* v)
 {
-    if (v) {
+    if (v)
         m_parents.push_back(v);
-        if (getClass() != ObjectClass::Model && v->getClass() == ObjectClass::Model)
-            setName(v->getName());
-    }
 }
 
 void Object::addLinkOO(int64 id)
@@ -363,6 +353,10 @@ void Model::constructNodes()
         properties->createChild(sfbxS_P,
             sfbxS_LclScale, sfbxS_LclScale, sfbxS_Empty, sfbxS_A, sfbxVector3d(m_scale));
     }
+
+    // link to root
+    if (!m_parent_model)
+        addLinkOO(0);
 }
 
 void Model::addParent(Object* v)
@@ -420,7 +414,22 @@ void Model::setRotation(float3 v) { m_rotation = v; }
 void Model::setPostRotation(float3 v) { m_post_rotation = v; }
 void Model::setScale(float3 v) { m_scale = v; }
 
+
 ObjectSubClass Null::getSubClass() const { return ObjectSubClass::Null; }
+
+void Null::constructNodes()
+{
+    if (!m_attr)
+        m_attr = createChild<NullAttribute>();
+    super::constructNodes();
+}
+
+void Null::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto attr = as<NullAttribute>(v))
+        m_attr = attr;
+}
 
 
 ObjectSubClass Root::getSubClass() const { return ObjectSubClass::Root; }
@@ -429,7 +438,6 @@ void Root::constructNodes()
 {
     if (!m_attr)
         m_attr = createChild<RootAttribute>();
-    addLinkOO(0);
     super::constructNodes();
 }
 
@@ -439,6 +447,7 @@ void Root::addChild(Object* v)
     if (auto attr = as<RootAttribute>(v))
         m_attr = attr;
 }
+
 
 ObjectSubClass LimbNode::getSubClass() const { return ObjectSubClass::LimbNode; }
 
@@ -456,6 +465,7 @@ void LimbNode::addChild(Object* v)
     if (auto attr = as<LimbNodeAttribute>(v))
         m_attr = attr;
 }
+
 
 ObjectSubClass Mesh::getSubClass() const { return ObjectSubClass::Mesh; }
 
@@ -475,17 +485,15 @@ void Mesh::addChild(Object* v)
 
 GeomMesh* Mesh::getGeometry()
 {
-    if (!m_geom) {
-        // m_geom will be set in addChild()
-        createChild<GeomMesh>(getName());
-    }
+    if (!m_geom)
+        m_geom = createChild<GeomMesh>(getName());
     return m_geom;
 }
+
 span<Material*> Mesh::getMaterials() const
 {
     return make_span(m_materials);
 }
-
 
 
 ObjectSubClass Light::getSubClass() const { return ObjectSubClass::Light; }
@@ -751,6 +759,16 @@ void GeomMesh::addNormalLayer(LayerElementF3&& v) { m_normal_layers.push_back(v)
 void GeomMesh::addUVLayer(LayerElementF2&& v) { m_uv_layers.push_back(v); }
 void GeomMesh::addColorLayer(LayerElementF4&& v) { m_color_layers.push_back(v); }
 
+Skin* GeomMesh::createSkin()
+{
+    return createChild<Skin>();
+}
+
+BlendShape* GeomMesh::createBlendshape()
+{
+    return createChild<BlendShape>();
+}
+
 
 ObjectSubClass Shape::getSubClass() const { return ObjectSubClass::Shape; }
 
@@ -967,6 +985,13 @@ JointMatrices Skin::getJointMatrices()
     return ret;
 }
 
+
+Cluster* Skin::createCluster(Model* model)
+{
+    auto r = createChild<Cluster>();
+    r->addChild(model);
+    return r;
+}
 
 ObjectSubClass Cluster::getSubClass() const { return ObjectSubClass::Cluster; }
 

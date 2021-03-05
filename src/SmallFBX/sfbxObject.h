@@ -198,6 +198,8 @@ class Null : public Model
 using super = Model;
 public:
     ObjectSubClass getSubClass() const override;
+    void constructNodes() override;
+    void addChild(Object* v) override;
 
 protected:
     NullAttribute* m_attr{};
@@ -228,6 +230,7 @@ public:
 protected:
     LimbNodeAttribute* m_attr{};
 };
+
 
 class Mesh : public Model
 {
@@ -326,6 +329,9 @@ public:
     void addUVLayer(LayerElementF2&& v);
     void addColorLayer(LayerElementF4&& v);
 
+    Skin* createSkin();
+    BlendShape* createBlendshape();
+
 protected:
     RawVector<int> m_counts;
     RawVector<int> m_indices;
@@ -413,6 +419,8 @@ public:
     JointWeights getJointWeightsVariable();
     JointWeights getJointWeightsFixed(int joints_per_vertex);
     JointMatrices getJointMatrices();
+
+    Cluster* createCluster(Model* model);
 
 protected:
     void addParent(Object* v) override;

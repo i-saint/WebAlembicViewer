@@ -83,15 +83,16 @@ testCase(fbxWrite)
         auto mesh = node->getGeometry();
 
         {
-            RawVector<int> counts{ 4, 4, 4, 4 };
-            RawVector<int> indices{
+            int counts[]{
+                4, 4, 4, 4,
+            };
+            int indices[]{
                 0, 1, 3, 2,
                 2, 3, 5, 4,
                 4, 5, 7, 6,
                 6, 7, 9, 8,
             };
-
-            RawVector<float3> points{
+            float3 points[]{
                 {-s * 0.5f, s * 0, 0}, {s * 0.5f, s * 0, 0},
                 {-s * 0.5f, s * 1, 0}, {s * 0.5f, s * 1, 0},
                 {-s * 0.5f, s * 2, 0}, {s * 0.5f, s * 2, 0},
@@ -141,32 +142,27 @@ testCase(fbxWrite)
             }
         }
 
-        sfbx::Model* bones[5]{};
-        bones[0] = doc->createObject<sfbx::Root>("joint1");
-        bones[1] = bones[0]->createChild<sfbx::LimbNode>("joint2");
-        bones[2] = bones[1]->createChild<sfbx::LimbNode>("joint3");
-        bones[3] = bones[2]->createChild<sfbx::LimbNode>("joint4");
-        bones[4] = bones[3]->createChild<sfbx::LimbNode>("joint5");
+        sfbx::Model* joints[5]{};
+        joints[0] = doc->createObject<sfbx::Root>("joint1");
+        joints[1] = joints[0]->createChild<sfbx::LimbNode>("joint2");
+        joints[2] = joints[1]->createChild<sfbx::LimbNode>("joint3");
+        joints[3] = joints[2]->createChild<sfbx::LimbNode>("joint4");
+        joints[4] = joints[3]->createChild<sfbx::LimbNode>("joint5");
 
-        sfbx::BindPose* bindpose = doc->createObject<sfbx::BindPose>();
+        sfbx::Skin* skin = mesh->createSkin();
         for (int i = 0; i < 5; ++i) {
-            bones[i]->setPosition({ 0.0f, i == 0 ? 0.0f : s, 0.0f });
-            bindpose->addPoseData(bones[i], bones[i]->getGlobalMatrix());
-        }
-
-
-        auto skin = mesh->createChild<sfbx::Skin>();
-        skin->setName("");
-
-        sfbx::Cluster* clusters[5]{};
-        for (int i = 0; i < 5; ++i) {
-            clusters[i] = skin->createChild<sfbx::Cluster>();
-            clusters[i]->addChild(bones[i]);
+            sfbx::Cluster* cluster = skin->createCluster(joints[i]);
 
             int indices[2]{ i * 2 + 0, i * 2 + 1 };
             float weights[2]{ 1.0f, 1.0f };
-            clusters[i]->setIndices(make_span(indices));
-            clusters[i]->setWeights(make_span(weights));
+            cluster->setIndices(make_span(indices));
+            cluster->setWeights(make_span(weights));
+        }
+
+        sfbx::BindPose* bindpose = doc->createObject<sfbx::BindPose>();
+        for (int i = 0; i < 5; ++i) {
+            joints[i]->setPosition({ 0.0f, i == 0 ? 0.0f : s, 0.0f });
+            bindpose->addPoseData(joints[i], joints[i]->getGlobalMatrix());
         }
 
 
@@ -188,8 +184,8 @@ testCase(fbxAnimationCurve)
     sfbx::DocumentPtr doc = sfbx::MakeDocument();
     auto curve = doc->createObject<sfbx::AnimationCurve>("TestCurve");
 
-    sfbx::RawVector<float> times{ 0.0f, 1.0f, 2.0f };
-    sfbx::RawVector<float> values{ 0.0f, 100.0f, 400.0f };
+    float times[]{ 0.0f, 1.0f, 2.0f };
+    float values[]{ 0.0f, 100.0f, 400.0f };
     curve->setTimes(times);
     curve->setValues(values);
 

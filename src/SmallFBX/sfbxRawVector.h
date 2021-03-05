@@ -48,6 +48,12 @@ public:
         assign(v);
         return *this;
     }
+    template<class U, size_t N>
+    RawVector& operator=(U (&v)[N])
+    {
+        assign(v, v + N);
+        return *this;
+    }
 
     ~RawVector()
     {
