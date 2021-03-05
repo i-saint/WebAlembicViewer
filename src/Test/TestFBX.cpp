@@ -57,8 +57,8 @@ testCase(fbxRead)
         for (auto obj : doc->getRootObjects())
             PrintObject(obj);
 
-        doc->writeBinary("out_binary.fbx");
-        doc->writeAscii("out_ascii.fbx");
+        doc->writeBinary("out_b.fbx");
+        doc->writeAscii("out_a.fbx");
     }
 
 }
@@ -75,6 +75,7 @@ testCase(fbxWrite)
 
         float s = 10.0f;
         auto mesh = model->createChild<sfbx::Mesh>();
+
         {
             RawVector<int> counts{ 4, 4, 4, 4 };
             RawVector<int> indices{
@@ -94,39 +95,44 @@ testCase(fbxWrite)
             mesh->setCounts(counts);
             mesh->setIndices(indices);
             mesh->setPoints(points);
-        }
-        {
-            sfbx::LayerElementF3 normals;
-            normals.data = {
-                { 0, 0, -1}, { 0, 0, -1},
-                { 0, 0, -1}, { 0, 0, -1},
-                { 0, 0, -1}, { 0, 0, -1},
-                { 0, 0, -1}, { 0, 0, -1},
-                { 0, 0, -1}, { 0, 0, -1},
-            };
-            mesh->addNormalLayer(std::move(normals));
-        }
-        {
-            sfbx::LayerElementF2 uv;
-            uv.data = {
-                { 0, 0.00f }, { 1, 0.00f },
-                { 0, 0.25f }, { 1, 0.25f },
-                { 0, 0.50f }, { 1, 0.50f },
-                { 0, 0.75f }, { 1, 0.75f },
-                { 0, 1.00f }, { 1, 1.00f },
-            };
-            mesh->addUVLayer(std::move(uv));
-        }
-        {
-            sfbx::LayerElementF4 colors;
-            colors.data = {
-                { 1, 0, 0, 1}, { 0, 1, 0, 1},
-                { 0, 0, 1, 1}, { 0, 0, 0, 1},
-                { 1, 0, 0, 1}, { 0, 1, 0, 1},
-                { 0, 0, 1, 1}, { 0, 0, 0, 1},
-                { 0, 0, 1, 1}, { 0, 0, 0, 1},
-            };
-            mesh->addColorLayer(std::move(colors));
+
+            {
+                sfbx::LayerElementF3 normals;
+                normals.data = {
+                    { 0, 0, -1}, { 0, 0, -1},
+                    { 0, 0, -1}, { 0, 0, -1},
+                    { 0, 0, -1}, { 0, 0, -1},
+                    { 0, 0, -1}, { 0, 0, -1},
+                    { 0, 0, -1}, { 0, 0, -1},
+                };
+                normals.indices = indices;
+                mesh->addNormalLayer(std::move(normals));
+            }
+            {
+                sfbx::LayerElementF2 uv;
+                uv.data = {
+                    { 0, 0.00f }, { 1, 0.00f },
+                    { 0, 0.25f }, { 1, 0.25f },
+                    { 0, 0.50f }, { 1, 0.50f },
+                    { 0, 0.75f }, { 1, 0.75f },
+                    { 0, 1.00f }, { 1, 1.00f },
+                };
+                uv.indices = indices;
+                mesh->addUVLayer(std::move(uv));
+            }
+            {
+                sfbx::LayerElementF4 colors;
+                colors.data = {
+                    { 1, 0, 0, 1}, { 0, 1, 0, 1},
+                    { 0, 0, 1, 1}, { 0, 0, 0, 1},
+                    { 1, 0, 0, 1}, { 0, 1, 0, 1},
+                    { 0, 0, 1, 1}, { 0, 0, 0, 1},
+                    { 0, 0, 1, 1}, { 0, 0, 0, 1},
+                };
+                colors.indices = indices;
+                mesh->addColorLayer(std::move(colors));
+
+            }
         }
 
         sfbx::Model* bones[5]{};
@@ -150,7 +156,6 @@ testCase(fbxWrite)
         for (int i = 0; i < 5; ++i) {
             clusters[i] = skin->createChild<sfbx::Cluster>();
             clusters[i]->addChild(bones[i]);
-            bones[i]->addChild(clusters[i]);
 
             int indices[2]{ i * 2 + 0, i * 2 + 1 };
             float weights[2]{ 1.0f, 1.0f };
@@ -160,8 +165,8 @@ testCase(fbxWrite)
 
 
         doc->constructNodes();
-        doc->writeBinary("test_bin.fbx");
-        doc->writeAscii("test_ascii.fbx");
+        doc->writeBinary("test_b.fbx");
+        doc->writeAscii("test_a.fbx");
     }
 
     {

@@ -140,20 +140,14 @@ void Object::constructNodes()
     m_node = objects->createChild(GetFbxObjectName(getType()));
     m_node->addProperties(m_id, getObjectName(), GetFbxObjectSubName(getSubType()));
 
-    if (auto connections = m_document->findNode(sfbxS_Connections)) {
-        auto add_link_oo = [connections, this](int64 id) {
-            connections->createChild(sfbxS_C, sfbxS_OO, getID(), id);
-        };
-
-        auto parents = getParents();
-        if (parents.empty()) {
-            // this cannot be omitted
-            add_link_oo(0);
-        }
-        else {
-            for (auto parent : parents)
-                add_link_oo(parent->getID());
-        }
+    auto parents = getParents();
+    if (parents.empty()) {
+        // this cannot be omitted
+        addLinkOO(0);
+    }
+    else {
+        for (auto parent : parents)
+            addLinkOO(parent->getID());
     }
 }
 
@@ -181,8 +175,15 @@ void Object::addParent(Object* v)
 {
     if (v) {
         m_parents.push_back(v);
-        if (getType() != ObjectType::Model)
+        if (getType() != ObjectType::Model && v->getType() == ObjectType::Model)
             setName(v->getName());
+    }
+}
+
+void Object::addLinkOO(int64 id)
+{
+    if (auto connections = m_document->findNode(sfbxS_Connections)) {
+        connections->createChild(sfbxS_C, sfbxS_OO, getID(), id);
     }
 }
 
@@ -491,6 +492,7 @@ void Root::constructNodes()
         m_attr = createChild<NodeAttribute>();
         m_attr->setSubType(ObjectSubType::Root);
     }
+    addLinkOO(0);
     super::constructNodes();
 }
 
@@ -806,7 +808,7 @@ void Skin::constructNodes()
 
     auto n = getNode();
     n->createChild(sfbxS_Version, sfbxI_SkinVersion);
-    n->createChild(sfbxS_Link_DeformAcuracy, 50);
+    n->createChild(sfbxS_Link_DeformAcuracy, (float64)50.0);
 
 }
 
@@ -978,11 +980,18 @@ void Cluster::constructNodes()
     if (!m_indices.empty())
         n->createChild(sfbxS_Indexes, m_indices);
     if (!m_weights.empty())
-        n->createChild(sfbxS_Weights, m_weights);
+        n->createChild(sfbxS_Weights, MakeAdaptor<float64>(m_weights));
     if (m_transform != float4x4::identity())
-        n->createChild(sfbxS_Transform, m_transform);
+        n->createChild(sfbxS_Transform, (double4x4)m_transform);
     if (m_transform_link != float4x4::identity())
-        n->createChild(sfbxS_TransformLink, m_transform_link);
+        n->createChild(sfbxS_TransformLink, (double4x4)m_transform_link);
+}
+
+void Cluster::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto model = as<Model>(v))
+        setName(v->getName());
 }
 
 span<int> Cluster::getIndices() const { return make_span(m_indices); }

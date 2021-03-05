@@ -76,6 +76,7 @@ protected:
     Object();
     virtual std::string getObjectName() const;
     virtual void addParent(Object* v);
+    void addLinkOO(int64 id);
 
     Document* m_document{};
     Node* m_node{};
@@ -352,6 +353,7 @@ using super = Deformer;
 public:
     void constructObject() override;
     void constructNodes() override;
+    void addChild(Object* v) override;
 
     span<int> getIndices() const;
     span<float> getWeights() const;

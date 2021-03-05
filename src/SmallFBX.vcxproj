@@ -23,6 +23,7 @@
   <ItemGroup>
     <ClInclude Include="SmallFBX.h" />
     <ClInclude Include="SmallFBX\pch.h" />
+    <ClInclude Include="SmallFBX\sfbxAlgorithm.h" />
     <ClInclude Include="SmallFBX\sfbxDocument.h" />
     <ClInclude Include="SmallFBX\sfbxInternal.h" />
     <ClInclude Include="SmallFBX\sfbxMath.h" />

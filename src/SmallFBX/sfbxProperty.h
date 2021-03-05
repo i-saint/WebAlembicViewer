@@ -2,6 +2,7 @@
 
 #include "sfbxTypes.h"
 #include "sfbxRawVector.h"
+#include "sfbxAlgorithm.h"
 
 namespace sfbx {
 
@@ -74,7 +75,7 @@ public:
     template<class T, sfbxEnableIf(is_propery_pod<T>::value)> void assign(T v);
     template<class T> void assign(span<T> v);
     template<class T> void assign(const RawVector<T>& v) { assign(make_span(v)); }
-    template<class D, class S> void assign(const ArrayAdaptor<D, S>& v) { copy(allocateArray<D>(v.values.size()), v.values); }
+    template<class D, class S> void assign(ArrayAdaptor<D, S> v) { copy(allocateArray<D>(v.values.size()), v.values); }
     void assign(const std::string& v);
     void assign(const char* v);
 
