@@ -213,9 +213,19 @@ Object* Document::createObject(ObjectType t, ObjectSubType s)
 {
     Object* r{};
     switch (t) {
-    case ObjectType::NodeAttribute: r = new NodeAttribute(); break;
+    case ObjectType::NodeAttribute:
+        switch (s) {
+        case ObjectSubType::Null: r = new NullAttribute(); break;
+        case ObjectSubType::Light: r = new LightAttribute(); break;
+        case ObjectSubType::Camera: r = new CameraAttribute(); break;
+        case ObjectSubType::Root: r = new RootAttribute(); break;
+        case ObjectSubType::LimbNode: r = new LimbNodeAttribute(); break;
+        default: r = new NodeAttribute(); break;
+        }
+        break;
     case ObjectType::Model:
         switch (s) {
+        case ObjectSubType::Null: r = new Null(); break;
         case ObjectSubType::Light: r = new Light(); break;
         case ObjectSubType::Camera: r = new Camera(); break;
         case ObjectSubType::Root: r = new Root(); break;

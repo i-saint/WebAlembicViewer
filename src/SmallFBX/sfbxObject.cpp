@@ -51,6 +51,7 @@ const char* GetFbxObjectName(ObjectType t)
 ObjectSubType GetFbxObjectSubType(const std::string& n)
 {
     if (n.empty()) return ObjectSubType::Unknown;
+    else if (n == sfbxS_Null)       return ObjectSubType::Null;
     else if (n == sfbxS_Light)      return ObjectSubType::Light;
     else if (n == sfbxS_Camera)     return ObjectSubType::Camera;
     else if (n == sfbxS_Mesh)       return ObjectSubType::Mesh;
@@ -76,6 +77,7 @@ ObjectSubType GetFbxObjectSubType(Node* n)
 const char* GetFbxObjectSubName(ObjectSubType t)
 {
     switch (t) {
+    case ObjectSubType::Null:       return sfbxS_Null;
     case ObjectSubType::Light:      return sfbxS_Light;
     case ObjectSubType::Camera:     return sfbxS_Camera;
     case ObjectSubType::Mesh:       return sfbxS_Mesh;
@@ -208,36 +210,34 @@ ObjectType NodeAttribute::getType() const
     return ObjectType::NodeAttribute;
 }
 
-void NodeAttribute::constructObject()
+void NullAttribute::constructNodes()
 {
-    super::constructObject();
+    super::constructNodes();
+    getNode()->createChild(sfbxS_TypeFlags, sfbxS_Null);
+}
+
+void RootAttribute::constructNodes()
+{
+    super::constructNodes();
+    getNode()->createChild(sfbxS_TypeFlags, sfbxS_Null, sfbxS_Skeleton, sfbxS_Root);
+}
+
+void LimbNodeAttribute::constructNodes()
+{
+    super::constructNodes();
+    getNode()->createChild(sfbxS_TypeFlags, sfbxS_Skeleton);
+}
+
+void LightAttribute::constructNodes()
+{
+    super::constructNodes();
     // todo
 }
 
-void NodeAttribute::constructNodes()
+void CameraAttribute::constructNodes()
 {
     super::constructNodes();
-
-    switch (getSubType()) {
-    case ObjectSubType::Light:
-        // todo
-        break;
-
-    case ObjectSubType::Camera:
-        // todo
-        break;
-
-    case ObjectSubType::Root:
-        getNode()->createChild(sfbxS_TypeFlags, sfbxS_Null, sfbxS_Skeleton, sfbxS_Root);
-        break;
-
-    case ObjectSubType::LimbNode:
-        getNode()->createChild(sfbxS_TypeFlags, sfbxS_Skeleton);
-        break;
-
-    default:
-        break;
-    }
+    // todo
 }
 
 
@@ -403,12 +403,12 @@ float4x4 Model::getLocalMatrix() const
     float4x4 ret = scale44(m_scale);
 
     // position
-    if (m_pre_rotation != float3::zero())
-        ret *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_pre_rotation * DegToRad)));
-    if (m_rotation != float3::zero())
-        ret *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_rotation * DegToRad)));
     if (m_post_rotation != float3::zero())
         ret *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_post_rotation * DegToRad)));
+    if (m_rotation != float3::zero())
+        ret *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_rotation * DegToRad)));
+    if (m_pre_rotation != float3::zero())
+        ret *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_pre_rotation * DegToRad)));
 
     // translation
     (float3&)ret[3] = m_position;
@@ -428,6 +428,47 @@ void Model::setPreRotation(float3 v) { m_pre_rotation = v; }
 void Model::setRotation(float3 v) { m_rotation = v; }
 void Model::setPostRotation(float3 v) { m_post_rotation = v; }
 void Model::setScale(float3 v) { m_scale = v; }
+
+
+void Root::constructNodes()
+{
+    setSubType(ObjectSubType::Root);
+    if (!m_attr) {
+        m_attr = createChild<NodeAttribute>();
+        m_attr->setSubType(ObjectSubType::Root);
+    }
+    addLinkOO(0);
+    super::constructNodes();
+}
+
+void Root::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto attr = as<NodeAttribute>(v)) {
+        if (attr->getSubType() == ObjectSubType::Root)
+            m_attr = attr;
+    }
+}
+
+void LimbNode::constructNodes()
+{
+    setSubType(ObjectSubType::LimbNode);
+    if (!m_attr) {
+        m_attr = createChild<NodeAttribute>();
+        m_attr->setSubType(ObjectSubType::LimbNode);
+    }
+    super::constructNodes();
+}
+
+
+void LimbNode::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto attr = as<NodeAttribute>(v)) {
+        if (attr->getSubType() == ObjectSubType::LimbNode)
+            m_attr = attr;
+    }
+}
 
 
 void Light::constructObject()
@@ -485,45 +526,6 @@ void Camera::addChild(Object* v)
 }
 
 
-void Root::constructNodes()
-{
-    setSubType(ObjectSubType::Root);
-    if (!m_attr) {
-        m_attr = createChild<NodeAttribute>();
-        m_attr->setSubType(ObjectSubType::Root);
-    }
-    addLinkOO(0);
-    super::constructNodes();
-}
-
-void Root::addChild(Object* v)
-{
-    super::addChild(v);
-    if (auto attr = as<NodeAttribute>(v)) {
-        if (attr->getSubType() == ObjectSubType::Root)
-            m_attr = attr;
-    }
-}
-
-void LimbNode::constructNodes()
-{
-    setSubType(ObjectSubType::LimbNode);
-    if (!m_attr) {
-        m_attr = createChild<NodeAttribute>();
-        m_attr->setSubType(ObjectSubType::LimbNode);
-    }
-    super::constructNodes();
-}
-
-
-void LimbNode::addChild(Object* v)
-{
-    super::addChild(v);
-    if (auto attr = as<NodeAttribute>(v)) {
-        if (attr->getSubType() == ObjectSubType::LimbNode)
-            m_attr = attr;
-    }
-}
 
 ObjectType Geometry::getType() const { return ObjectType::Geometry; }
 
@@ -795,6 +797,11 @@ ObjectType Deformer::getType() const
     return ObjectType::Deformer;
 }
 
+std::string SubDeformer::getObjectName() const
+{
+    return MakeObjectName(getName(), sfbxS_SubDeformer);
+}
+
 
 void Skin::constructObject()
 {
@@ -951,11 +958,6 @@ JointMatrices Skin::getJointMatrices()
     return ret;
 }
 
-
-std::string Cluster::getObjectName() const
-{
-    return MakeObjectName(m_name, sfbxS_SubDeformer);
-}
 
 void Cluster::constructObject()
 {

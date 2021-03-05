@@ -21,10 +21,11 @@ enum class ObjectType : int
 enum class ObjectSubType : int
 {
     Unknown,
-    Light,
-    Camera,
+    Null,
     Root,
     LimbNode,
+    Light,
+    Camera,
     Mesh,
     Shape,
     Skin,
@@ -42,6 +43,8 @@ ObjectSubType GetFbxObjectSubType(Node* n);
 const char*   GetFbxObjectSubName(ObjectSubType t);
 std::string   MakeObjectName(const std::string& name, const std::string& type);
 
+
+// base object class
 
 class Object
 {
@@ -89,22 +92,63 @@ protected:
 };
 
 
+// NodeAttribute and its subclasses:
+//  (NullAttribute, RootAttribute, LimbNodeAttribute, LightAttribute, CameraAttribute)
+
 class NodeAttribute : public Object
 {
-friend class Document;
 using super = Object;
 public:
     ObjectType getType() const override;
-    void constructObject() override;
-    void constructNodes() override;
-
-protected:
 };
 
 
+class NullAttribute : public NodeAttribute
+{
+using super = NodeAttribute;
+public:
+    void constructNodes() override;
+};
+
+
+class RootAttribute : public NodeAttribute
+{
+using super = NodeAttribute;
+public:
+    void constructNodes() override;
+};
+
+
+class LimbNodeAttribute : public NodeAttribute
+{
+using super = NodeAttribute;
+public:
+    void constructNodes() override;
+};
+
+
+class LightAttribute : public NodeAttribute
+{
+using super = NodeAttribute;
+public:
+    void constructNodes() override;
+};
+
+
+class CameraAttribute : public NodeAttribute
+{
+using super = NodeAttribute;
+public:
+    void constructNodes() override;
+};
+
+
+
+// Model and its subclasses:
+//  (Null, Root, LimbNode, Light, Camera)
+
 class Model : public Object
 {
-friend class Document;
 using super = Object;
 public:
     ObjectType getType() const override;
@@ -155,31 +199,11 @@ protected:
 };
 
 
-class Light : public Model
+class Null : public Model
 {
 friend class Document;
 using super = Model;
 public:
-    void constructObject() override;
-    void constructNodes() override;
-    void addChild(Object* v) override;
-
-protected:
-    NodeAttribute* m_attr{};
-};
-
-
-class Camera : public Model
-{
-friend class Document;
-using super = Model;
-public:
-    void constructObject() override;
-    void constructNodes() override;
-    void addChild(Object* v) override;
-
-protected:
-    NodeAttribute* m_attr{};
 };
 
 
@@ -208,6 +232,38 @@ protected:
     NodeAttribute* m_attr{};
 };
 
+
+class Light : public Model
+{
+friend class Document;
+using super = Model;
+public:
+    void constructObject() override;
+    void constructNodes() override;
+    void addChild(Object* v) override;
+
+protected:
+    NodeAttribute* m_attr{};
+};
+
+
+class Camera : public Model
+{
+friend class Document;
+using super = Model;
+public:
+    void constructObject() override;
+    void constructNodes() override;
+    void addChild(Object* v) override;
+
+protected:
+    NodeAttribute* m_attr{};
+};
+
+
+
+// Geometry and its subclasses:
+//  (Mesh, Shape)
 
 class Geometry : public Object
 {
@@ -292,13 +348,24 @@ public:
 };
 
 
-// subtype: Skin, Cluster, BlendShape, BlendShapeChannel
+// Deformer and its subclasses:
+//  (Skin, Cluster, BlendShape, BlendShapeChannel)
+
 class Deformer : public Object
 {
 friend class Document;
 using super = Object;
 public:
     ObjectType getType() const override;
+};
+
+class SubDeformer : public Deformer
+{
+friend class Document;
+using super = Deformer;
+public:
+protected:
+    std::string getObjectName() const override;
 };
 
 
@@ -346,10 +413,10 @@ protected:
 };
 
 
-class Cluster : public Deformer
+class Cluster : public SubDeformer
 {
 friend class Document;
-using super = Deformer;
+using super = SubDeformer;
 public:
     void constructObject() override;
     void constructNodes() override;
@@ -366,8 +433,6 @@ public:
     void setTransformLink(float4x4 v);
 
 protected:
-    std::string getObjectName() const override;
-
     RawVector<int> m_indices;
     RawVector<float> m_weights;
     float4x4 m_transform = float4x4::identity();
@@ -387,10 +452,10 @@ protected:
 };
 
 
-class BlendShapeChannel : public Deformer
+class BlendShapeChannel : public SubDeformer
 {
 friend class Document;
-using super = Deformer;
+using super = SubDeformer;
 public:
     void constructObject() override;
     void constructNodes() override;
@@ -400,6 +465,9 @@ protected:
 };
 
 
+
+// Pose and its subclasses:
+//  (BindPose only for now. probably RestPose will be added)
 
 class Pose : public Object
 {
@@ -431,6 +499,8 @@ protected:
 };
 
 
+// material
+
 class Material : public Object
 {
 friend class Document;
@@ -445,6 +515,8 @@ protected:
 };
 
 
+// animation-related classes
+// (AnimationStack, AnimationLayer, AnimationCurveNode, AnimationCurve)
 
 class AnimationStack : public Object
 {
