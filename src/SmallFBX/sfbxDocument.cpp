@@ -36,7 +36,7 @@ bool Document::read(std::istream& is)
 
         if (auto objects = findNode(sfbxS_Objects)) {
             for (auto n : objects->getChildren()) {
-                if (auto obj = createObject(GetFbxObjectType(n), GetFbxObjectSubType(n))) {
+                if (auto obj = createObject(GetFbxObjectClass(n), GetFbxObjectSubClass(n))) {
                     obj->setNode(n);
                 }
             }
@@ -209,57 +209,58 @@ Node* Document::findNode(const char* name) const
 span<sfbx::NodePtr> Document::getAllNodes() { return make_span(m_nodes); }
 span<Node*> Document::getRootNodes() { return make_span(m_root_nodes); }
 
-Object* Document::createObject(ObjectType t, ObjectSubType s)
+Object* Document::createObject(ObjectClass c, ObjectSubClass s)
 {
     Object* r{};
-    switch (t) {
-    case ObjectType::NodeAttribute:
+    switch (c) {
+    case ObjectClass::NodeAttribute:
         switch (s) {
-        case ObjectSubType::Null: r = new NullAttribute(); break;
-        case ObjectSubType::Light: r = new LightAttribute(); break;
-        case ObjectSubType::Camera: r = new CameraAttribute(); break;
-        case ObjectSubType::Root: r = new RootAttribute(); break;
-        case ObjectSubType::LimbNode: r = new LimbNodeAttribute(); break;
+        case ObjectSubClass::Null: r = new NullAttribute(); break;
+        case ObjectSubClass::Root: r = new RootAttribute(); break;
+        case ObjectSubClass::LimbNode: r = new LimbNodeAttribute(); break;
+        case ObjectSubClass::Light: r = new LightAttribute(); break;
+        case ObjectSubClass::Camera: r = new CameraAttribute(); break;
         default: r = new NodeAttribute(); break;
         }
         break;
-    case ObjectType::Model:
+    case ObjectClass::Model:
         switch (s) {
-        case ObjectSubType::Null: r = new Null(); break;
-        case ObjectSubType::Light: r = new Light(); break;
-        case ObjectSubType::Camera: r = new Camera(); break;
-        case ObjectSubType::Root: r = new Root(); break;
-        case ObjectSubType::LimbNode: r = new LimbNode(); break;
+        case ObjectSubClass::Null: r = new Null(); break;
+        case ObjectSubClass::Root: r = new Root(); break;
+        case ObjectSubClass::LimbNode: r = new LimbNode(); break;
+        case ObjectSubClass::Mesh: r = new Mesh(); break;
+        case ObjectSubClass::Light: r = new Light(); break;
+        case ObjectSubClass::Camera: r = new Camera(); break;
         default: r = new Model(); break;
         }
         break;
-    case ObjectType::Geometry:
+    case ObjectClass::Geometry:
         switch (s) {
-        case ObjectSubType::Mesh: r = new Mesh(); break;
-        case ObjectSubType::Shape: r = new Shape(); break;
+        case ObjectSubClass::Mesh: r = new GeomMesh(); break;
+        case ObjectSubClass::Shape: r = new Shape(); break;
         default: r = new Geometry(); break;
         }
         break;
-    case ObjectType::Deformer:
+    case ObjectClass::Deformer:
         switch (s) {
-        case ObjectSubType::Skin: r = new Skin(); break;
-        case ObjectSubType::Cluster: r = new Cluster(); break;
-        case ObjectSubType::BlendShape: r = new BlendShape(); break;
-        case ObjectSubType::BlendShapeChannel: r = new BlendShapeChannel(); break;
+        case ObjectSubClass::Skin: r = new Skin(); break;
+        case ObjectSubClass::Cluster: r = new Cluster(); break;
+        case ObjectSubClass::BlendShape: r = new BlendShape(); break;
+        case ObjectSubClass::BlendShapeChannel: r = new BlendShapeChannel(); break;
         default: r = new Deformer(); break;
         }
         break;
-    case ObjectType::Pose:
+    case ObjectClass::Pose:
         switch (s) {
-        case ObjectSubType::BindPose: r = new BindPose(); break;
+        case ObjectSubClass::BindPose: r = new BindPose(); break;
         default: r = new Pose(); break;
         }
         break;
-    case ObjectType::Material:  r = new Material(); break;
-    case ObjectType::AnimationStack:    r = new AnimationStack(); break;
-    case ObjectType::AnimationLayer:    r = new AnimationLayer(); break;
-    case ObjectType::AnimationCurveNode:r = new AnimationCurveNode(); break;
-    case ObjectType::AnimationCurve:    r = new AnimationCurve(); break;
+    case ObjectClass::Material:          r = new Material(); break;
+    case ObjectClass::AnimationStack:    r = new AnimationStack(); break;
+    case ObjectClass::AnimationLayer:    r = new AnimationLayer(); break;
+    case ObjectClass::AnimationCurveNode:r = new AnimationCurveNode(); break;
+    case ObjectClass::AnimationCurve:    r = new AnimationCurve(); break;
     default: break;
     }
 
@@ -268,7 +269,7 @@ Object* Document::createObject(ObjectType t, ObjectSubType s)
         m_objects.push_back(ObjectPtr(r));
     }
     else {
-        sfbxPrint("sfbx::Document::createObject(): unrecongnized type \"%s\"\n", GetFbxObjectName(t));
+        sfbxPrint("sfbx::Document::createObject(): unrecongnized type \"%s\"\n", GetFbxClassName(c));
     }
     return r;
 }

@@ -6,89 +6,89 @@
 
 namespace sfbx {
 
-ObjectType GetFbxObjectType(const std::string& n)
+ObjectClass GetFbxObjectClass(const std::string& n)
 {
     if (n.empty())
-        return ObjectType::Unknown;
-    else if (n == sfbxS_NodeAttribute)      return ObjectType::NodeAttribute;
-    else if (n == sfbxS_Model)              return ObjectType::Model;
-    else if (n == sfbxS_Geometry)           return ObjectType::Geometry;
-    else if (n == sfbxS_Deformer)           return ObjectType::Deformer;
-    else if (n == sfbxS_Pose)               return ObjectType::Pose;
-    else if (n == sfbxS_Material)           return ObjectType::Material;
-    else if (n == sfbxS_AnimationStack)     return ObjectType::AnimationStack;
-    else if (n == sfbxS_AnimationLayer)     return ObjectType::AnimationLayer;
-    else if (n == sfbxS_AnimationCurveNode) return ObjectType::AnimationCurveNode;
-    else if (n == sfbxS_AnimationCurve)     return ObjectType::AnimationCurve;
+        return ObjectClass::Unknown;
+    else if (n == sfbxS_NodeAttribute)      return ObjectClass::NodeAttribute;
+    else if (n == sfbxS_Model)              return ObjectClass::Model;
+    else if (n == sfbxS_Geometry)           return ObjectClass::Geometry;
+    else if (n == sfbxS_Deformer)           return ObjectClass::Deformer;
+    else if (n == sfbxS_Pose)               return ObjectClass::Pose;
+    else if (n == sfbxS_Material)           return ObjectClass::Material;
+    else if (n == sfbxS_AnimationStack)     return ObjectClass::AnimationStack;
+    else if (n == sfbxS_AnimationLayer)     return ObjectClass::AnimationLayer;
+    else if (n == sfbxS_AnimationCurveNode) return ObjectClass::AnimationCurveNode;
+    else if (n == sfbxS_AnimationCurve)     return ObjectClass::AnimationCurve;
     else {
-        sfbxPrint("GetFbxObjectType(): unknown type \"%s\"\n", n.c_str());
-        return ObjectType::Unknown;
+        sfbxPrint("GetFbxObjectClass(): unknown type \"%s\"\n", n.c_str());
+        return ObjectClass::Unknown;
     }
 }
-ObjectType GetFbxObjectType(Node* n)
+ObjectClass GetFbxObjectClass(Node* n)
 {
-    return GetFbxObjectType(n->getName());
+    return GetFbxObjectClass(n->getName());
 }
 
-const char* GetFbxObjectName(ObjectType t)
+const char* GetFbxClassName(ObjectClass t)
 {
     switch (t) {
-    case ObjectType::NodeAttribute:     return sfbxS_NodeAttribute;
-    case ObjectType::Model:             return sfbxS_Model;
-    case ObjectType::Geometry:          return sfbxS_Geometry;
-    case ObjectType::Deformer:          return sfbxS_Deformer;
-    case ObjectType::Pose:              return sfbxS_Pose;
-    case ObjectType::Material:          return sfbxS_Material;
-    case ObjectType::AnimationStack:    return sfbxS_AnimationStack;
-    case ObjectType::AnimationLayer:    return sfbxS_AnimationLayer;
-    case ObjectType::AnimationCurveNode:return sfbxS_AnimationCurveNode;
-    case ObjectType::AnimationCurve:    return sfbxS_AnimationCurve;
+    case ObjectClass::NodeAttribute:     return sfbxS_NodeAttribute;
+    case ObjectClass::Model:             return sfbxS_Model;
+    case ObjectClass::Geometry:          return sfbxS_Geometry;
+    case ObjectClass::Deformer:          return sfbxS_Deformer;
+    case ObjectClass::Pose:              return sfbxS_Pose;
+    case ObjectClass::Material:          return sfbxS_Material;
+    case ObjectClass::AnimationStack:    return sfbxS_AnimationStack;
+    case ObjectClass::AnimationLayer:    return sfbxS_AnimationLayer;
+    case ObjectClass::AnimationCurveNode:return sfbxS_AnimationCurveNode;
+    case ObjectClass::AnimationCurve:    return sfbxS_AnimationCurve;
     default: return "";
     }
 }
 
 
-ObjectSubType GetFbxObjectSubType(const std::string& n)
+ObjectSubClass GetFbxObjectSubClass(const std::string& n)
 {
-    if (n.empty()) return ObjectSubType::Unknown;
-    else if (n == sfbxS_Null)       return ObjectSubType::Null;
-    else if (n == sfbxS_Light)      return ObjectSubType::Light;
-    else if (n == sfbxS_Camera)     return ObjectSubType::Camera;
-    else if (n == sfbxS_Mesh)       return ObjectSubType::Mesh;
-    else if (n == sfbxS_Shape)      return ObjectSubType::Shape;
-    else if (n == sfbxS_Root)       return ObjectSubType::Root;
-    else if (n == sfbxS_LimbNode)   return ObjectSubType::LimbNode;
-    else if (n == sfbxS_Skin)       return ObjectSubType::Skin;
-    else if (n == sfbxS_Cluster)    return ObjectSubType::Cluster;
-    else if (n == sfbxS_BindPose)   return ObjectSubType::BindPose;
-    else if (n == sfbxS_BlendShape) return ObjectSubType::BlendShape;
-    else if (n == sfbxS_BlendShapeChannel) return ObjectSubType::BlendShapeChannel;
+    if (n.empty()) return ObjectSubClass::Unknown;
+    else if (n == sfbxS_Null)       return ObjectSubClass::Null;
+    else if (n == sfbxS_Light)      return ObjectSubClass::Light;
+    else if (n == sfbxS_Camera)     return ObjectSubClass::Camera;
+    else if (n == sfbxS_Mesh)       return ObjectSubClass::Mesh;
+    else if (n == sfbxS_Shape)      return ObjectSubClass::Shape;
+    else if (n == sfbxS_Root)       return ObjectSubClass::Root;
+    else if (n == sfbxS_LimbNode)   return ObjectSubClass::LimbNode;
+    else if (n == sfbxS_Skin)       return ObjectSubClass::Skin;
+    else if (n == sfbxS_Cluster)    return ObjectSubClass::Cluster;
+    else if (n == sfbxS_BindPose)   return ObjectSubClass::BindPose;
+    else if (n == sfbxS_BlendShape) return ObjectSubClass::BlendShape;
+    else if (n == sfbxS_BlendShapeChannel) return ObjectSubClass::BlendShapeChannel;
     else {
-        sfbxPrint("GetFbxObjectSubType(): unknown subtype \"%s\"\n", n.c_str());
-        return ObjectSubType::Unknown;
+        sfbxPrint("GetFbxObjectSubClass(): unknown subtype \"%s\"\n", n.c_str());
+        return ObjectSubClass::Unknown;
     }
 }
 
-ObjectSubType GetFbxObjectSubType(Node* n)
+ObjectSubClass GetFbxObjectSubClass(Node* n)
 {
-    return GetFbxObjectSubType(GetPropertyString(n, 2));
+    return GetFbxObjectSubClass(GetPropertyString(n, 2));
 }
 
-const char* GetFbxObjectSubName(ObjectSubType t)
+const char* GetFbxSubClassName(ObjectSubClass t)
 {
     switch (t) {
-    case ObjectSubType::Null:       return sfbxS_Null;
-    case ObjectSubType::Light:      return sfbxS_Light;
-    case ObjectSubType::Camera:     return sfbxS_Camera;
-    case ObjectSubType::Mesh:       return sfbxS_Mesh;
-    case ObjectSubType::Shape:      return sfbxS_Shape;
-    case ObjectSubType::Root:       return sfbxS_Root;
-    case ObjectSubType::LimbNode:   return sfbxS_LimbNode;
-    case ObjectSubType::Skin:       return sfbxS_Skin;
-    case ObjectSubType::Cluster:    return sfbxS_Cluster;
-    case ObjectSubType::BindPose:   return sfbxS_BindPose;
-    case ObjectSubType::BlendShape: return sfbxS_BlendShape;
-    case ObjectSubType::BlendShapeChannel: return sfbxS_BlendShapeChannel;
+    case ObjectSubClass::Null:       return sfbxS_Null;
+    case ObjectSubClass::Light:      return sfbxS_Light;
+    case ObjectSubClass::Camera:     return sfbxS_Camera;
+    case ObjectSubClass::Mesh:       return sfbxS_Mesh;
+    case ObjectSubClass::Shape:      return sfbxS_Shape;
+    case ObjectSubClass::Root:       return sfbxS_Root;
+    case ObjectSubClass::LimbNode:   return sfbxS_LimbNode;
+    case ObjectSubClass::Skin:       return sfbxS_Skin;
+    case ObjectSubClass::Cluster:    return sfbxS_Cluster;
+    case ObjectSubClass::BindPose:   return sfbxS_BindPose;
+    case ObjectSubClass::BlendShape: return sfbxS_BlendShape;
+    case ObjectSubClass::BlendShapeChannel: return sfbxS_BlendShapeChannel;
     default: return "";
     }
 }
@@ -112,23 +112,21 @@ Object::~Object()
 {
 }
 
-ObjectType Object::getType() const
-{
-    return ObjectType::Unknown;
-}
+ObjectClass Object::getClass() const { return ObjectClass::Unknown; }
+ObjectSubClass Object::getSubClass() const { return ObjectSubClass::Unknown; }
 
 std::string Object::getObjectName() const
 {
-    return MakeObjectName(m_name, GetFbxObjectName(getType()));
+    return MakeObjectName(m_name, GetFbxClassName(getClass()));
 }
 
 void Object::setNode(Node* n)
 {
     m_node = n;
     if (n) {
+        // do these in constructObject() is too late because of referencing other objects...
         m_id = GetPropertyValue<int64>(n, 0);
         m_name = GetPropertyString(n, 1);
-        m_subtype = GetFbxObjectSubType(GetPropertyString(n, 2));
     }
 }
 
@@ -139,8 +137,8 @@ void Object::constructObject()
 void Object::constructNodes()
 {
     auto objects = m_document->findNode(sfbxS_Objects);
-    m_node = objects->createChild(GetFbxObjectName(getType()));
-    m_node->addProperties(m_id, getObjectName(), GetFbxObjectSubName(getSubType()));
+    m_node = objects->createChild(GetFbxClassName(getClass()));
+    m_node->addProperties(m_id, getObjectName(), GetFbxSubClassName(getSubClass()));
 
     auto parents = getParents();
     if (parents.empty()) {
@@ -177,7 +175,7 @@ void Object::addParent(Object* v)
 {
     if (v) {
         m_parents.push_back(v);
-        if (getType() != ObjectType::Model && v->getType() == ObjectType::Model)
+        if (getClass() != ObjectClass::Model && v->getClass() == ObjectClass::Model)
             setName(v->getName());
     }
 }
@@ -189,7 +187,6 @@ void Object::addLinkOO(int64 id)
     }
 }
 
-ObjectSubType Object::getSubType() const { return m_subtype; }
 int64 Object::getID() const { return m_id; }
 const std::string& Object::getName() const { return m_name; }
 Node* Object::getNode() const { return m_node; }
@@ -199,16 +196,17 @@ span<Object*> Object::getChildren() const { return make_span(m_children); }
 Object* Object::getParent(size_t i) const { return i < m_parents.size() ? m_parents[i] : nullptr; }
 Object* Object::getChild(size_t i) const  { return i < m_children.size() ? m_children[i] : nullptr; }
 
-void Object::setSubType(ObjectSubType v) { m_subtype = v; }
 void Object::setID(int64 id) { m_id = id; }
 void Object::setName(const std::string& v) { m_name = v; }
 
 
 
-ObjectType NodeAttribute::getType() const
+ObjectClass NodeAttribute::getClass() const
 {
-    return ObjectType::NodeAttribute;
+    return ObjectClass::NodeAttribute;
 }
+
+ObjectSubClass NullAttribute::getSubClass() const { return ObjectSubClass::Null; }
 
 void NullAttribute::constructNodes()
 {
@@ -216,11 +214,15 @@ void NullAttribute::constructNodes()
     getNode()->createChild(sfbxS_TypeFlags, sfbxS_Null);
 }
 
+ObjectSubClass RootAttribute::getSubClass() const { return ObjectSubClass::Root; }
+
 void RootAttribute::constructNodes()
 {
     super::constructNodes();
     getNode()->createChild(sfbxS_TypeFlags, sfbxS_Null, sfbxS_Skeleton, sfbxS_Root);
 }
+
+ObjectSubClass LimbNodeAttribute::getSubClass() const { return ObjectSubClass::LimbNode; }
 
 void LimbNodeAttribute::constructNodes()
 {
@@ -228,11 +230,15 @@ void LimbNodeAttribute::constructNodes()
     getNode()->createChild(sfbxS_TypeFlags, sfbxS_Skeleton);
 }
 
+ObjectSubClass LightAttribute::getSubClass() const { return ObjectSubClass::Light; }
+
 void LightAttribute::constructNodes()
 {
     super::constructNodes();
     // todo
 }
+
+ObjectSubClass CameraAttribute::getSubClass() const { return ObjectSubClass::Camera; }
 
 void CameraAttribute::constructNodes()
 {
@@ -242,10 +248,7 @@ void CameraAttribute::constructNodes()
 
 
 
-ObjectType Model::getType() const
-{
-    return ObjectType::Model;
-}
+ObjectClass Model::getClass() const { return ObjectClass::Model; }
 
 void Model::constructObject()
 {
@@ -317,8 +320,7 @@ void Model::constructNodes()
     auto properties = n->createChild(sfbxS_Properties70);
 
     // attribute
-    if (!m_node_attributes.empty())
-        properties->createChild(sfbxS_P, "DefaultAttributeIndex", "int", "Integer", "", 0);
+    properties->createChild(sfbxS_P, "DefaultAttributeIndex", "int", "Integer", "", 0);
 
     // position
     if (m_position != float3::zero()) {
@@ -373,20 +375,9 @@ void Model::addParent(Object* v)
 void Model::addChild(Object* v)
 {
     super::addChild(v);
-    if (auto attr = as<NodeAttribute>(v))
-        m_node_attributes.push_back(attr);
-    else if (auto material = as<Material>(v))
-        m_materials.push_back(material);
-    else if (auto mesh = as<Mesh>(v))
-        m_mesh = mesh;
 }
 
 Model* Model::getParentModel() const { return m_parent_model; }
-span<NodeAttribute*> Model::getNodeAttributes() const { return make_span(m_node_attributes); }
-span<Material*> Model::getMaterials() const { return make_span(m_materials); }
-Camera* Model::getCamera() const { return as<Camera>(const_cast<Model*>(this)); }
-Light* Model::getLight() const { return as<Light>(const_cast<Model*>(this)); }
-Mesh* Model::getMesh() const { return m_mesh; }
 
 bool Model::getVisibility() const { return m_visibility; }
 RotationOrder Model::getRotationOrder() const { return m_rotation_order; }
@@ -429,14 +420,15 @@ void Model::setRotation(float3 v) { m_rotation = v; }
 void Model::setPostRotation(float3 v) { m_post_rotation = v; }
 void Model::setScale(float3 v) { m_scale = v; }
 
+ObjectSubClass Null::getSubClass() const { return ObjectSubClass::Null; }
+
+
+ObjectSubClass Root::getSubClass() const { return ObjectSubClass::Root; }
 
 void Root::constructNodes()
 {
-    setSubType(ObjectSubType::Root);
-    if (!m_attr) {
-        m_attr = createChild<NodeAttribute>();
-        m_attr->setSubType(ObjectSubType::Root);
-    }
+    if (!m_attr)
+        m_attr = createChild<RootAttribute>();
     addLinkOO(0);
     super::constructNodes();
 }
@@ -444,19 +436,16 @@ void Root::constructNodes()
 void Root::addChild(Object* v)
 {
     super::addChild(v);
-    if (auto attr = as<NodeAttribute>(v)) {
-        if (attr->getSubType() == ObjectSubType::Root)
-            m_attr = attr;
-    }
+    if (auto attr = as<RootAttribute>(v))
+        m_attr = attr;
 }
+
+ObjectSubClass LimbNode::getSubClass() const { return ObjectSubClass::LimbNode; }
 
 void LimbNode::constructNodes()
 {
-    setSubType(ObjectSubType::LimbNode);
-    if (!m_attr) {
-        m_attr = createChild<NodeAttribute>();
-        m_attr->setSubType(ObjectSubType::LimbNode);
-    }
+    if (!m_attr)
+        m_attr = createChild<LimbNodeAttribute>();
     super::constructNodes();
 }
 
@@ -464,12 +453,42 @@ void LimbNode::constructNodes()
 void LimbNode::addChild(Object* v)
 {
     super::addChild(v);
-    if (auto attr = as<NodeAttribute>(v)) {
-        if (attr->getSubType() == ObjectSubType::LimbNode)
-            m_attr = attr;
-    }
+    if (auto attr = as<LimbNodeAttribute>(v))
+        m_attr = attr;
 }
 
+ObjectSubClass Mesh::getSubClass() const { return ObjectSubClass::Mesh; }
+
+void Mesh::constructNodes()
+{
+    super::constructNodes();
+}
+
+void Mesh::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto geom = as<GeomMesh>(v))
+        m_geom = geom;
+    else if (auto material = as<Material>(v))
+        m_materials.push_back(material);
+}
+
+GeomMesh* Mesh::getGeometry()
+{
+    if (!m_geom) {
+        // m_geom will be set in addChild()
+        createChild<GeomMesh>(getName());
+    }
+    return m_geom;
+}
+span<Material*> Mesh::getMaterials() const
+{
+    return make_span(m_materials);
+}
+
+
+
+ObjectSubClass Light::getSubClass() const { return ObjectSubClass::Light; }
 
 void Light::constructObject()
 {
@@ -480,24 +499,22 @@ void Light::constructObject()
 
 void Light::constructNodes()
 {
-    if (!m_attr) {
-        m_attr = createChild<NodeAttribute>();
-        m_attr->setSubType(ObjectSubType::Light);
-    }
+    if (!m_attr)
+        m_attr = createChild<LightAttribute>();
     super::constructNodes();
 
     // todo
 }
 
-
 void Light::addChild(Object* v)
 {
     super::addChild(v);
-    if (auto attr = as<NodeAttribute>(v))
-        if (attr->getSubType() == ObjectSubType::Light)
-            m_attr = attr;
+    if (auto attr = as<LightAttribute>(v))
+        m_attr = attr;
 }
 
+
+ObjectSubClass Camera::getSubClass() const { return ObjectSubClass::Camera; }
 
 void Camera::constructObject()
 {
@@ -508,26 +525,22 @@ void Camera::constructObject()
 
 void Camera::constructNodes()
 {
-    if (!m_attr) {
-        m_attr = createChild<NodeAttribute>();
-        m_attr->setSubType(ObjectSubType::Camera);
-    }
+    if (!m_attr)
+        m_attr = createChild<CameraAttribute>();
     super::constructNodes();
-
     // todo
 }
 
 void Camera::addChild(Object* v)
 {
     super::addChild(v);
-    if (auto attr = as<NodeAttribute>(v))
-        if (attr->getSubType() == ObjectSubType::Camera)
-            m_attr = attr;
+    if (auto attr = as<CameraAttribute>(v))
+        m_attr = attr;
 }
 
 
 
-ObjectType Geometry::getType() const { return ObjectType::Geometry; }
+ObjectClass Geometry::getClass() const { return ObjectClass::Geometry; }
 
 void Geometry::addChild(Object* v)
 {
@@ -539,7 +552,9 @@ void Geometry::addChild(Object* v)
 span<Deformer*> Geometry::getDeformers() const { return make_span(m_deformers); }
 
 
-void Mesh::constructObject()
+ObjectSubClass GeomMesh::getSubClass() const { return ObjectSubClass::Mesh; }
+
+void GeomMesh::constructObject()
 {
     super::constructObject();
 
@@ -600,9 +615,8 @@ void Mesh::constructObject()
     }
 }
 
-void Mesh::constructNodes()
+void GeomMesh::constructNodes()
 {
-    setSubType(ObjectSubType::Mesh);
     super::constructNodes();
 
     Node* n = getNode();
@@ -723,27 +737,22 @@ void Mesh::constructNodes()
     }
 }
 
-void Mesh::addParent(Object* v)
-{
-    super::addParent(v);
-    if (auto model = as<Model>(v))
-        model->setSubType(ObjectSubType::Mesh);
-}
+span<int> GeomMesh::getCounts() const { return make_span(m_counts); }
+span<int> GeomMesh::getIndices() const { return make_span(m_indices); }
+span<float3> GeomMesh::getPoints() const { return make_span(m_points); }
+span<LayerElementF3> GeomMesh::getNormalLayers() const { return make_span(m_normal_layers); }
+span<LayerElementF2> GeomMesh::getUVLayers() const { return make_span(m_uv_layers); }
+span<LayerElementF4> GeomMesh::getColorLayers() const { return make_span(m_color_layers); }
 
-span<int> Mesh::getCounts() const { return make_span(m_counts); }
-span<int> Mesh::getIndices() const { return make_span(m_indices); }
-span<float3> Mesh::getPoints() const { return make_span(m_points); }
-span<LayerElementF3> Mesh::getNormalLayers() const { return make_span(m_normal_layers); }
-span<LayerElementF2> Mesh::getUVLayers() const { return make_span(m_uv_layers); }
-span<LayerElementF4> Mesh::getColorLayers() const { return make_span(m_color_layers); }
+void GeomMesh::setCounts(span<int> v) { m_counts = v; }
+void GeomMesh::setIndices(span<int> v) { m_indices = v; }
+void GeomMesh::setPoints(span<float3> v) { m_points = v; }
+void GeomMesh::addNormalLayer(LayerElementF3&& v) { m_normal_layers.push_back(v); }
+void GeomMesh::addUVLayer(LayerElementF2&& v) { m_uv_layers.push_back(v); }
+void GeomMesh::addColorLayer(LayerElementF4&& v) { m_color_layers.push_back(v); }
 
-void Mesh::setCounts(span<int> v) { m_counts = v; }
-void Mesh::setIndices(span<int> v) { m_indices = v; }
-void Mesh::setPoints(span<float3> v) { m_points = v; }
-void Mesh::addNormalLayer(LayerElementF3&& v) { m_normal_layers.push_back(v); }
-void Mesh::addUVLayer(LayerElementF2&& v) { m_uv_layers.push_back(v); }
-void Mesh::addColorLayer(LayerElementF4&& v) { m_color_layers.push_back(v); }
 
+ObjectSubClass Shape::getSubClass() const { return ObjectSubClass::Shape; }
 
 void Shape::constructObject()
 {
@@ -764,7 +773,6 @@ void Shape::constructObject()
 
 void Shape::constructNodes()
 {
-    setSubType(ObjectSubType::Shape);
     super::constructNodes();
 
     Node* n = getNode();
@@ -773,10 +781,10 @@ void Shape::constructNodes()
     n->createChild(sfbxS_Normals, MakeAdaptor<double3>(m_delta_normals));
 }
 
-Mesh* Shape::getBaseMesh()
+GeomMesh* Shape::getBaseMesh()
 {
     for (auto* p = getParent(); p; p = p->getParent()) {
-        if (auto mesh = as<Mesh>(p))
+        if (auto mesh = as<GeomMesh>(p))
             return mesh;
     }
     return nullptr;
@@ -792,9 +800,9 @@ void Shape::setDeltaNormals(span<float3> v) { m_delta_normals = v; }
 
 
 
-ObjectType Deformer::getType() const
+ObjectClass Deformer::getClass() const
 {
-    return ObjectType::Deformer;
+    return ObjectClass::Deformer;
 }
 
 std::string SubDeformer::getObjectName() const
@@ -803,6 +811,8 @@ std::string SubDeformer::getObjectName() const
 }
 
 
+ObjectSubClass Skin::getSubClass() const { return ObjectSubClass::Skin; }
+
 void Skin::constructObject()
 {
     super::constructObject();
@@ -810,7 +820,6 @@ void Skin::constructObject()
 
 void Skin::constructNodes()
 {
-    setSubType(ObjectSubType::Skin);
     super::constructNodes();
 
     auto n = getNode();
@@ -822,7 +831,7 @@ void Skin::constructNodes()
 void Skin::addParent(Object* v)
 {
     super::addParent(v);
-    if (auto mesh = as<Mesh>(v))
+    if (auto mesh = as<GeomMesh>(v))
         m_mesh = mesh;
 }
 
@@ -833,13 +842,13 @@ void Skin::addChild(Object* v)
         m_clusters.push_back(cluster);
 }
 
-Mesh* Skin::getMesh() const { return m_mesh; }
+GeomMesh* Skin::getMesh() const { return m_mesh; }
 span<Cluster*> Skin::getClusters() const { return make_span(m_clusters); }
 
 JointWeights Skin::getJointWeightsVariable()
 {
     JointWeights ret;
-    auto mesh = as<Mesh>(getParent());
+    auto mesh = as<GeomMesh>(getParent());
     if (!mesh)
         return ret;
 
@@ -959,6 +968,8 @@ JointMatrices Skin::getJointMatrices()
 }
 
 
+ObjectSubClass Cluster::getSubClass() const { return ObjectSubClass::Cluster; }
+
 void Cluster::constructObject()
 {
     super::constructObject();
@@ -972,7 +983,6 @@ void Cluster::constructObject()
 
 void Cluster::constructNodes()
 {
-    setSubType(ObjectSubType::Cluster);
     super::constructNodes();
 
     auto n = getNode();
@@ -1007,6 +1017,8 @@ void Cluster::setTransform(float4x4 v) { m_transform = v; }
 void Cluster::setTransformLink(float4x4 v) { m_transform_link = v; }
 
 
+ObjectSubClass BlendShape::getSubClass() const { return ObjectSubClass::BlendShape; }
+
 void BlendShape::constructObject()
 {
     super::constructObject();
@@ -1014,10 +1026,11 @@ void BlendShape::constructObject()
 
 void BlendShape::constructNodes()
 {
-    setSubType(ObjectSubType::BlendShape);
     super::constructNodes();
 }
 
+
+ObjectSubClass BlendShapeChannel::getSubClass() const { return ObjectSubClass::BlendShapeChannel; }
 
 void BlendShapeChannel::constructObject()
 {
@@ -1026,13 +1039,14 @@ void BlendShapeChannel::constructObject()
 
 void BlendShapeChannel::constructNodes()
 {
-    setSubType(ObjectSubType::BlendShapeChannel);
     super::constructNodes();
 }
 
 
 
-ObjectType Pose::getType() const { return ObjectType::Pose; }
+ObjectClass Pose::getClass() const { return ObjectClass::Pose; }
+
+ObjectSubClass BindPose::getSubClass() const { return ObjectSubClass::BindPose; }
 
 void BindPose::constructObject()
 {
@@ -1055,7 +1069,6 @@ void BindPose::constructObject()
 
 void BindPose::constructNodes()
 {
-    setSubType(ObjectSubType::BindPose);
     super::constructNodes();
 
     auto n = getNode();
@@ -1075,8 +1088,7 @@ void BindPose::addPoseData(Model* joint, float4x4 bind_matrix) { m_pose_data.pus
 
 
 
-Material::Material() {}
-ObjectType Material::getType() const { return ObjectType::Material; }
+ObjectClass Material::getClass() const { return ObjectClass::Material; }
 
 void Material::constructObject()
 {
@@ -1092,10 +1104,10 @@ void Material::constructNodes()
 
 
 
-ObjectType AnimationStack::getType() const { return ObjectType::AnimationStack; }
+ObjectClass AnimationStack::getClass() const { return ObjectClass::AnimationStack; }
 
 
-ObjectType AnimationLayer::getType() const { return ObjectType::AnimationLayer; }
+ObjectClass AnimationLayer::getClass() const { return ObjectClass::AnimationLayer; }
 
 void AnimationLayer::constructObject()
 {
@@ -1127,7 +1139,7 @@ AnimationCurveNode* AnimationLayer::getScale() const        { return m_scale; }
 AnimationCurveNode* AnimationLayer::getFocalLength() const  { return m_focal_length; }
 
 
-ObjectType AnimationCurveNode::getType() const { return ObjectType::AnimationCurveNode; }
+ObjectClass AnimationCurveNode::getClass() const { return ObjectClass::AnimationCurveNode; }
 
 void AnimationCurveNode::constructObject()
 {
@@ -1204,7 +1216,7 @@ void AnimationCurveNode::addValue(float time, float3 value)
     m_curves[2]->addValue(time, value.z);
 }
 
-ObjectType AnimationCurve::getType() const { return ObjectType::AnimationCurve; }
+ObjectClass AnimationCurve::getClass() const { return ObjectClass::AnimationCurve; }
 
 void AnimationCurve::constructObject()
 {

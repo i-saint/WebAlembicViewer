@@ -44,7 +44,7 @@ public:
     span<NodePtr> getAllNodes();
     span<Node*> getRootNodes();
 
-    Object* createObject(ObjectType t, ObjectSubType s);
+    Object* createObject(ObjectClass t, ObjectSubClass s);
     template<class T> T* createObject(const std::string& name = "");
     Object* findObject(int64 id);
     span<ObjectPtr> getAllObjects();

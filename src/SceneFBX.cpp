@@ -19,7 +19,7 @@ public:
 
     struct MeshData
     {
-        sfbx::Mesh* mesh_fbx{};
+        sfbx::GeomMesh* mesh_fbx{};
         RawVector<int> indices_tri;
         size_t points_offset{};
         size_t pointsex_offset{};
@@ -91,7 +91,7 @@ void SceneFBX::scanObjects(ImportContext ctx)
             // todo
         }
     }
-    else if (auto mesh = as<sfbx::Mesh>(obj)) {
+    else if (auto mesh = as<sfbx::GeomMesh>(obj)) {
         auto tmp = std::make_shared<MeshData>();
         tmp->mesh_fbx = mesh;
         tmp->points_offset = m_mono_mesh->m_points.size();

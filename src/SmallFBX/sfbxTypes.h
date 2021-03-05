@@ -273,9 +273,9 @@ struct boolean
 
 
 #define sfbxEachObjectType(Body)\
-    Body(NodeAttribute)\
-    Body(Model) Body(Light) Body(Camera) Body(Root) Body(LimbNode)\
-    Body(Geometry) Body(Mesh) Body(Shape)\
+    Body(NodeAttribute) Body(NullAttribute) Body(RootAttribute) Body(LimbNodeAttribute) Body(LightAttribute) Body(CameraAttribute)\
+    Body(Model) Body(Null) Body(Root) Body(LimbNode) Body(Mesh) Body(Light) Body(Camera)\
+    Body(Geometry) Body(GeomMesh) Body(Shape)\
     Body(Deformer) Body(Skin) Body(Cluster) Body(BlendShape) Body(BlendShapeChannel)\
     Body(Pose) Body(BindPose)\
     Body(Material)\

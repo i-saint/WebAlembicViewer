@@ -3,7 +3,7 @@
 
 namespace sfbx {
 
-enum class ObjectType : int
+enum class ObjectClass : int
 {
     Unknown,
     NodeAttribute,
@@ -18,7 +18,7 @@ enum class ObjectType : int
     AnimationCurve,
 };
 
-enum class ObjectSubType : int
+enum class ObjectSubClass : int
 {
     Unknown,
     Null,
@@ -35,13 +35,13 @@ enum class ObjectSubType : int
     BlendShapeChannel,
 };
 
-ObjectType    GetFbxObjectType(const std::string& n);
-ObjectType    GetFbxObjectType(Node* n);
-const char*   GetFbxObjectName(ObjectType t);
-ObjectSubType GetFbxObjectSubType(const std::string& n);
-ObjectSubType GetFbxObjectSubType(Node* n);
-const char*   GetFbxObjectSubName(ObjectSubType t);
-std::string   MakeObjectName(const std::string& name, const std::string& type);
+ObjectClass     GetFbxObjectClass(const std::string& n);
+ObjectClass     GetFbxObjectClass(Node* n);
+const char*     GetFbxClassName(ObjectClass t);
+ObjectSubClass  GetFbxObjectSubClass(const std::string& n);
+ObjectSubClass  GetFbxObjectSubClass(Node* n);
+const char*     GetFbxSubClassName(ObjectSubClass t);
+std::string     MakeObjectName(const std::string& name, const std::string& type);
 
 
 // base object class
@@ -51,14 +51,14 @@ class Object
 friend class Document;
 public:
     virtual ~Object();
-    virtual ObjectType getType() const;
+    virtual ObjectClass getClass() const;
+    virtual ObjectSubClass getSubClass() const;
     virtual void constructObject();
     virtual void constructNodes();
 
     template<class T> T* createChild(const std::string& name = "");
     virtual void addChild(Object* v);
 
-    ObjectSubType getSubType() const;
     int64 getID() const;
     const std::string& getName() const;
     Node* getNode() const;
@@ -68,7 +68,6 @@ public:
     Object* getParent(size_t i = 0) const;
     Object* getChild(size_t i = 0) const;
 
-    virtual void setSubType(ObjectSubType v);
     virtual void setID(int64 v);
     virtual void setName(const std::string& v);
     virtual void setNode(Node* v);
@@ -85,7 +84,6 @@ protected:
     Node* m_node{};
     int64 m_id{};
     std::string m_name;
-    ObjectSubType m_subtype{};
 
     std::vector<Object*> m_parents;
     std::vector<Object*> m_children;
@@ -99,7 +97,7 @@ class NodeAttribute : public Object
 {
 using super = Object;
 public:
-    ObjectType getType() const override;
+    ObjectClass getClass() const override;
 };
 
 
@@ -107,6 +105,7 @@ class NullAttribute : public NodeAttribute
 {
 using super = NodeAttribute;
 public:
+    ObjectSubClass getSubClass() const override;
     void constructNodes() override;
 };
 
@@ -115,6 +114,7 @@ class RootAttribute : public NodeAttribute
 {
 using super = NodeAttribute;
 public:
+    ObjectSubClass getSubClass() const override;
     void constructNodes() override;
 };
 
@@ -123,6 +123,7 @@ class LimbNodeAttribute : public NodeAttribute
 {
 using super = NodeAttribute;
 public:
+    ObjectSubClass getSubClass() const override;
     void constructNodes() override;
 };
 
@@ -131,6 +132,7 @@ class LightAttribute : public NodeAttribute
 {
 using super = NodeAttribute;
 public:
+    ObjectSubClass getSubClass() const override;
     void constructNodes() override;
 };
 
@@ -139,6 +141,7 @@ class CameraAttribute : public NodeAttribute
 {
 using super = NodeAttribute;
 public:
+    ObjectSubClass getSubClass() const override;
     void constructNodes() override;
 };
 
@@ -151,17 +154,12 @@ class Model : public Object
 {
 using super = Object;
 public:
-    ObjectType getType() const override;
+    ObjectClass getClass() const override;
     void constructObject() override;
     void constructNodes() override;
     void addChild(Object* v) override;
 
     Model* getParentModel() const;
-    span<NodeAttribute*> getNodeAttributes() const;
-    span<Material*> getMaterials() const;
-    Camera* getCamera() const;
-    Light* getLight() const;
-    Mesh* getMesh() const;
 
     bool getVisibility() const;
     RotationOrder getRotationOrder() const;
@@ -185,10 +183,6 @@ protected:
     void addParent(Object* v) override;
 
     Model* m_parent_model{};
-    std::vector<NodeAttribute*> m_node_attributes;
-    std::vector<Material*> m_materials;
-    Mesh* m_mesh{};
-
     bool m_visibility = true;
     RotationOrder m_rotation_order = RotationOrder::XYZ;
     float3 m_position{};
@@ -201,43 +195,63 @@ protected:
 
 class Null : public Model
 {
-friend class Document;
 using super = Model;
 public:
+    ObjectSubClass getSubClass() const override;
+
+protected:
+    NullAttribute* m_attr{};
 };
 
 
 class Root : public Model
 {
-friend class Document;
 using super = Model;
 public:
+    ObjectSubClass getSubClass() const override;
     void constructNodes() override;
     void addChild(Object* v) override;
 
 protected:
-    NodeAttribute* m_attr{};
+    RootAttribute* m_attr{};
 };
 
 
 class LimbNode : public Model
 {
-friend class Document;
 using super = Model;
 public:
+    ObjectSubClass getSubClass() const override;
     void constructNodes() override;
     void addChild(Object* v) override;
 
 protected:
+    LimbNodeAttribute* m_attr{};
+};
+
+class Mesh : public Model
+{
+using super = Model;
+public:
+    ObjectSubClass getSubClass() const override;
+    void constructNodes() override;
+    void addChild(Object* v) override;
+
+    GeomMesh* getGeometry();
+    span<Material*> getMaterials() const;
+
+protected:
     NodeAttribute* m_attr{};
+    GeomMesh* m_geom{};
+    std::vector<Material*> m_materials;
 };
 
 
 class Light : public Model
 {
-friend class Document;
 using super = Model;
 public:
+    ObjectSubClass getSubClass() const override;
     void constructObject() override;
     void constructNodes() override;
     void addChild(Object* v) override;
@@ -249,9 +263,9 @@ protected:
 
 class Camera : public Model
 {
-friend class Document;
 using super = Model;
 public:
+    ObjectSubClass getSubClass() const override;
     void constructObject() override;
     void constructNodes() override;
     void addChild(Object* v) override;
@@ -267,10 +281,9 @@ protected:
 
 class Geometry : public Object
 {
-friend class Document;
 using super = Object;
 public:
-    ObjectType getType() const override;
+    ObjectClass getClass() const override;
     void addChild(Object* v) override;
 
     span<Deformer*> getDeformers() const;
@@ -291,11 +304,11 @@ using LayerElementF2 = LayerElement<float2>;
 using LayerElementF3 = LayerElement<float3>;
 using LayerElementF4 = LayerElement<float4>;
 
-class Mesh : public Geometry
+class GeomMesh : public Geometry
 {
-friend class Document;
 using super = Geometry;
 public:
+    ObjectSubClass getSubClass() const override;
     void constructObject() override;
     void constructNodes() override;
 
@@ -314,8 +327,6 @@ public:
     void addColorLayer(LayerElementF4&& v);
 
 protected:
-    void addParent(Object* v) override;
-
     RawVector<int> m_counts;
     RawVector<int> m_indices;
     RawVector<float3> m_points;
@@ -326,13 +337,13 @@ protected:
 
 class Shape : public Geometry
 {
-friend class Document;
 using super = Geometry;
 public:
+    ObjectSubClass getSubClass() const override;
     void constructObject() override;
     void constructNodes() override;
 
-    Mesh* getBaseMesh();
+    GeomMesh* getBaseMesh();
     span<int> getIndices() const;
     span<float3> getDeltaPoints() const;
     span<float3> getDeltaNormals() const;
@@ -353,15 +364,13 @@ public:
 
 class Deformer : public Object
 {
-friend class Document;
 using super = Object;
 public:
-    ObjectType getType() const override;
+    ObjectClass getClass() const override;
 };
 
 class SubDeformer : public Deformer
 {
-friend class Document;
 using super = Deformer;
 public:
 protected:
@@ -392,14 +401,14 @@ struct JointMatrices
 
 class Skin : public Deformer
 {
-friend class Document;
 using super = Deformer;
 public:
+    ObjectSubClass getSubClass() const override;
     void constructObject() override;
     void constructNodes() override;
     void addChild(Object* v) override;
 
-    Mesh* getMesh() const;
+    GeomMesh* getMesh() const;
     span<Cluster*> getClusters() const;
     JointWeights getJointWeightsVariable();
     JointWeights getJointWeightsFixed(int joints_per_vertex);
@@ -408,16 +417,16 @@ public:
 protected:
     void addParent(Object* v) override;
 
-    Mesh* m_mesh{};
+    GeomMesh* m_mesh{};
     std::vector<Cluster*> m_clusters;
 };
 
 
 class Cluster : public SubDeformer
 {
-friend class Document;
 using super = SubDeformer;
 public:
+    ObjectSubClass getSubClass() const override;
     void constructObject() override;
     void constructNodes() override;
     void addChild(Object* v) override;
@@ -442,9 +451,9 @@ protected:
 
 class BlendShape : public Deformer
 {
-friend class Document;
 using super = Deformer;
 public:
+    ObjectSubClass getSubClass() const override;
     void constructObject() override;
     void constructNodes() override;
 
@@ -454,9 +463,9 @@ protected:
 
 class BlendShapeChannel : public SubDeformer
 {
-friend class Document;
 using super = SubDeformer;
 public:
+    ObjectSubClass getSubClass() const override;
     void constructObject() override;
     void constructNodes() override;
 
@@ -471,15 +480,13 @@ protected:
 
 class Pose : public Object
 {
-friend class Document;
 using super = Object;
 public:
-    ObjectType getType() const override;
+    ObjectClass getClass() const override;
 };
 
 class BindPose : public Pose
 {
-friend class Document;
 using super = Pose;
 public:
     struct PoseData
@@ -488,6 +495,7 @@ public:
         float4x4 matrix = float4x4::identity();
     };
 
+    ObjectSubClass getSubClass() const override;
     void constructObject() override;
     void constructNodes() override;
 
@@ -503,15 +511,11 @@ protected:
 
 class Material : public Object
 {
-friend class Document;
 using super = Object;
 public:
-    ObjectType getType() const override;
+    ObjectClass getClass() const override;
     void constructObject() override;
     void constructNodes() override;
-
-protected:
-    Material();
 };
 
 
@@ -520,18 +524,16 @@ protected:
 
 class AnimationStack : public Object
 {
-friend class Document;
 using super = Object;
 public:
-    ObjectType getType() const override;
+    ObjectClass getClass() const override;
 };
 
 class AnimationLayer : public Object
 {
-friend class Document;
 using super = Object;
 public:
-    ObjectType getType() const override;
+    ObjectClass getClass() const override;
     void constructObject() override;
     void constructNodes() override;
 
@@ -549,10 +551,9 @@ protected:
 
 class AnimationCurveNode : public Object
 {
-friend class Document;
 using super = Object;
 public:
-    ObjectType getType() const override;
+    ObjectClass getClass() const override;
     void constructObject() override;
     void constructNodes() override;
     void addChild(Object* v) override;
@@ -571,10 +572,9 @@ protected:
 
 class AnimationCurve : public Object
 {
-friend class Document;
 using super = Object;
 public:
-    ObjectType getType() const override;
+    ObjectClass getClass() const override;
     void constructObject() override;
     void constructNodes() override;
 

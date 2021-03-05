@@ -17,9 +17,10 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
     testPrint("\"%s\" [0x%llx] (%s : %s)\n",
         obj->getName().c_str(),
         obj->getID(),
-        sfbx::GetFbxObjectName(obj->getType()),
-        sfbx::GetFbxObjectSubName(obj->getSubType()));
+        sfbx::GetFbxClassName(obj->getClass()),
+        sfbx::GetFbxSubClassName(obj->getSubClass()));
 
+    // for test
     if (auto skin = as<sfbx::Skin>(obj)) {
         auto weights_v = skin->getJointWeightsVariable();
         auto weights_4 = skin->getJointWeightsFixed(4);
@@ -37,8 +38,13 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
         }
     }
 
-    for (auto child : obj->getChildren())
-        PrintObject(child, depth + 1);
+    if (!as<sfbx::Cluster>(obj)) {
+        // avoid printing children of Cluster because it may result in a nearly endless list
+
+        for (auto child : obj->getChildren())
+            PrintObject(child, depth + 1);
+
+    }
 }
 
 testCase(fbxRead)
@@ -68,13 +74,13 @@ testCase(fbxWrite)
     {
         sfbx::DocumentPtr doc = sfbx::MakeDocument();
 
-        auto model = doc->createObject<sfbx::Model>("mesh");
-        model->setPosition({ 0.0f, 0.0f, 0.0f });
-        model->setRotation({ 0.0f, 0.0f, 0.0f });
-        model->setScale({ 1.0f, 1.0f, 1.0f });
+        auto node = doc->createObject<sfbx::Mesh>("mesh");
+        node->setPosition({ 0.0f, 0.0f, 0.0f });
+        node->setRotation({ 0.0f, 0.0f, 0.0f });
+        node->setScale({ 1.0f, 1.0f, 1.0f });
 
         float s = 10.0f;
-        auto mesh = model->createChild<sfbx::Mesh>();
+        auto mesh = node->getGeometry();
 
         {
             RawVector<int> counts{ 4, 4, 4, 4 };
