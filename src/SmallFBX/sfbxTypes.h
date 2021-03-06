@@ -14,6 +14,12 @@
 
 namespace sfbx {
 
+template<class T, class = void>
+struct is_sequential_container : std::false_type {};
+template<class T>
+struct is_sequential_container<T, std::void_t<decltype(std::declval<T>().data()), decltype(std::declval<T>().size())>> : std::true_type {};
+
+
 #ifdef __cpp_lib_span
 
 template<class T> using span = std::span<T>;
@@ -36,8 +42,13 @@ public:
     span() {}
     span(const T* d, size_t s) : m_data(const_cast<T*>(d)), m_size(s) {}
     span(const span& v) : m_data(const_cast<T*>(v.m_data)), m_size(v.m_size) {}
-    template<class Cont>
+
+    template<class Cont, sfbxEnableIf(is_sequential_container<Cont>::value)>
     span(const Cont& v) : m_data(const_cast<T*>(v.data())), m_size(v.size()) {}
+
+    template<size_t N>
+    span(const T (&v)[N]) : m_data(const_cast<T*>(v)), m_size(N) {}
+
     span& operator=(const span& v) { m_data = const_cast<T*>(v.m_data); m_size = v.m_size; return *this; }
 
     bool empty() const { return m_size == 0; }

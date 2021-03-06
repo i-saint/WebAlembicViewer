@@ -181,8 +181,8 @@ void Cluster::constructObject()
     super::constructObject();
 
     auto n = getNode();
-    m_indices = GetChildPropertyArray<int>(n, sfbxS_Indexes);
-    m_weights = GetChildPropertyArray<float64>(n, sfbxS_Weights);
+    GetChildPropertyArray<int>(m_indices, n, sfbxS_Indexes);
+    GetChildPropertyArray<float64>(m_weights, n, sfbxS_Weights);
     m_transform = GetChildPropertyValue<double4x4>(n, sfbxS_Transform);
     m_transform_link = GetChildPropertyValue<double4x4>(n, sfbxS_TransformLink);
 }
@@ -269,8 +269,9 @@ void BlendShapeChannel::constructObject()
         if (auto shape = as<Shape>(c))
             m_shape_data.push_back({ shape, 100.0f });
     }
-    if (auto full_weights = getNode()->findChild(sfbxS_FullWeights)) {
-        auto weights = GetPropertyArray<float64>(full_weights);
+    if (auto n = getNode()->findChild(sfbxS_FullWeights)) {
+        RawVector<float> weights;
+        GetPropertyArray<float>(weights, n);
         if (weights.size() == m_shape_data.size()) {
             size_t n = weights.size();
             for (size_t i = 0; i < n; ++i)

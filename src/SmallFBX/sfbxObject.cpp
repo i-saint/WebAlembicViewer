@@ -69,8 +69,12 @@ ObjectSubClass GetObjectSubClass(string_view n)
 
 ObjectSubClass GetObjectSubClass(Node* n)
 {
-    if (GetPropertyType(n, 0) == PropertyType::Int64)
+    if (GetPropertyCount(n) == 3)
         return GetObjectSubClass(GetPropertyString(n, 2));
+#ifdef sfbxEnableLegacyFormatSupport
+    else if (GetPropertyCount(n) == 2)
+        return GetObjectSubClass(GetPropertyString(n, 1));
+#endif
     else
         return ObjectSubClass::Unknown;
 }
@@ -155,13 +159,17 @@ void Object::setNode(Node* n)
     m_node = n;
     if (n) {
         // do these in constructObject() is too late because of referencing other objects...
-        if (GetPropertyType(n, 0) == PropertyType::Int64) {
+        size_t cprops = GetPropertyCount(n);
+        if (cprops == 3) {
             m_id = GetPropertyValue<int64>(n, 0);
             m_name = GetPropertyString(n, 1);
         }
-        //else { // for old format
-        //    m_name = GetPropertyString(n, 0);
-        //}
+#ifdef sfbxEnableLegacyFormatSupport
+        else if (cprops == 2) {
+            // no ID in legacy format
+            m_name = GetPropertyString(n, 0);
+        }
+#endif
     }
 }
 

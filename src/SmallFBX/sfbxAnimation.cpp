@@ -124,11 +124,20 @@ void AnimationCurve::constructObject()
 {
     super::constructObject();
 
-    auto n = getNode();
-    m_default = (float32)GetChildPropertyValue<float64>(n, sfbxS_Default);
-    transform(m_times, GetChildPropertyArray<int64>(n, sfbxS_KeyTime),
-        [](int64 v) { return float((double)v / sfbxI_TicksPerSecond); });
-    m_values = GetChildPropertyArray<float32>(n, sfbxS_KeyValueFloat);
+    for (auto n : getNode()->getChildren()) {
+        auto name = n->getName();
+        if (name == sfbxS_Default) {
+            m_default = (float32)GetPropertyValue<float64>(n);
+        }
+        else if (name == sfbxS_KeyTime) {
+            RawVector<int64> times_i64;
+            GetPropertyArray<int64>(times_i64, n);
+            transform(m_times, times_i64, [](int64 v) { return float((double)v / sfbxI_TicksPerSecond); });
+        }
+        else if (name == sfbxS_KeyValueFloat) {
+            GetPropertyArray<float32>(m_values, n);
+        }
+    }
 }
 
 void AnimationCurve::constructNodes()

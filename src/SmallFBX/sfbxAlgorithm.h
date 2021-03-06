@@ -70,7 +70,7 @@ inline void transform(Dst& dst, const Src& src, const Body& body)
 {
     resize(dst, src.size());
     auto* d = dst.data();
-    for (auto& v : src)
+    for (const auto& v : src)
         *d++ = body(v);
 }
 
@@ -112,6 +112,12 @@ inline size_t count(const Container& cont, const Body& body)
         if (body(v))
             ++r;
     return r;
+}
+
+// substitution for std::string_view::starts_with() (which require C++20)
+inline bool starts_with(string_view str, string_view v)
+{
+    return std::strncmp(str.data(), v.data(), v.size()) == 0;
 }
 
 } // namespace sfbx

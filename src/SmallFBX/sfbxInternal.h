@@ -6,6 +6,8 @@
 #include "sfbxNode.h"
 #include "sfbxUtil.h"
 
+//#define sfbxEnableLegacyFormatSupport
+
 namespace sfbx {
 
 template<class T>
@@ -48,6 +50,13 @@ inline void AddTabs(std::string& dst, int n)
 }
 
 
+inline size_t GetPropertyCount(Node* node)
+{
+    if (node)
+        return node->getProperties().size();
+    return 0;
+}
+
 inline PropertyType GetPropertyType(Node* node, size_t pi = 0)
 {
     if (node)
@@ -65,15 +74,6 @@ inline T GetPropertyValue(Node* node, size_t pi = 0)
     return {};
 }
 
-template<class T>
-inline span<T> GetPropertyArray(Node* node, size_t pi = 0)
-{
-    if (node)
-        if (Property* prop = node->getProperty(pi))
-            return prop->getArray<T>();
-    return {};
-}
-
 inline string_view GetPropertyString(Node* node, size_t pi = 0)
 {
     if (node)
@@ -83,39 +83,62 @@ inline string_view GetPropertyString(Node* node, size_t pi = 0)
 }
 
 template<class T>
-inline T GetChildPropertyValue(Node* node, string_view name, size_t pi = 0)
+inline span<T> GetPropertyArray(Node* node)
 {
     if (node)
-        if (Node* child = node->findChild(name))
-            if (Property* prop = child->getProperty(pi))
-                return prop->getValue<T>();
+        if (Property* prop = node->getProperty(0))
+            return prop->getArray<T>();
     return {};
+}
+template<class T, class Cont>
+inline void GetPropertyArray(Cont& dst, Node* node)
+{
+    if (node) {
+        if (Property* prop = node->getProperty(0)) {
+            if (prop->isArray())
+                dst = prop->getArray<T>();
+#ifdef sfbxEnableLegacyFormatSupport
+            else
+                node->getPropertiesValues<typename Cont::value_type, T>(dst);
+#endif
+        }
+    }
 }
 
 template<class T>
-inline span<T> GetChildPropertyArray(Node* node, string_view name, size_t pi = 0)
+inline T GetChildPropertyValue(Node* node, string_view name, size_t pi = 0)
 {
     if (node)
-        if (Node* child = node->findChild(name))
-            if (Property* prop = child->getProperty(pi))
-                return prop->getArray<T>();
+        return GetPropertyValue<T>(node->findChild(name), pi);
     return {};
 }
 
 inline string_view GetChildPropertyString(Node* node, string_view name, size_t pi = 0)
 {
     if (node)
-        if (Node* child = node->findChild(name))
-            if (Property* prop = child->getProperty(pi))
-                return prop->getString();
+        return GetPropertyString(node->findChild(name));
     return {};
+}
+
+template<class T>
+inline span<T> GetChildPropertyArray(Node* node, string_view name)
+{
+    if (node)
+        return GetPropertyArray<T>(node->findChild(name));
+    return {};
+}
+template<class T, class Cont>
+inline void GetChildPropertyArray(Cont& dst, Node* node, string_view name)
+{
+    if (node)
+        GetPropertyArray<T>(dst, node->findChild(name));
 }
 
 template<class Body>
 inline void EnumerateProperties(Node* n, const Body& body)
 {
     for (Node* props : n->getChildren()) {
-        if (props->getName().starts_with(sfbxS_Properties)) {
+        if (starts_with(props->getName(), sfbxS_Properties)) {
             for (Node* p : props->getChildren())
                 body(p);
             break;

@@ -26,28 +26,22 @@ void GeomMesh::constructObject()
     for (auto n : getNode()->getChildren()) {
         if (n->getName() == sfbxS_Vertices) {
             // points
-            m_points = GetPropertyArray<double3>(n);
+            GetPropertyArray<double3>(m_points, n);
         }
         else if (n->getName() == sfbxS_PolygonVertexIndex) {
             // counts & indices
-            auto src_indices = GetPropertyArray<int>(n);
-            size_t cindices = src_indices.size();
-            m_counts.resize(cindices); // reserve
-            m_indices.resize(cindices);
-
-            const int* src = src_indices.data();
+            GetPropertyArray<int>(m_indices, n);
+            m_counts.resize(m_indices.size()); // reserve
             int* dst_counts = m_counts.data();
-            int* dst_indices = m_indices.data();
             size_t cfaces = 0;
             size_t cpoints = 0;
-            for (int i : src_indices) {
+            for (int& i : m_indices) {
                 ++cpoints;
                 if (i < 0) { // negative value indicates the last index in the face
                     i = ~i;
                     dst_counts[cfaces++] = cpoints;
                     cpoints = 0;
                 }
-                *dst_indices++ = i;
             }
             m_counts.resize(cfaces); // fit to actual size
         }
@@ -57,24 +51,24 @@ void GeomMesh::constructObject()
             //auto ref = n->findChildProperty(sfbxS_ReferenceInformationType);
             LayerElementF3 tmp;
             tmp.name = GetChildPropertyString(n, sfbxS_Name);
-            tmp.data = GetChildPropertyArray<double3>(n, sfbxS_Normals);
-            tmp.indices = GetChildPropertyArray<int>(n, sfbxS_NormalsIndex);
+            GetChildPropertyArray<double3>(tmp.data, n, sfbxS_Normals);
+            GetChildPropertyArray<int>(tmp.indices, n, sfbxS_NormalsIndex);
             m_normal_layers.push_back(std::move(tmp));
         }
         else if (n->getName() == sfbxS_LayerElementUV) {
             // uv
             LayerElementF2 tmp;
             tmp.name = GetChildPropertyString(n, sfbxS_Name);
-            tmp.data = GetChildPropertyArray<double2>(n, sfbxS_UV);
-            tmp.indices = GetChildPropertyArray<int>(n, sfbxS_UVIndex);
+            GetChildPropertyArray<double2>(tmp.data, n, sfbxS_UV);
+            GetChildPropertyArray<int>(tmp.indices, n, sfbxS_UVIndex);
             m_uv_layers.push_back(std::move(tmp));
         }
         else if (n->getName() == sfbxS_LayerElementColor) {
             // colors
             LayerElementF4 tmp;
             tmp.name = GetChildPropertyString(n, sfbxS_Name);
-            tmp.data = GetChildPropertyArray<double4>(n, sfbxS_Colors);
-            tmp.indices = GetChildPropertyArray<int>(n, sfbxS_ColorIndex);
+            GetChildPropertyArray<double4>(tmp.data, n, sfbxS_Colors);
+            GetChildPropertyArray<int>(tmp.indices, n, sfbxS_ColorIndex);
             m_color_layers.push_back(std::move(tmp));
         }
     }
@@ -234,15 +228,12 @@ void Shape::constructObject()
     super::constructObject();
 
     for (auto n : getNode()->getChildren()) {
-        if (n->getName() == sfbxS_Indexes) {
-            m_indices = GetPropertyArray<int>(n);
-        }
-        else if (n->getName() == sfbxS_Vertices) {
-            m_delta_points = GetPropertyArray<double3>(n);
-        }
-        else if (n->getName() == sfbxS_Normals) {
-            m_delta_normals = GetPropertyArray<double3>(n);
-        }
+        if (n->getName() == sfbxS_Indexes)
+            GetPropertyArray<int>(m_indices, n);
+        else if (n->getName() == sfbxS_Vertices)
+            GetPropertyArray<double3>(m_delta_points, n);
+        else if (n->getName() == sfbxS_Normals)
+            GetPropertyArray<double3>(m_delta_normals, n);
     }
 }
 

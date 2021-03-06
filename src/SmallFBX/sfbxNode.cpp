@@ -160,21 +160,25 @@ Property* Node::getProperty(size_t i)
     return nullptr;
 }
 
-//// for old format
-//template<class D, class S> void Node::getPropertiesValues(RawVector<D>& dst) const
-//{
-//    using SS = typename get_scalar_type<S>::type;
-//    using DS = typename get_scalar_type<D>::type;
-//    dst.resize(m_properties.size() / get_vector_size<D>::value);
-//    auto d = (DS*)dst.data();
-//    for (auto prop : m_properties)
-//        *d++ = prop->getValue<SS>();
-//}
-//template void Node::getPropertiesValues<int, int>(RawVector<int>& dst) const;
-//template void Node::getPropertiesValues<float, double>(RawVector<float>& dst) const;
-//template void Node::getPropertiesValues<float2, double2>(RawVector<float2>& dst) const;
-//template void Node::getPropertiesValues<float3, double3>(RawVector<float3>& dst) const;
-//template void Node::getPropertiesValues<float4, double4>(RawVector<float4>& dst) const;
+#ifdef sfbxEnableLegacyFormatSupport
+template<class D, class S> void Node::getPropertiesValues(RawVector<D>& dst) const
+{
+    using SS = typename get_scalar_type<S>::type;
+    using DS = typename get_scalar_type<D>::type;
+    dst.resize(m_properties.size() / get_vector_size<D>::value);
+    auto d = (DS*)dst.data();
+    for (auto prop : m_properties)
+        *d++ = prop->getValue<SS>();
+}
+template void Node::getPropertiesValues<int32, int32>(RawVector<int32>& dst) const;
+template void Node::getPropertiesValues<int64, int64>(RawVector<int64>& dst) const;
+template void Node::getPropertiesValues<float32, float32>(RawVector<float32>& dst) const;
+template void Node::getPropertiesValues<float32, float64>(RawVector<float32>& dst) const;
+
+template void Node::getPropertiesValues<float2, double2>(RawVector<float2>& dst) const;
+template void Node::getPropertiesValues<float3, double3>(RawVector<float3>& dst) const;
+template void Node::getPropertiesValues<float4, double4>(RawVector<float4>& dst) const;
+#endif
 
 
 Node* Node::getParent() const

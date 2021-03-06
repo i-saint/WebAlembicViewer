@@ -27,6 +27,9 @@
 #include <random>
 #include <regex>
 #include <iterator>
-#include <span>
 #include <bit>
 #include <ranges>
+
+#ifdef __cpp_lib_span
+    #include <span>
+#endif

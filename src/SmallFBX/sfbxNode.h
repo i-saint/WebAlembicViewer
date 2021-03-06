@@ -29,7 +29,7 @@ public:
 
     span<PropertyPtr> getProperties() const;
     Property* getProperty(size_t i);
-    // in old fbx, there are no array types. arrays are represented as a huge list of properties.
+    // for legacy format. there are no array types and arrays are represented as a huge list of properties.
     template<class Dst, class Src> void getPropertiesValues(RawVector<Dst>& dst) const;
 
     Node* getParent() const;

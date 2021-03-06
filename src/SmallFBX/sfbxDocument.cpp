@@ -70,12 +70,14 @@ bool Document::read(std::istream& is)
                         parent->addChild(child);
                     }
                 }
-                //else if (name == sfbxS_Connect && ct == sfbxS_OO) { // for old format
-                //    Object* child = findObject(GetPropertyString(n, 1));
-                //    Object* parent = findObject(GetPropertyString(n, 2));
-                //    if (child && parent)
-                //        parent->addChild(child);
-                //}
+#ifdef sfbxEnableLegacyFormatSupport
+                else if (name == sfbxS_Connect && ct == sfbxS_OO) {
+                    Object* child = findObject(GetPropertyString(n, 1));
+                    Object* parent = findObject(GetPropertyString(n, 2));
+                    if (child && parent)
+                        parent->addChild(child);
+                }
+#endif
                 else {
                     sfbxPrint("sfbx::Document::read(): unrecognized connection type %s %s\n",
                         std::string(name).c_str(), std::string(ct).c_str());
@@ -85,7 +87,7 @@ bool Document::read(std::istream& is)
 
         // index based loop because m_objects maybe push_backed in the loop
         for (size_t i = 0; i < m_objects.size(); ++i) {
-            auto& obj = m_objects[i];
+            auto obj = m_objects[i];
             obj->constructObject();
             if (obj->getParents().empty())
                 m_root_objects.push_back(obj.get());
@@ -324,12 +326,19 @@ Object* Document::findObject(int64 id) const
     return it != m_objects.end() ? it->get() : nullptr;
 }
 
+#ifdef sfbxEnableLegacyFormatSupport
 Object* Document::findObject(string_view name) const
 {
+    static const char s_scene_[]{ "Scene" "\x00\x01" "Model" };
+    static const string_view s_scene{ s_scene_, sizeof(s_scene_) - 1 };
+    if (name == s_scene)
+        return m_root_model;
+
     auto it = std::find_if(m_objects.begin(), m_objects.end(),
         [&name](auto& p) { return p->getName() == name; });
     return it != m_objects.end() ? it->get() : nullptr;
 }
+#endif
 
 span<ObjectPtr> Document::getAllObjects() const { return make_span(m_objects); }
 span<Object*> Document::getRootObjects() const { return make_span(m_root_objects); }

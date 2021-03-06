@@ -555,6 +555,12 @@ class AnimationStack : public Object
 using super = Object;
 public:
     ObjectClass getClass() const override;
+
+protected:
+    float m_local_start{};
+    float m_local_stop{};
+    float m_reference_start{};
+    float m_reference_stop{};
 };
 
 class AnimationLayer : public Object

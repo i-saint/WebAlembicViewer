@@ -9,8 +9,10 @@
 #include <functional>
 #include <memory>
 #include <fstream>
-#include <span>
 #include <chrono>
+#ifdef __cpp_lib_span
+    #include <span>
+#endif
 
 #include <Alembic/AbcCoreAbstract/All.h>
 #include <Alembic/AbcCoreOgawa/All.h>
