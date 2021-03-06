@@ -125,6 +125,7 @@
 #define sfbxS_Link_DeformAcuracy    "Link_DeformAcuracy"
 #define sfbxS_DeformPercent         "DeformPercent"
 #define sfbxS_FullWeights           "FullWeights"
+#define sfbxS_Connect               "Connect"
 
 #define sfbxS_GeometryVersion           "GeometryVersion"
 #define sfbxS_Indexes                   "Indexes"

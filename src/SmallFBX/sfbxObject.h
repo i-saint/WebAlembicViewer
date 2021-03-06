@@ -41,7 +41,11 @@ const char*     GetFbxClassName(ObjectClass t);
 ObjectSubClass  GetFbxObjectSubClass(const std::string& n);
 ObjectSubClass  GetFbxObjectSubClass(Node* n);
 const char*     GetFbxSubClassName(ObjectSubClass t);
-std::string     MakeObjectName(const std::string& name, const std::string& type);
+std::string     MakeNodeName(const std::string& name, const std::string& type);
+// true if name is in node name format (object name + \x00 \x01 + class name)
+bool IsNodeName(const std::string& name);
+// split node name into object name & class name (e.g. "hoge\x00\x01Mesh" -> "hoge" & "Mesh")
+bool SplitNodeName(span<char> node_name, span<char>& name, span<char>& classname);
 
 
 // base object class
@@ -60,7 +64,7 @@ public:
     virtual void addChild(Object* v);
 
     int64 getID() const;
-    const std::string& getName() const;
+    const std::string& getName() const; // in node name format (e.g. "hoge\x00\x01Mesh")
     Node* getNode() const;
 
     span<Object*> getParents() const;
@@ -76,7 +80,7 @@ protected:
     Object(const Object&) = delete;
     Object& operator=(const Object) = delete;
     Object();
-    virtual std::string getObjectName() const;
+    virtual const char* getClassName() const;
     virtual void addParent(Object* v);
     void addLinkOO(int64 id);
 
@@ -378,7 +382,7 @@ class SubDeformer : public Deformer
 using super = Deformer;
 public:
 protected:
-    std::string getObjectName() const override;
+    const char* getClassName() const override;
 };
 
 

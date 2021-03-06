@@ -14,7 +14,11 @@
     <ClCompile Include="SmallFBX\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="SmallFBX\sfbxAnimation.cpp" />
+    <ClCompile Include="SmallFBX\sfbxDeformer.cpp" />
     <ClCompile Include="SmallFBX\sfbxDocument.cpp" />
+    <ClCompile Include="SmallFBX\sfbxGeometry.cpp" />
+    <ClCompile Include="SmallFBX\sfbxModel.cpp" />
     <ClCompile Include="SmallFBX\sfbxNode.cpp" />
     <ClCompile Include="SmallFBX\sfbxObject.cpp" />
     <ClCompile Include="SmallFBX\sfbxProperty.cpp" />

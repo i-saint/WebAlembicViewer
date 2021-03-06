@@ -5,15 +5,9 @@
 
 namespace sfbx {
 
-ObjectClass Deformer::getClass() const
-{
-    return ObjectClass::Deformer;
-}
+ObjectClass Deformer::getClass() const { return ObjectClass::Deformer; }
 
-std::string SubDeformer::getObjectName() const
-{
-    return MakeObjectName(getName(), sfbxS_SubDeformer);
-}
+const char* SubDeformer::getClassName() const { return sfbxS_SubDeformer; }
 
 
 ObjectSubClass Skin::getSubClass() const { return ObjectSubClass::Skin; }

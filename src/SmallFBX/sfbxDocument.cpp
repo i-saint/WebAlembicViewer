@@ -54,26 +54,24 @@ bool Document::read(std::istream& is)
 
         if (auto connections = findNode(sfbxS_Connections)) {
             for (auto n : connections->getChildren()) {
-                if (n->getName() == sfbxS_C && GetPropertyString(n, 0) == sfbxS_OO) {
-                    int64 cid = GetPropertyValue<int64>(n, 1);
-                    int64 pid = GetPropertyValue<int64>(n, 2);
-                    Object* child = findObject(cid);
-                    Object* parent = findObject(pid);
+                auto& name = n->getName();
+                auto ct = GetPropertyString(n, 0);
+                if (name == sfbxS_C && ct == sfbxS_OO) {
+                    Object* child = findObject(GetPropertyValue<int64>(n, 1));
+                    Object* parent = findObject(GetPropertyValue<int64>(n, 2));
                     if (child && parent)
                         parent->addChild(child);
                 }
-                else if (n->getName() == sfbxS_C && GetPropertyString(n, 0) == sfbxS_OP) {
-                    int64 cid = GetPropertyValue<int64>(n, 1);
-                    int64 pid = GetPropertyValue<int64>(n, 2);
+                else if (name == sfbxS_C && ct == sfbxS_OP) {
                     std::string name = GetPropertyString(n, 3); // todo
-                    Object* child = findObject(cid);
-                    Object* parent = findObject(pid);
+                    Object* child = findObject(GetPropertyValue<int64>(n, 1));
+                    Object* parent = findObject(GetPropertyValue<int64>(n, 2));
                     if (child && parent) {
                         parent->addChild(child);
                     }
                 }
                 else {
-                    sfbxPrint("sfbx::Document::read(): unrecognized connection type\n");
+                    sfbxPrint("sfbx::Document::read(): unrecognized connection type %s %s\n", n->getName().c_str(), ct.c_str());
                 }
             }
         }
@@ -313,7 +311,14 @@ sfbxEachObjectType(Body)
 Object* Document::findObject(int64 id) const
 {
     auto it = std::find_if(m_objects.begin(), m_objects.end(),
-        [id](const ObjectPtr& p) { return p->getID() == id; });
+        [id](auto& p) { return p->getID() == id; });
+    return it != m_objects.end() ? it->get() : nullptr;
+}
+
+Object* Document::findObject(const std::string& name) const
+{
+    auto it = std::find_if(m_objects.begin(), m_objects.end(),
+        [&name](auto& p) { return p->getName() == name; });
     return it != m_objects.end() ? it->get() : nullptr;
 }
 
@@ -366,7 +371,7 @@ void Document::constructNodes()
             other_flags->createChild(sfbxS_TCDefinition, sfbxI_TCDefinition);
         }
         {
-            auto scene_info = header_extension->createChild(sfbxS_SceneInfo, MakeObjectName(sfbxS_GlobalInfo, sfbxS_SceneInfo), sfbxS_UserData);
+            auto scene_info = header_extension->createChild(sfbxS_SceneInfo, MakeNodeName(sfbxS_GlobalInfo, sfbxS_SceneInfo), sfbxS_UserData);
             scene_info->createChild(sfbxS_Type, sfbxS_UserData);
             scene_info->createChild(sfbxS_Version, 100);
             {

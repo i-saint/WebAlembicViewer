@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "sfbxInternal.h"
 #include "sfbxProperty.h"
+#include "sfbxObject.h"
 
 #include <zlib.h>
 #pragma comment(lib, "zlib.lib")
@@ -340,23 +341,15 @@ std::string Property::toString(int depth) const
                     return make_span(s, i);
                 };
 
-                span<char> first, second;
-                {
-                    size_t n = m_data.size();
-                    const char* pos = m_data.data();
-                    first = get_span(pos, n);
-
-                    if (first.size() + 1 < n) {
-                        n -= first.size() + 2;
-                        pos += first.size() + 2;
-                        second = get_span(pos, n);
-                    }
-                }
-                if (!second.empty()) {
-                    s.insert(s.end(), second.data(), second.data() + second.size());
+                span<char> obj_name, class_name;
+                if (SplitNodeName(make_span(m_data), obj_name, class_name)) {
+                    s.insert(s.end(), class_name.begin(), class_name.end());
                     s += "::";
+                    s.insert(s.end(), obj_name.begin(), obj_name.end());
                 }
-                s.insert(s.end(), first.data(), first.data() + first.size());
+                else {
+                    s.insert(s.end(), m_data.begin(), m_data.end());
+                }
                 Escape(s);
             }
             s[0] = '"'; // replace reserved space

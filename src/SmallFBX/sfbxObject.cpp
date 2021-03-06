@@ -92,14 +92,44 @@ const char* GetFbxSubClassName(ObjectSubClass t)
     }
 }
 
-std::string MakeObjectName(const std::string& name, const std::string& type)
+std::string MakeNodeName(const std::string& name, const std::string& type)
 {
     std::string ret = name;
-    ret += (char)0;
-    ret += (char)1;
+    ret += (char)0x00;
+    ret += (char)0x01;
     ret += type;
     return ret;
 }
+
+bool IsNodeName(const std::string& name)
+{
+    size_t n = name.size();
+    if (n > 2) {
+        for (size_t i = 0; i < n - 1; ++i)
+            if (name[i] == 0x00 && name[i + 1] == 0x01)
+                return true;
+    }
+    return false;
+}
+
+bool SplitNodeName(span<char> node_name, span<char>& name, span<char>& classname)
+{
+    const char* str = node_name.data();
+    size_t n = node_name.size();
+    if (n > 2) {
+        for (size_t i = 0; i < n - 1; ++i) {
+            if (str[i] == 0x00 && str[i + 1] == 0x01) {
+                name = make_span(str, i);
+                i += 2;
+                classname = make_span(str + i, n - i);
+                return true;
+            }
+        }
+    }
+    name = make_span(node_name);
+    return false;
+}
+
 
 
 Object::Object()
@@ -107,17 +137,10 @@ Object::Object()
     m_id = (int64)this;
 }
 
-Object::~Object()
-{
-}
-
+Object::~Object() {}
 ObjectClass Object::getClass() const { return ObjectClass::Unknown; }
 ObjectSubClass Object::getSubClass() const { return ObjectSubClass::Unknown; }
-
-std::string Object::getObjectName() const
-{
-    return MakeObjectName(m_name, GetFbxClassName(getClass()));
-}
+const char* Object::getClassName() const { return GetFbxClassName(getClass()); }
 
 void Object::setNode(Node* n)
 {
@@ -140,7 +163,7 @@ void Object::constructNodes()
 
     auto objects = m_document->findNode(sfbxS_Objects);
     m_node = objects->createChild(GetFbxClassName(getClass()));
-    m_node->addProperties(m_id, getObjectName(), GetFbxSubClassName(getSubClass()));
+    m_node->addProperties(m_id, getName(), GetFbxSubClassName(getSubClass()));
 
     for (auto parent : getParents())
         addLinkOO(parent->getID());
@@ -189,7 +212,7 @@ Object* Object::getParent(size_t i) const { return i < m_parents.size() ? m_pare
 Object* Object::getChild(size_t i) const  { return i < m_children.size() ? m_children[i] : nullptr; }
 
 void Object::setID(int64 id) { m_id = id; }
-void Object::setName(const std::string& v) { m_name = v; }
+void Object::setName(const std::string& v) { m_name = IsNodeName(v) ? v : MakeNodeName(v, getClassName()); }
 
 
 
@@ -254,6 +277,5 @@ void Material::constructNodes()
     super::constructNodes();
     // todo
 }
-
 
 } // namespace sfbx

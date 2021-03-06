@@ -48,6 +48,7 @@ public:
     Object* createObject(ObjectClass t, ObjectSubClass s);
     template<class T> T* createObject(const std::string& name = "");
     Object* findObject(int64 id) const;
+    Object* findObject(const std::string& name) const; // name must be in node name format (e.g. "hoge\x00\x01Mesh")
     span<ObjectPtr> getAllObjects() const;
     span<Object*> getRootObjects() const;
     Model* getRootModel() const;
