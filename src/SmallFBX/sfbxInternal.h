@@ -48,6 +48,14 @@ inline void AddTabs(std::string& dst, int n)
 }
 
 
+inline PropertyType GetPropertyType(Node* node, size_t pi = 0)
+{
+    if (node)
+        if (Property* prop = node->getProperty(pi))
+            return prop->getType();
+    return PropertyType::Unknown;
+}
+
 template<class T>
 inline T GetPropertyValue(Node* node, size_t pi = 0)
 {
@@ -66,7 +74,7 @@ inline span<T> GetPropertyArray(Node* node, size_t pi = 0)
     return {};
 }
 
-inline std::string GetPropertyString(Node* node, size_t pi = 0)
+inline string_view GetPropertyString(Node* node, size_t pi = 0)
 {
     if (node)
         if (Property* prop = node->getProperty(pi))
@@ -75,7 +83,7 @@ inline std::string GetPropertyString(Node* node, size_t pi = 0)
 }
 
 template<class T>
-inline T GetChildPropertyValue(Node* node, const char* name, size_t pi = 0)
+inline T GetChildPropertyValue(Node* node, string_view name, size_t pi = 0)
 {
     if (node)
         if (Node* child = node->findChild(name))
@@ -85,7 +93,7 @@ inline T GetChildPropertyValue(Node* node, const char* name, size_t pi = 0)
 }
 
 template<class T>
-inline span<T> GetChildPropertyArray(Node* node, const char* name, size_t pi = 0)
+inline span<T> GetChildPropertyArray(Node* node, string_view name, size_t pi = 0)
 {
     if (node)
         if (Node* child = node->findChild(name))
@@ -94,7 +102,7 @@ inline span<T> GetChildPropertyArray(Node* node, const char* name, size_t pi = 0
     return {};
 }
 
-inline std::string GetChildPropertyString(Node* node, const char* name, size_t pi = 0)
+inline string_view GetChildPropertyString(Node* node, string_view name, size_t pi = 0)
 {
     if (node)
         if (Node* child = node->findChild(name))
@@ -103,6 +111,17 @@ inline std::string GetChildPropertyString(Node* node, const char* name, size_t p
     return {};
 }
 
+template<class Body>
+inline void EnumerateProperties(Node* n, const Body& body)
+{
+    for (Node* props : n->getChildren()) {
+        if (props->getName().starts_with(sfbxS_Properties)) {
+            for (Node* p : props->getChildren())
+                body(p);
+            break;
+        }
+    }
+}
 
 class CounterStream : public std::ostream
 {

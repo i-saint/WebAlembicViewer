@@ -44,17 +44,17 @@ bool Document::read(std::istream& is)
             }
         }
 
-        if (auto objects = findNode(sfbxS_Objects)) {
-            for (auto n : objects->getChildren()) {
-                if (auto obj = createObject(GetFbxObjectClass(n), GetFbxObjectSubClass(n))) {
+        if (Node* objects = findNode(sfbxS_Objects)) {
+            for (Node* n : objects->getChildren()) {
+                if (Object* obj = createObject(GetObjectClass(n), GetObjectSubClass(n))) {
                     obj->setNode(n);
                 }
             }
         }
 
-        if (auto connections = findNode(sfbxS_Connections)) {
-            for (auto n : connections->getChildren()) {
-                auto& name = n->getName();
+        if (Node* connections = findNode(sfbxS_Connections)) {
+            for (Node* n : connections->getChildren()) {
+                auto name = n->getName();
                 auto ct = GetPropertyString(n, 0);
                 if (name == sfbxS_C && ct == sfbxS_OO) {
                     Object* child = findObject(GetPropertyValue<int64>(n, 1));
@@ -63,20 +63,29 @@ bool Document::read(std::istream& is)
                         parent->addChild(child);
                 }
                 else if (name == sfbxS_C && ct == sfbxS_OP) {
-                    std::string name = GetPropertyString(n, 3); // todo
+                    auto name = GetPropertyString(n, 3); // todo
                     Object* child = findObject(GetPropertyValue<int64>(n, 1));
                     Object* parent = findObject(GetPropertyValue<int64>(n, 2));
                     if (child && parent) {
                         parent->addChild(child);
                     }
                 }
+                //else if (name == sfbxS_Connect && ct == sfbxS_OO) { // for old format
+                //    Object* child = findObject(GetPropertyString(n, 1));
+                //    Object* parent = findObject(GetPropertyString(n, 2));
+                //    if (child && parent)
+                //        parent->addChild(child);
+                //}
                 else {
-                    sfbxPrint("sfbx::Document::read(): unrecognized connection type %s %s\n", n->getName().c_str(), ct.c_str());
+                    sfbxPrint("sfbx::Document::read(): unrecognized connection type %s %s\n",
+                        std::string(name).c_str(), std::string(ct).c_str());
                 }
             }
         }
 
-        for (auto& obj : m_objects) {
+        // index based loop because m_objects maybe push_backed in the loop
+        for (size_t i = 0; i < m_objects.size(); ++i) {
+            auto& obj = m_objects[i];
             obj->constructObject();
             if (obj->getParents().empty())
                 m_root_objects.push_back(obj.get());
@@ -107,7 +116,7 @@ bool Document::writeBinary(std::ostream& os)
     write1(os, m_version);
 
     uint64_t pos = 27; // magic: 23, version: 4
-    for (auto node : m_root_nodes)
+    for (Node* node : m_root_nodes)
         pos += node->write(os, pos);
     {
         Node null_node;
@@ -189,13 +198,13 @@ void Document::setVersion(FileVersion v)
 }
 
 
-Node* Document::createNode(const std::string& name)
+Node* Document::createNode(string_view name)
 {
     auto n = createChildNode(name);
     m_root_nodes.push_back(n);
     return n;
 }
-Node* Document::createChildNode(const std::string& name)
+Node* Document::createChildNode(string_view name)
 {
     auto n = new Node();
     n->m_document = this;
@@ -219,10 +228,10 @@ void Document::eraseNode(Node* n)
     }
 }
 
-Node* Document::findNode(const char* name) const
+Node* Document::findNode(string_view name) const
 {
     auto it = std::find_if(m_nodes.begin(), m_nodes.end(),
-        [name](const NodePtr& p) { return p->getName() == name; });
+        [&name](const NodePtr& p) { return p->getName() == name; });
     return it != m_nodes.end() ? it->get() : nullptr;
 }
 
@@ -289,13 +298,13 @@ Object* Document::createObject(ObjectClass c, ObjectSubClass s)
         m_objects.push_back(ObjectPtr(r));
     }
     else {
-        sfbxPrint("sfbx::Document::createObject(): unrecongnized type \"%s\"\n", GetFbxClassName(c));
+        sfbxPrint("sfbx::Document::createObject(): unrecongnized type \"%s\"\n", GetObjectClassName(c));
     }
     return r;
 }
 
 template<class T>
-T* Document::createObject(const std::string& name)
+T* Document::createObject(string_view name)
 {
     T* r = new T();
     r->m_document = this;
@@ -303,7 +312,7 @@ T* Document::createObject(const std::string& name)
     m_objects.push_back(ObjectPtr(r));
     return r;
 }
-#define Body(T) template T* Document::createObject(const std::string& name);
+#define Body(T) template T* Document::createObject(string_view name);
 sfbxEachObjectType(Body)
 #undef Body
 
@@ -315,7 +324,7 @@ Object* Document::findObject(int64 id) const
     return it != m_objects.end() ? it->get() : nullptr;
 }
 
-Object* Document::findObject(const std::string& name) const
+Object* Document::findObject(string_view name) const
 {
     auto it = std::find_if(m_objects.begin(), m_objects.end(),
         [&name](auto& p) { return p->getName() == name; });
@@ -371,7 +380,7 @@ void Document::constructNodes()
             other_flags->createChild(sfbxS_TCDefinition, sfbxI_TCDefinition);
         }
         {
-            auto scene_info = header_extension->createChild(sfbxS_SceneInfo, MakeNodeName(sfbxS_GlobalInfo, sfbxS_SceneInfo), sfbxS_UserData);
+            auto scene_info = header_extension->createChild(sfbxS_SceneInfo, MakeObjectName(sfbxS_GlobalInfo, sfbxS_SceneInfo), sfbxS_UserData);
             scene_info->createChild(sfbxS_Type, sfbxS_UserData);
             scene_info->createChild(sfbxS_Version, 100);
             {

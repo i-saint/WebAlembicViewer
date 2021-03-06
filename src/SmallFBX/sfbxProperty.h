@@ -8,6 +8,8 @@ namespace sfbx {
 
 enum class PropertyType : uint8_t
 {
+    Unknown,
+
     Bool = 'C', // boolean (not built-in bool. see struct boolean in sfbxTypes.h)
     Int16 = 'Y', // int16
     Int32 = 'I', // int32
@@ -76,8 +78,7 @@ public:
     template<class T> void assign(span<T> v);
     template<class T> void assign(const RawVector<T>& v) { assign(make_span(v)); }
     template<class D, class S> void assign(ArrayAdaptor<D, S> v) { copy(allocateArray<D>(v.values.size()), v.values); }
-    void assign(const std::string& v);
-    void assign(const char* v);
+    void assign(string_view v);
 
 
     PropertyType getType() const;
@@ -86,7 +87,7 @@ public:
 
     template<class T> T getValue() const;
     template<class T> span<T> getArray() const;
-    std::string getString() const;
+    string_view getString() const;
 
     std::string toString(int depth = 0) const;
 

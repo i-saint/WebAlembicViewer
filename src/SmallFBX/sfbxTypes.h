@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <iostream>
 #include <type_traits>
@@ -85,6 +86,12 @@ inline span<typename Cont::value_type> make_span(const Cont& v) { return { const
 
 template<class T>
 inline span<T> make_span(const T* v, size_t n) { return { const_cast<T*>(v), n }; }
+
+
+using std::string_view;
+
+template<class Cont>
+inline string_view make_view(const Cont& v) { return { const_cast<typename Cont::value_type*>(v.data()), v.size() }; }
 
 
 class noncopyable

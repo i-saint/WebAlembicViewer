@@ -37,18 +37,17 @@ public:
     FileVersion getVersion();
     void setVersion(FileVersion v);
 
-    Node* createNode(const std::string& name = "");
-    Node* createChildNode(const std::string& name = "");
+    Node* createNode(string_view name = {});
+    Node* createChildNode(string_view name = {});
     void eraseNode(Node* n);
-    Node* findNode(const char* name) const;
-    Node* findNode(const std::string& name) const { return findNode(name.c_str()); }
+    Node* findNode(string_view name) const;
     span<NodePtr> getAllNodes() const;
     span<Node*> getRootNodes() const;
 
     Object* createObject(ObjectClass t, ObjectSubClass s);
-    template<class T> T* createObject(const std::string& name = "");
+    template<class T> T* createObject(string_view name = {});
     Object* findObject(int64 id) const;
-    Object* findObject(const std::string& name) const; // name must be in node name format (e.g. "hoge\x00\x01Mesh")
+    Object* findObject(string_view name) const; // name must be in node name format (e.g. "hoge\x00\x01Mesh")
     span<ObjectPtr> getAllObjects() const;
     span<Object*> getRootObjects() const;
     Model* getRootModel() const;

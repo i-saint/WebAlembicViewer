@@ -100,6 +100,7 @@
 #define sfbxS_BlendShape            "BlendShape"
 #define sfbxS_BlendShapeChannel     "BlendShapeChannel"
 
+#define sfbxS_Properties            "Properties"
 #define sfbxS_Properties70          "Properties70"
 #define sfbxS_bool                  "bool"
 #define sfbxS_Vector                "Vector"

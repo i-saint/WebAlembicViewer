@@ -5,7 +5,7 @@
 
 namespace sfbx {
 
-ObjectClass GetFbxObjectClass(const std::string& n)
+ObjectClass GetObjectClass(string_view n)
 {
     if (n.empty())
         return ObjectClass::Unknown;
@@ -20,16 +20,16 @@ ObjectClass GetFbxObjectClass(const std::string& n)
     else if (n == sfbxS_AnimationCurveNode) return ObjectClass::AnimationCurveNode;
     else if (n == sfbxS_AnimationCurve)     return ObjectClass::AnimationCurve;
     else {
-        sfbxPrint("GetFbxObjectClass(): unknown type \"%s\"\n", n.c_str());
+        sfbxPrint("GetFbxObjectClass(): unknown type \"%s\"\n", std::string(n).c_str());
         return ObjectClass::Unknown;
     }
 }
-ObjectClass GetFbxObjectClass(Node* n)
+ObjectClass GetObjectClass(Node* n)
 {
-    return GetFbxObjectClass(n->getName());
+    return GetObjectClass(n->getName());
 }
 
-const char* GetFbxClassName(ObjectClass t)
+const char* GetObjectClassName(ObjectClass t)
 {
     switch (t) {
     case ObjectClass::NodeAttribute:     return sfbxS_NodeAttribute;
@@ -46,8 +46,7 @@ const char* GetFbxClassName(ObjectClass t)
     }
 }
 
-
-ObjectSubClass GetFbxObjectSubClass(const std::string& n)
+ObjectSubClass GetObjectSubClass(string_view n)
 {
     if (n.empty()) return ObjectSubClass::Unknown;
     else if (n == sfbxS_Null)       return ObjectSubClass::Null;
@@ -63,17 +62,20 @@ ObjectSubClass GetFbxObjectSubClass(const std::string& n)
     else if (n == sfbxS_BlendShape) return ObjectSubClass::BlendShape;
     else if (n == sfbxS_BlendShapeChannel) return ObjectSubClass::BlendShapeChannel;
     else {
-        sfbxPrint("GetFbxObjectSubClass(): unknown subtype \"%s\"\n", n.c_str());
+        sfbxPrint("GetFbxObjectSubClass(): unknown subtype \"%s\"\n", std::string(n).c_str());
         return ObjectSubClass::Unknown;
     }
 }
 
-ObjectSubClass GetFbxObjectSubClass(Node* n)
+ObjectSubClass GetObjectSubClass(Node* n)
 {
-    return GetFbxObjectSubClass(GetPropertyString(n, 2));
+    if (GetPropertyType(n, 0) == PropertyType::Int64)
+        return GetObjectSubClass(GetPropertyString(n, 2));
+    else
+        return ObjectSubClass::Unknown;
 }
 
-const char* GetFbxSubClassName(ObjectSubClass t)
+const char* GetObjectSubClassName(ObjectSubClass t)
 {
     switch (t) {
     case ObjectSubClass::Null:       return sfbxS_Null;
@@ -92,16 +94,22 @@ const char* GetFbxSubClassName(ObjectSubClass t)
     }
 }
 
-std::string MakeNodeName(const std::string& name, const std::string& type)
+std::string MakeObjectName(string_view name, string_view type)
 {
-    std::string ret = name;
+    std::string ret;
+    size_t pos = name.find('\0');
+    if (pos == std::string::npos)
+        ret = name;
+    else
+        ret.assign(name.data(), pos);
+
     ret += (char)0x00;
     ret += (char)0x01;
     ret += type;
     return ret;
 }
 
-bool IsNodeName(const std::string& name)
+bool IsObjectName(string_view name)
 {
     size_t n = name.size();
     if (n > 2) {
@@ -112,21 +120,21 @@ bool IsNodeName(const std::string& name)
     return false;
 }
 
-bool SplitNodeName(span<char> node_name, span<char>& name, span<char>& classname)
+bool SplitObjectName(string_view node_name, string_view& display_name, string_view& class_name)
 {
     const char* str = node_name.data();
     size_t n = node_name.size();
     if (n > 2) {
         for (size_t i = 0; i < n - 1; ++i) {
             if (str[i] == 0x00 && str[i + 1] == 0x01) {
-                name = make_span(str, i);
+                display_name = string_view(str, i);
                 i += 2;
-                classname = make_span(str + i, n - i);
+                class_name = string_view(str + i, n - i);
                 return true;
             }
         }
     }
-    name = make_span(node_name);
+    display_name = string_view(node_name);
     return false;
 }
 
@@ -140,15 +148,20 @@ Object::Object()
 Object::~Object() {}
 ObjectClass Object::getClass() const { return ObjectClass::Unknown; }
 ObjectSubClass Object::getSubClass() const { return ObjectSubClass::Unknown; }
-const char* Object::getClassName() const { return GetFbxClassName(getClass()); }
+string_view Object::getClassName() const { return GetObjectClassName(getClass()); }
 
 void Object::setNode(Node* n)
 {
     m_node = n;
     if (n) {
         // do these in constructObject() is too late because of referencing other objects...
-        m_id = GetPropertyValue<int64>(n, 0);
-        m_name = GetPropertyString(n, 1);
+        if (GetPropertyType(n, 0) == PropertyType::Int64) {
+            m_id = GetPropertyValue<int64>(n, 0);
+            m_name = GetPropertyString(n, 1);
+        }
+        //else { // for old format
+        //    m_name = GetPropertyString(n, 0);
+        //}
     }
 }
 
@@ -162,21 +175,21 @@ void Object::constructNodes()
         return;
 
     auto objects = m_document->findNode(sfbxS_Objects);
-    m_node = objects->createChild(GetFbxClassName(getClass()));
-    m_node->addProperties(m_id, getName(), GetFbxSubClassName(getSubClass()));
+    m_node = objects->createChild(GetObjectClassName(getClass()));
+    m_node->addProperties(m_id, getName(), GetObjectSubClassName(getSubClass()));
 
     for (auto parent : getParents())
         addLinkOO(parent->getID());
 }
 
-template<class T> T* Object::createChild(const std::string& name)
+template<class T> T* Object::createChild(string_view name)
 {
     auto ret = m_document->createObject<T>();
     ret->setName(name);
     addChild(ret);
     return ret;
 }
-#define Body(T) template T* Object::createChild(const std::string& name);
+#define Body(T) template T* Object::createChild(string_view name);
 sfbxEachObjectType(Body)
 #undef Body
 
@@ -203,7 +216,9 @@ void Object::addLinkOO(int64 id)
 }
 
 int64 Object::getID() const { return m_id; }
-const std::string& Object::getName() const { return m_name; }
+string_view Object::getName() const { return m_name; }
+string_view Object::getDisplayName() const { return m_name.c_str(); }
+
 Node* Object::getNode() const { return m_node; }
 
 span<Object*> Object::getParents() const  { return make_span(m_parents); }
@@ -212,7 +227,7 @@ Object* Object::getParent(size_t i) const { return i < m_parents.size() ? m_pare
 Object* Object::getChild(size_t i) const  { return i < m_children.size() ? m_children[i] : nullptr; }
 
 void Object::setID(int64 id) { m_id = id; }
-void Object::setName(const std::string& v) { m_name = IsNodeName(v) ? v : MakeNodeName(v, getClassName()); }
+void Object::setName(string_view v) { m_name = MakeObjectName(v, getClassName()); }
 
 
 

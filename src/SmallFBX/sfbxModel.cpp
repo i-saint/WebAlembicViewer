@@ -14,52 +14,50 @@ void Model::constructObject()
     if (!n)
         return;
 
-    if (auto prop = n->findChild(sfbxS_Properties70)) {
-        for (auto p : prop->getChildren()) {
-            auto pname = GetPropertyString(p);
-            if (pname == sfbxS_Visibility) {
-                m_visibility = GetPropertyValue<bool>(p, 4);
-            }
-            else if (pname == sfbxS_LclTranslation) {
-                m_position = float3{
-                    (float)GetPropertyValue<float64>(p, 4),
-                    (float)GetPropertyValue<float64>(p, 5),
-                    (float)GetPropertyValue<float64>(p, 6),
-                };
-            }
-            else if (pname == sfbxS_RotationOrder) {
-                m_rotation_order = (RotationOrder)GetPropertyValue<int32>(p, 4);
-            }
-            else if (pname == sfbxS_PreRotation) {
-                m_pre_rotation = float3{
-                    (float)GetPropertyValue<float64>(p, 4),
-                    (float)GetPropertyValue<float64>(p, 5),
-                    (float)GetPropertyValue<float64>(p, 6),
-                };
-            }
-            else if (pname == sfbxS_PostRotation) {
-                m_post_rotation = float3{
-                    (float)GetPropertyValue<float64>(p, 4),
-                    (float)GetPropertyValue<float64>(p, 5),
-                    (float)GetPropertyValue<float64>(p, 6),
-                };
-            }
-            else if (pname == sfbxS_LclRotation) {
-                m_rotation = float3{
-                    (float)GetPropertyValue<float64>(p, 4),
-                    (float)GetPropertyValue<float64>(p, 5),
-                    (float)GetPropertyValue<float64>(p, 6),
-                };
-            }
-            else if (pname == sfbxS_LclScale) {
-                m_scale = float3{
-                    (float)GetPropertyValue<float64>(p, 4),
-                    (float)GetPropertyValue<float64>(p, 5),
-                    (float)GetPropertyValue<float64>(p, 6),
-                };
-            }
+    EnumerateProperties(n, [this](Node* p) {
+        auto pname = GetPropertyString(p);
+        if (pname == sfbxS_Visibility) {
+            m_visibility = GetPropertyValue<bool>(p, 4);
         }
-    }
+        else if (pname == sfbxS_LclTranslation) {
+            m_position = float3{
+                (float)GetPropertyValue<float64>(p, 4),
+                (float)GetPropertyValue<float64>(p, 5),
+                (float)GetPropertyValue<float64>(p, 6),
+            };
+        }
+        else if (pname == sfbxS_RotationOrder) {
+            m_rotation_order = (RotationOrder)GetPropertyValue<int32>(p, 4);
+        }
+        else if (pname == sfbxS_PreRotation) {
+            m_pre_rotation = float3{
+                (float)GetPropertyValue<float64>(p, 4),
+                (float)GetPropertyValue<float64>(p, 5),
+                (float)GetPropertyValue<float64>(p, 6),
+            };
+        }
+        else if (pname == sfbxS_PostRotation) {
+            m_post_rotation = float3{
+                (float)GetPropertyValue<float64>(p, 4),
+                (float)GetPropertyValue<float64>(p, 5),
+                (float)GetPropertyValue<float64>(p, 6),
+            };
+        }
+        else if (pname == sfbxS_LclRotation) {
+            m_rotation = float3{
+                (float)GetPropertyValue<float64>(p, 4),
+                (float)GetPropertyValue<float64>(p, 5),
+                (float)GetPropertyValue<float64>(p, 6),
+            };
+        }
+        else if (pname == sfbxS_LclScale) {
+            m_scale = float3{
+                (float)GetPropertyValue<float64>(p, 4),
+                (float)GetPropertyValue<float64>(p, 5),
+                (float)GetPropertyValue<float64>(p, 6),
+            };
+        }
+        });
 }
 
 #define sfbxVector3d(V) (float64)V.x, (float64)V.y, (float64)V.z
@@ -223,9 +221,17 @@ void LimbNode::addChild(Object* v)
 
 ObjectSubClass Mesh::getSubClass() const { return ObjectSubClass::Mesh; }
 
-void Mesh::constructNodes()
+void Mesh::constructObject()
 {
-    super::constructNodes();
+    super::constructObject();
+
+    //// in old fbx, Model::Mesh has geometry data
+    //auto n = getNode();
+    //if (n->findChild(sfbxS_Vertices)) {
+    //    auto geom = getGeometry();
+    //    geom->setNode(n);
+    //    geom->constructObject();
+    //}
 }
 
 void Mesh::addChild(Object* v)

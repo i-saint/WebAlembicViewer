@@ -7,7 +7,7 @@ namespace sfbx {
 
 ObjectClass Deformer::getClass() const { return ObjectClass::Deformer; }
 
-const char* SubDeformer::getClassName() const { return sfbxS_SubDeformer; }
+string_view SubDeformer::getClassName() const { return sfbxS_SubDeformer; }
 
 
 ObjectSubClass Skin::getSubClass() const { return ObjectSubClass::Skin; }
@@ -253,7 +253,7 @@ span<BlendShapeChannel*> BlendShape::getChannels() const
     return make_span(m_channels);
 }
 
-BlendShapeChannel* BlendShape::createChannel(const char* name)
+BlendShapeChannel* BlendShape::createChannel(string_view name)
 {
     return createChild<BlendShapeChannel>(name);
 }
@@ -307,7 +307,7 @@ void BlendShapeChannel::addShape(Shape* shape, float weight)
     }
 }
 
-Shape* BlendShapeChannel::createShape(const char* name, float weight)
+Shape* BlendShapeChannel::createShape(string_view name, float weight)
 {
     auto ret = createChild<Shape>(name);
     m_shape_data.push_back({ ret, weight });

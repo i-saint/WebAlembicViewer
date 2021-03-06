@@ -114,7 +114,7 @@ bool Node::isRoot() const
     return m_parent == nullptr;
 }
 
-void Node::setName(const std::string& v)
+void Node::setName(string_view v)
 {
     m_name = v;
 }
@@ -126,7 +126,7 @@ Property* Node::createProperty()
     return p.get();
 }
 
-Node* Node::createChild(const std::string& name)
+Node* Node::createChild(string_view name)
 {
     auto p = m_document->createChildNode(name);
     m_children.push_back(p);
@@ -143,7 +143,7 @@ void Node::eraseChild(Node* n)
         m_children.erase(it);
 }
 
-const std::string& Node::getName() const
+string_view Node::getName() const
 {
     return m_name;
 }
@@ -160,6 +160,23 @@ Property* Node::getProperty(size_t i)
     return nullptr;
 }
 
+//// for old format
+//template<class D, class S> void Node::getPropertiesValues(RawVector<D>& dst) const
+//{
+//    using SS = typename get_scalar_type<S>::type;
+//    using DS = typename get_scalar_type<D>::type;
+//    dst.resize(m_properties.size() / get_vector_size<D>::value);
+//    auto d = (DS*)dst.data();
+//    for (auto prop : m_properties)
+//        *d++ = prop->getValue<SS>();
+//}
+//template void Node::getPropertiesValues<int, int>(RawVector<int>& dst) const;
+//template void Node::getPropertiesValues<float, double>(RawVector<float>& dst) const;
+//template void Node::getPropertiesValues<float2, double2>(RawVector<float2>& dst) const;
+//template void Node::getPropertiesValues<float3, double3>(RawVector<float3>& dst) const;
+//template void Node::getPropertiesValues<float4, double4>(RawVector<float4>& dst) const;
+
+
 Node* Node::getParent() const
 {
     return m_parent;
@@ -175,7 +192,7 @@ Node* Node::getChild(size_t i) const
     return i < m_children.size() ? m_children[i] : nullptr;
 }
 
-Node* Node::findChild(const char* name) const
+Node* Node::findChild(string_view name) const
 {
     auto it = std::find_if(m_children.begin(), m_children.end(),
         [name](Node* p) { return p->getName() == name; });

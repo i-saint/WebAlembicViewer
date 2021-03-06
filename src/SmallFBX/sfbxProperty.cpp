@@ -226,18 +226,10 @@ template<> void Property::assign(span<double2> v) { assign(span<float64>{ (float
 template<> void Property::assign(span<double3> v) { assign(span<float64>{ (float64*)v.data(), v.size() * 3 }); }
 template<> void Property::assign(span<double4> v) { assign(span<float64>{ (float64*)v.data(), v.size() * 4 }); }
 
-void Property::assign(const std::string& v)
+void Property::assign(string_view v)
 {
     m_type = PropertyType::String;
     m_data.assign(v.begin(), v.end());
-}
-
-void Property::assign(const char* v)
-{
-    m_type = PropertyType::String;
-    m_data.clear();
-    if (v)
-        m_data.assign(v, v + std::strlen(v));
 }
 
 PropertyType Property::getType() const
@@ -275,18 +267,11 @@ template<> span<int64>   Property::getArray() const { return make_span((int64*)m
 template<> span<float32> Property::getArray() const { return make_span((float32*)m_data.data(), getArraySize()); }
 template<> span<float64> Property::getArray() const { return make_span((float64*)m_data.data(), getArraySize()); }
 
-template<> span<float2>  Property::getArray() const { return make_span((float2*)m_data.data(), getArraySize() / 2); }
-template<> span<float3>  Property::getArray() const { return make_span((float3*)m_data.data(), getArraySize() / 3); }
-template<> span<float4>  Property::getArray() const { return make_span((float4*)m_data.data(), getArraySize() / 4); }
 template<> span<double2> Property::getArray() const { return make_span((double2*)m_data.data(), getArraySize() / 2); }
 template<> span<double3> Property::getArray() const { return make_span((double3*)m_data.data(), getArraySize() / 3); }
 template<> span<double4> Property::getArray() const { return make_span((double4*)m_data.data(), getArraySize() / 4); }
 
-std::string Property::getString() const
-{
-    // make new one because m_data is not null-terminated
-    return std::string(m_data.data(), m_data.size());
-}
+string_view Property::getString() const { return make_view(m_data); }
 
 std::string Property::toString(int depth) const
 {
@@ -341,8 +326,8 @@ std::string Property::toString(int depth) const
                     return make_span(s, i);
                 };
 
-                span<char> obj_name, class_name;
-                if (SplitNodeName(make_span(m_data), obj_name, class_name)) {
+                string_view obj_name, class_name;
+                if (SplitObjectName(make_view(m_data), obj_name, class_name)) {
                     s.insert(s.end(), class_name.begin(), class_name.end());
                     s += "::";
                     s.insert(s.end(), obj_name.begin(), obj_name.end());

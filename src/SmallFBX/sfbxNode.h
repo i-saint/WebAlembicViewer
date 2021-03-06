@@ -12,29 +12,30 @@ public:
     bool isNull() const;
     bool isRoot() const;
 
-    void setName(const std::string& v);
+    void setName(string_view v);
 
     Property* createProperty();
-    Node* createChild(const std::string& name = "");
+    Node* createChild(string_view name = {});
     void eraseChild(Node* n);
 
     // utils
     template<class T> Property* addProperty(const T& v) { auto r = createProperty(); r->assign(v); return r; }
     void addProperties() {}
     template<class T, class... U> void addProperties(T&& v, U&&... a) { addProperty(v); addProperties(a...); }
-    template<class... T> Node* createChild(const std::string& name, T&&... v) { auto r = createChild(name);  r->addProperties(v...); return r; }
+    template<class... T> Node* createChild(string_view name, T&&... v) { auto r = createChild(name);  r->addProperties(v...); return r; }
 
 
-    const std::string& getName() const;
+    string_view getName() const;
 
     span<PropertyPtr> getProperties() const;
     Property* getProperty(size_t i);
+    // in old fbx, there are no array types. arrays are represented as a huge list of properties.
+    template<class Dst, class Src> void getPropertiesValues(RawVector<Dst>& dst) const;
 
     Node* getParent() const;
     span<Node*> getChildren() const;
     Node* getChild(size_t i) const;
-    Node* findChild(const char* name) const;
-    Node* findChild(const std::string& name) const { return findChild(name.c_str()); }
+    Node* findChild(string_view name) const;
 
     std::string toString(int depth = 0) const;
 

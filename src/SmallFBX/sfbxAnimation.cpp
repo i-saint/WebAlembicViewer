@@ -16,14 +16,14 @@ void AnimationLayer::constructObject()
     super::constructObject();
     for (auto* n : getChildren()) {
         if (auto* cnode = as<AnimationCurveNode>(n)) {
-            // operator== doesn't return the expected result because node names may contain '\0' (e.g. "T\0AnimCurveNode")
-            if (std::strcmp(cnode->getName().c_str(), sfbxS_T) == 0)
+            auto name = cnode->getDisplayName();
+            if (name == sfbxS_T)
                 m_position = cnode;
-            else if (std::strcmp(cnode->getName().c_str(), sfbxS_R) == 0)
+            else if (name == sfbxS_R)
                 m_rotation = cnode;
-            else if (std::strcmp(cnode->getName().c_str(), sfbxS_S) == 0)
+            else if (name == sfbxS_S )
                 m_scale = cnode;
-            else if (std::strcmp(cnode->getName().c_str(), sfbxS_FocalLength) == 0)
+            else if (name == sfbxS_FocalLength)
                 m_focal_length = cnode;
         }
     }

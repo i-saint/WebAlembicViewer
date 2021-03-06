@@ -35,17 +35,17 @@ enum class ObjectSubClass : int
     BlendShapeChannel,
 };
 
-ObjectClass     GetFbxObjectClass(const std::string& n);
-ObjectClass     GetFbxObjectClass(Node* n);
-const char*     GetFbxClassName(ObjectClass t);
-ObjectSubClass  GetFbxObjectSubClass(const std::string& n);
-ObjectSubClass  GetFbxObjectSubClass(Node* n);
-const char*     GetFbxSubClassName(ObjectSubClass t);
-std::string     MakeNodeName(const std::string& name, const std::string& type);
-// true if name is in node name format (object name + \x00 \x01 + class name)
-bool IsNodeName(const std::string& name);
-// split node name into object name & class name (e.g. "hoge\x00\x01Mesh" -> "hoge" & "Mesh")
-bool SplitNodeName(span<char> node_name, span<char>& name, span<char>& classname);
+ObjectClass     GetObjectClass(string_view n);
+ObjectClass     GetObjectClass(Node* n);
+const char*     GetObjectClassName(ObjectClass t);
+ObjectSubClass  GetObjectSubClass(string_view n);
+ObjectSubClass  GetObjectSubClass(Node* n);
+const char*     GetObjectSubClassName(ObjectSubClass t);
+std::string     MakeObjectName(string_view name, string_view type);
+// true if name is in object name format (display name + \x00 \x01 + class name)
+bool IsObjectName(string_view name);
+// split node name into display name & class name (e.g. "hoge\x00\x01Mesh" -> "hoge" & "Mesh")
+bool SplitObjectName(string_view node_name, string_view& display_name, string_view& class_name);
 
 
 // base object class
@@ -60,11 +60,12 @@ public:
     virtual void constructObject();
     virtual void constructNodes();
 
-    template<class T> T* createChild(const std::string& name = "");
+    template<class T> T* createChild(string_view name = {});
     virtual void addChild(Object* v);
 
     int64 getID() const;
-    const std::string& getName() const; // in node name format (e.g. "hoge\x00\x01Mesh")
+    string_view getName() const; // in object name format (e.g. "hoge\x00\x01Mesh")
+    string_view getDisplayName() const; // return name part (e.g. "hoge" if object name is "hoge\x00\x01Mesh")
     Node* getNode() const;
 
     span<Object*> getParents() const;
@@ -73,14 +74,14 @@ public:
     Object* getChild(size_t i = 0) const;
 
     virtual void setID(int64 v);
-    virtual void setName(const std::string& v);
+    virtual void setName(string_view v);
     virtual void setNode(Node* v);
 
 protected:
     Object(const Object&) = delete;
     Object& operator=(const Object) = delete;
     Object();
-    virtual const char* getClassName() const;
+    virtual string_view getClassName() const;
     virtual void addParent(Object* v);
     void addLinkOO(int64 id);
 
@@ -241,7 +242,7 @@ class Mesh : public Model
 using super = Model;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructNodes() override;
+    void constructObject() override;
     void addChild(Object* v) override;
 
     GeomMesh* getGeometry();
@@ -382,7 +383,7 @@ class SubDeformer : public Deformer
 using super = Deformer;
 public:
 protected:
-    const char* getClassName() const override;
+    string_view getClassName() const override;
 };
 
 
@@ -469,7 +470,7 @@ public:
     void addChild(Object* v) override;
 
     span<BlendShapeChannel*> getChannels() const;
-    BlendShapeChannel* createChannel(const char* name);
+    BlendShapeChannel* createChannel(string_view name);
 
 protected:
     std::vector<BlendShapeChannel*> m_channels;
@@ -494,7 +495,7 @@ public:
 
     // weight: 0.0f - 100.0f
     void addShape(Shape* shape, float weight = 100.0f);
-    Shape* createShape(const char* name, float weight = 100.0f);
+    Shape* createShape(string_view name, float weight = 100.0f);
 
 protected:
     std::vector<ShapeData> m_shape_data;

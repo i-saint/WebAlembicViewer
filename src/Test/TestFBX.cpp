@@ -15,10 +15,10 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
         testPrint("  ");
 
     testPrint("\"%s\" [0x%llx] (%s : %s)\n",
-        obj->getName().c_str(),
+        obj->getName().data(),
         obj->getID(),
-        sfbx::GetFbxClassName(obj->getClass()),
-        sfbx::GetFbxSubClassName(obj->getSubClass()));
+        sfbx::GetObjectClassName(obj->getClass()),
+        sfbx::GetObjectSubClassName(obj->getSubClass()));
 
     // for test
     if (auto skin = as<sfbx::Skin>(obj)) {
