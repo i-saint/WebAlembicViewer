@@ -189,7 +189,7 @@ protected:
     float3 m_pre_rotation{};
     float3 m_rotation{};
     float3 m_post_rotation{};
-    float3 m_scale{1.0f, 1.0f, 1.0f};
+    float3 m_scale = float3::one();
 };
 
 
@@ -244,7 +244,6 @@ public:
     span<Material*> getMaterials() const;
 
 protected:
-    NodeAttribute* m_attr{};
     GeomMesh* m_geom{};
     std::vector<Material*> m_materials;
 };
@@ -260,7 +259,7 @@ public:
     void addChild(Object* v) override;
 
 protected:
-    NodeAttribute* m_attr{};
+    LightAttribute* m_attr{};
 };
 
 
@@ -274,7 +273,7 @@ public:
     void addChild(Object* v) override;
 
 protected:
-    NodeAttribute* m_attr{};
+    CameraAttribute* m_attr{};
 };
 
 
