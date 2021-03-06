@@ -6,6 +6,13 @@ namespace sfbx {
 
 Document::Document()
 {
+    initialize();
+}
+
+void Document::initialize()
+{
+    m_root_model = createObject<Model>("RootNode");
+    m_root_model->setID(0);
 }
 
 static const char g_fbx_magic[23]{
@@ -14,6 +21,9 @@ static const char g_fbx_magic[23]{
 
 bool Document::read(std::istream& is)
 {
+    unload();
+    initialize();
+
     char magic[23];
     readv(is, magic, 23);
     if (memcmp(magic, g_fbx_magic, 23) != 0) {
@@ -83,6 +93,8 @@ bool Document::read(std::istream& is)
 
 bool Document::read(const std::string& path)
 {
+    unload();
+
     std::ifstream file;
     file.open(path, std::ios::in | std::ios::binary);
     if (file)
@@ -156,6 +168,16 @@ bool Document::writeAscii(const std::string& path)
 }
 
 
+
+void Document::unload()
+{
+    m_version = FileVersion::Default;
+    m_nodes.clear();
+    m_root_nodes.clear();
+    m_objects.clear();
+    m_root_objects.clear();
+    m_root_model = {};
+}
 
 FileVersion Document::getVersion()
 {
@@ -299,11 +321,13 @@ span<ObjectPtr> Document::getAllObjects() { return make_span(m_objects); }
 span<Object*> Document::getRootObjects() { return make_span(m_root_objects); }
 
 
-// avoid template lambda because it requires C++20
 template<class T>
-int32 Document::countObject() const
+static inline size_t CountObject(std::vector<ObjectPtr>& objects)
 {
-    return (int32)count(m_objects, [](auto& p) { return as<T>(p.get()) != nullptr; });
+    return count(objects, [](auto& p) {
+        T* t = as<T>(p.get());
+        return t && t->getID() != 0;
+        });
 }
 
 void Document::constructNodes()
@@ -356,20 +380,20 @@ void Document::constructNodes()
                 meta->createChild(sfbxS_Comment, "");
             }
             {
-                auto properties = scene_info->createChild(sfbxS_Properties70);
-                properties->createChild(sfbxS_P, sfbxS_DocumentUrl, sfbxS_KString, sfbxS_Url, "", "a.fbx");
-                properties->createChild(sfbxS_P, sfbxS_SrcDocumentUrl, sfbxS_KString, sfbxS_Url, "", "a.fbx");
-                properties->createChild(sfbxS_P, sfbxS_Original, sfbxS_Compound, "", "");
-                properties->createChild(sfbxS_P, sfbxS_OriginalApplicationVendor, sfbxS_KString, "", "", "");
-                properties->createChild(sfbxS_P, sfbxS_OriginalApplicationName, sfbxS_KString, "", "", "");
-                properties->createChild(sfbxS_P, sfbxS_OriginalApplicationVersion, sfbxS_KString, "", "", "");
-                properties->createChild(sfbxS_P, sfbxS_OriginalDateTime_GMT, sfbxS_DateTime, "", "", "");
-                properties->createChild(sfbxS_P, sfbxS_OriginalFileName, sfbxS_KString, "", "", "");
-                properties->createChild(sfbxS_P, sfbxS_LastSaved, sfbxS_Compound, "", "");
-                properties->createChild(sfbxS_P, sfbxS_LastSavedApplicationVendor, sfbxS_KString, "", "", "");
-                properties->createChild(sfbxS_P, sfbxS_LastSavedApplicationName, sfbxS_KString, "", "", "");
-                properties->createChild(sfbxS_P, sfbxS_LastSavedApplicationVersion, sfbxS_KString, "", "", "");
-                properties->createChild(sfbxS_P, sfbxS_LastSavedDateTime_GMT, sfbxS_DateTime, "", "", "");
+                auto prop = scene_info->createChild(sfbxS_Properties70);
+                prop->createChild(sfbxS_P, sfbxS_DocumentUrl, sfbxS_KString, sfbxS_Url, "", "a.fbx");
+                prop->createChild(sfbxS_P, sfbxS_SrcDocumentUrl, sfbxS_KString, sfbxS_Url, "", "a.fbx");
+                prop->createChild(sfbxS_P, sfbxS_Original, sfbxS_Compound, "", "");
+                prop->createChild(sfbxS_P, sfbxS_OriginalApplicationVendor, sfbxS_KString, "", "", "");
+                prop->createChild(sfbxS_P, sfbxS_OriginalApplicationName, sfbxS_KString, "", "", "");
+                prop->createChild(sfbxS_P, sfbxS_OriginalApplicationVersion, sfbxS_KString, "", "", "");
+                prop->createChild(sfbxS_P, sfbxS_OriginalDateTime_GMT, sfbxS_DateTime, "", "", "");
+                prop->createChild(sfbxS_P, sfbxS_OriginalFileName, sfbxS_KString, "", "", "");
+                prop->createChild(sfbxS_P, sfbxS_LastSaved, sfbxS_Compound, "", "");
+                prop->createChild(sfbxS_P, sfbxS_LastSavedApplicationVendor, sfbxS_KString, "", "", "");
+                prop->createChild(sfbxS_P, sfbxS_LastSavedApplicationName, sfbxS_KString, "", "", "");
+                prop->createChild(sfbxS_P, sfbxS_LastSavedApplicationVersion, sfbxS_KString, "", "", "");
+                prop->createChild(sfbxS_P, sfbxS_LastSavedDateTime_GMT, sfbxS_DateTime, "", "", "");
             }
         }
     }
@@ -444,18 +468,18 @@ void Document::constructNodes()
 
         add_object_type(1, sfbxS_GlobalSettings);
 
-        add_object_type(countObject<NodeAttribute>(), sfbxS_NodeAttribute);
-        add_object_type(countObject<Model>(), sfbxS_Model);
-        add_object_type(countObject<Geometry>(), sfbxS_Geometry);
-        add_object_type(countObject<Deformer>(), sfbxS_Deformer);
-        add_object_type(countObject<Pose>(), sfbxS_Pose);
+        add_object_type(CountObject<NodeAttribute>(m_objects), sfbxS_NodeAttribute);
+        add_object_type(CountObject<Model>(m_objects), sfbxS_Model);
+        add_object_type(CountObject<Geometry>(m_objects), sfbxS_Geometry);
+        add_object_type(CountObject<Deformer>(m_objects), sfbxS_Deformer);
+        add_object_type(CountObject<Pose>(m_objects), sfbxS_Pose);
 
-        add_object_type(countObject<AnimationStack>(), sfbxS_AnimationStack);
-        add_object_type(countObject<AnimationLayer>(), sfbxS_AnimationLayer);
-        add_object_type(countObject<AnimationCurveNode>(), sfbxS_AnimationCurveNode);
-        add_object_type(countObject<AnimationCurve>(), sfbxS_AnimationCurve);
+        add_object_type(CountObject<AnimationStack>(m_objects), sfbxS_AnimationStack);
+        add_object_type(CountObject<AnimationLayer>(m_objects), sfbxS_AnimationLayer);
+        add_object_type(CountObject<AnimationCurveNode>(m_objects), sfbxS_AnimationCurveNode);
+        add_object_type(CountObject<AnimationCurve>(m_objects), sfbxS_AnimationCurve);
 
-        add_object_type(countObject<Material>(), sfbxS_Material);
+        add_object_type(CountObject<Material>(m_objects), sfbxS_Material);
     }
 }
 

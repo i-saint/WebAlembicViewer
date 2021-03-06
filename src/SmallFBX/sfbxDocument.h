@@ -32,6 +32,7 @@ public:
     bool writeBinary(const std::string& path);
     bool writeAscii(std::ostream& output);
     bool writeAscii(const std::string& path);
+    void unload();
 
     FileVersion getVersion();
     void setVersion(FileVersion v);
@@ -54,7 +55,7 @@ public:
     std::string toString();
 
 private:
-    template<class T> int32 countObject() const;
+    void initialize();
 
     FileVersion m_version = FileVersion::Default;
 
@@ -63,6 +64,7 @@ private:
 
     std::vector<ObjectPtr> m_objects;
     std::vector<Object*> m_root_objects;
+    Model* m_root_model{};
 };
 
 template<class... T>

@@ -420,7 +420,8 @@ public:
     JointWeights getJointWeightsFixed(int joints_per_vertex);
     JointMatrices getJointMatrices();
 
-    Cluster* createCluster(Model* model);
+    // joint should be Null, Root or LimbNode
+    Cluster* createCluster(Model* joint);
 
 protected:
     void addParent(Object* v) override;

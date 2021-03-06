@@ -136,6 +136,9 @@ void Object::constructObject()
 
 void Object::constructNodes()
 {
+    if (m_id == 0)
+        return;
+
     auto objects = m_document->findNode(sfbxS_Objects);
     m_node = objects->createChild(GetFbxClassName(getClass()));
     m_node->addProperties(m_id, getObjectName(), GetFbxSubClassName(getSubClass()));
@@ -986,10 +989,10 @@ JointMatrices Skin::getJointMatrices()
 }
 
 
-Cluster* Skin::createCluster(Model* model)
+Cluster* Skin::createCluster(Model* joint)
 {
     auto r = createChild<Cluster>();
-    r->addChild(model);
+    r->addChild(joint);
     return r;
 }
 
