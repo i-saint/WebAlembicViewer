@@ -194,7 +194,14 @@ struct tmat4x4
     const T* data() const { return (T*)this; }
     tvec4<T>& operator[](int i) { return m[i]; }
     const tvec4<T>& operator[](int i) const { return m[i]; }
-    bool operator==(const tmat4x4& v) const { return memcmp(m, v.m, sizeof(*this)) == 0; }
+
+    bool operator==(const tmat4x4& v) const
+    {
+        for (size_t i = 0; i < size(); ++i)
+            if (data()[i] != v.data()[i])
+                return false;
+        return true;
+    }
     bool operator!=(const tmat4x4& v) const { return !((*this) == v); }
 
     template<class U> operator tmat4x4<U>() const

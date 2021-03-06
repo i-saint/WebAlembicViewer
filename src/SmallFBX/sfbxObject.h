@@ -349,7 +349,6 @@ public:
     void constructObject() override;
     void constructNodes() override;
 
-    GeomMesh* getBaseMesh();
     span<int> getIndices() const;
     span<float3> getDeltaPoints() const;
     span<float3> getDeltaNormals() const;
@@ -447,8 +446,7 @@ public:
 
     void setIndices(span<int> v);
     void setWeights(span<float> v);
-    void setTransform(float4x4 v);
-    void setTransformLink(float4x4 v);
+    void setBindMatrix(float4x4 v); // v: global matrix of the joint (not inverted)
 
 protected:
     RawVector<int> m_indices;
@@ -465,8 +463,13 @@ public:
     ObjectSubClass getSubClass() const override;
     void constructObject() override;
     void constructNodes() override;
+    void addChild(Object* v) override;
+
+    span<BlendShapeChannel*> getChannels() const;
+    BlendShapeChannel* createChannel(const char* name);
 
 protected:
+    std::vector<BlendShapeChannel*> m_channels;
 };
 
 
@@ -474,12 +477,24 @@ class BlendShapeChannel : public SubDeformer
 {
 using super = SubDeformer;
 public:
+    struct ShapeData
+    {
+        Shape* shape;
+        float weight;
+    };
+
     ObjectSubClass getSubClass() const override;
     void constructObject() override;
     void constructNodes() override;
 
+    span<ShapeData> getShapeData() const;
+
+    // weight: 0.0f - 100.0f
+    void addShape(Shape* shape, float weight = 100.0f);
+    Shape* createShape(const char* name, float weight = 100.0f);
+
 protected:
-    std::vector<Shape*> m_shapes;
+    std::vector<ShapeData> m_shape_data;
 };
 
 
@@ -500,8 +515,8 @@ using super = Pose;
 public:
     struct PoseData
     {
-        Model* object{};
-        float4x4 matrix = float4x4::identity();
+        Model* object;
+        float4x4 matrix;
     };
 
     ObjectSubClass getSubClass() const override;

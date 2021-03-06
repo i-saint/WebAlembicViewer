@@ -123,6 +123,8 @@
 #define sfbxS_SubDeformer           "SubDeformer"
 #define sfbxS_Total1                "Total1"
 #define sfbxS_Link_DeformAcuracy    "Link_DeformAcuracy"
+#define sfbxS_DeformPercent         "DeformPercent"
+#define sfbxS_FullWeights           "FullWeights"
 
 #define sfbxS_GeometryVersion           "GeometryVersion"
 #define sfbxS_Indexes                   "Indexes"
@@ -171,7 +173,7 @@
 #define sfbxI_BindPoseVersion   100
 #define sfbxI_SkinVersion       101
 #define sfbxI_ClusterVersion    100
-#define sfbxI_BlendShapeVersion         101
+#define sfbxI_BlendShapeVersion         100
 #define sfbxI_BlendShapeChannelVersion  100
 #define sfbxI_MaterialVersion   102
 

@@ -73,8 +73,9 @@ testCase(fbxWrite)
 {
     {
         sfbx::DocumentPtr doc = sfbx::MakeDocument();
+        auto root = doc->getRootModel();
 
-        auto node = doc->createObject<sfbx::Mesh>("mesh");
+        auto node = root->createChild<sfbx::Mesh>("mesh");
         node->setPosition({ 0.0f, 0.0f, 0.0f });
         node->setRotation({ 0.0f, 0.0f, 0.0f });
         node->setScale({ 1.0f, 1.0f, 1.0f });
@@ -83,6 +84,7 @@ testCase(fbxWrite)
         auto mesh = node->getGeometry();
 
         {
+            // counts & indices & points
             int counts[]{
                 4, 4, 4, 4,
             };
@@ -103,6 +105,7 @@ testCase(fbxWrite)
             mesh->setIndices(indices);
             mesh->setPoints(points);
 
+            // normals
             {
                 sfbx::LayerElementF3 normals;
                 normals.data = {
@@ -115,6 +118,8 @@ testCase(fbxWrite)
                 normals.indices = indices;
                 mesh->addNormalLayer(std::move(normals));
             }
+
+            // uv
             {
                 sfbx::LayerElementF2 uv;
                 uv.data = {
@@ -127,6 +132,8 @@ testCase(fbxWrite)
                 uv.indices = indices;
                 mesh->addUVLayer(std::move(uv));
             }
+
+            // colors
             {
                 sfbx::LayerElementF4 colors;
                 colors.data = {
@@ -142,27 +149,43 @@ testCase(fbxWrite)
             }
         }
 
-        sfbx::Model* joints[5]{};
-        joints[0] = doc->createObject<sfbx::Root>("joint1");
-        joints[1] = joints[0]->createChild<sfbx::LimbNode>("joint2");
-        joints[2] = joints[1]->createChild<sfbx::LimbNode>("joint3");
-        joints[3] = joints[2]->createChild<sfbx::LimbNode>("joint4");
-        joints[4] = joints[3]->createChild<sfbx::LimbNode>("joint5");
+        // blend shape
+        {
+            int indices[]{
+                6, 7, 8, 9,
+            };
+            float3 points[]{
+                {-s, 0, 0}, {s, 0, 0},
+                {-s, 0, 0}, {s, 0, 0},
+            };
 
-        sfbx::Skin* skin = mesh->createSkin();
-        for (int i = 0; i < 5; ++i) {
-            sfbx::Cluster* cluster = skin->createCluster(joints[i]);
-
-            int indices[2]{ i * 2 + 0, i * 2 + 1 };
-            float weights[2]{ 1.0f, 1.0f };
-            cluster->setIndices(make_span(indices));
-            cluster->setWeights(make_span(weights));
+            sfbx::BlendShape* blendshape = mesh->createBlendshape();
+            sfbx::BlendShapeChannel* channel = blendshape->createChannel("shape");
+            sfbx::Shape* shape = channel->createShape("shape", 100.0f);
+            shape->setIndices(indices);
+            shape->setDeltaPoints(points);
         }
 
-        sfbx::BindPose* bindpose = doc->createObject<sfbx::BindPose>();
-        for (int i = 0; i < 5; ++i) {
-            joints[i]->setPosition({ 0.0f, i == 0 ? 0.0f : s, 0.0f });
-            bindpose->addPoseData(joints[i], joints[i]->getGlobalMatrix());
+        // joints & skin
+        {
+            sfbx::Model* joints[5]{};
+            joints[0] = root->createChild<sfbx::Root>("joint1");
+            joints[1] = joints[0]->createChild<sfbx::LimbNode>("joint2");
+            joints[2] = joints[1]->createChild<sfbx::LimbNode>("joint3");
+            joints[3] = joints[2]->createChild<sfbx::LimbNode>("joint4");
+            joints[4] = joints[3]->createChild<sfbx::LimbNode>("joint5");
+            for (int i = 1; i < 5; ++i)
+                joints[i]->setPosition({ 0, s, 0 });
+
+            sfbx::Skin* skin = mesh->createSkin();
+            for (int i = 0; i < 5; ++i) {
+                sfbx::Cluster* cluster = skin->createCluster(joints[i]);
+                int indices[2]{ i * 2 + 0, i * 2 + 1 };
+                float weights[2]{ 1.0f, 1.0f };
+                cluster->setIndices(make_span(indices));
+                cluster->setWeights(make_span(weights));
+                cluster->setBindMatrix(joints[i]->getGlobalMatrix());
+            }
         }
 
 

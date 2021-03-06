@@ -228,8 +228,8 @@ Node* Document::findNode(const char* name) const
     return it != m_nodes.end() ? it->get() : nullptr;
 }
 
-span<sfbx::NodePtr> Document::getAllNodes() { return make_span(m_nodes); }
-span<Node*> Document::getRootNodes() { return make_span(m_root_nodes); }
+span<sfbx::NodePtr> Document::getAllNodes() const { return make_span(m_nodes); }
+span<Node*> Document::getRootNodes() const { return make_span(m_root_nodes); }
 
 Object* Document::createObject(ObjectClass c, ObjectSubClass s)
 {
@@ -310,16 +310,16 @@ sfbxEachObjectType(Body)
 #undef Body
 
 
-Object* Document::findObject(int64 id)
+Object* Document::findObject(int64 id) const
 {
     auto it = std::find_if(m_objects.begin(), m_objects.end(),
         [id](const ObjectPtr& p) { return p->getID() == id; });
     return it != m_objects.end() ? it->get() : nullptr;
 }
 
-span<ObjectPtr> Document::getAllObjects() { return make_span(m_objects); }
-span<Object*> Document::getRootObjects() { return make_span(m_root_objects); }
-
+span<ObjectPtr> Document::getAllObjects() const { return make_span(m_objects); }
+span<Object*> Document::getRootObjects() const { return make_span(m_root_objects); }
+Model* Document::getRootModel() const { return m_root_model; }
 
 template<class T>
 static inline size_t CountObject(std::vector<ObjectPtr>& objects)

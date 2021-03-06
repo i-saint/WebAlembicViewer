@@ -356,10 +356,6 @@ void Model::constructNodes()
         properties->createChild(sfbxS_P,
             sfbxS_LclScale, sfbxS_LclScale, sfbxS_Empty, sfbxS_A, sfbxVector3d(m_scale));
     }
-
-    // link to root
-    if (!m_parent_model)
-        addLinkOO(0);
 }
 
 void Model::addParent(Object* v)
@@ -797,18 +793,13 @@ void Shape::constructNodes()
     super::constructNodes();
 
     Node* n = getNode();
-    n->createChild(sfbxS_Vertices, MakeAdaptor<double3>(m_delta_points));
-    n->createChild(sfbxS_Indexes, m_indices);
-    n->createChild(sfbxS_Normals, MakeAdaptor<double3>(m_delta_normals));
-}
-
-GeomMesh* Shape::getBaseMesh()
-{
-    for (auto* p = getParent(); p; p = p->getParent()) {
-        if (auto mesh = as<GeomMesh>(p))
-            return mesh;
-    }
-    return nullptr;
+    n->createChild(sfbxS_Version, sfbxI_ShapeVersion);
+    if (!m_indices.empty())
+        n->createChild(sfbxS_Indexes, m_indices);
+    if (!m_delta_points.empty())
+        n->createChild(sfbxS_Vertices, MakeAdaptor<double3>(m_delta_points));
+    if (!m_delta_normals.empty())
+        n->createChild(sfbxS_Normals, MakeAdaptor<double3>(m_delta_normals));
 }
 
 span<int> Shape::getIndices() const { return make_span(m_indices); }
@@ -1041,8 +1032,11 @@ float4x4 Cluster::getTransformLink() const { return m_transform_link; }
 
 void Cluster::setIndices(span<int> v) { m_indices = v; }
 void Cluster::setWeights(span<float> v) { m_weights = v; }
-void Cluster::setTransform(float4x4 v) { m_transform = v; }
-void Cluster::setTransformLink(float4x4 v) { m_transform_link = v; }
+void Cluster::setBindMatrix(float4x4 v)
+{
+    m_transform_link = v;
+    m_transform = invert(v);
+}
 
 
 ObjectSubClass BlendShape::getSubClass() const { return ObjectSubClass::BlendShape; }
@@ -1055,6 +1049,26 @@ void BlendShape::constructObject()
 void BlendShape::constructNodes()
 {
     super::constructNodes();
+
+    auto n = getNode();
+    n->createChild(sfbxS_Version, sfbxI_BlendShapeVersion);
+}
+
+void BlendShape::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto ch = as<BlendShapeChannel>(v))
+        m_channels.push_back(ch);
+}
+
+span<BlendShapeChannel*> BlendShape::getChannels() const
+{
+    return make_span(m_channels);
+}
+
+BlendShapeChannel* BlendShape::createChannel(const char* name)
+{
+    return createChild<BlendShapeChannel>(name);
 }
 
 
@@ -1063,13 +1077,55 @@ ObjectSubClass BlendShapeChannel::getSubClass() const { return ObjectSubClass::B
 void BlendShapeChannel::constructObject()
 {
     super::constructObject();
+
+    for (auto c : getChildren()) {
+        if (auto shape = as<Shape>(c))
+            m_shape_data.push_back({ shape, 100.0f });
+    }
+    if (auto full_weights = getNode()->findChild(sfbxS_FullWeights)) {
+        auto weights = GetPropertyArray<float64>(full_weights);
+        if (weights.size() == m_shape_data.size()) {
+            size_t n = weights.size();
+            for (size_t i = 0; i < n; ++i)
+                m_shape_data[i].weight = weights[i];
+        }
+    }
 }
 
 void BlendShapeChannel::constructNodes()
 {
     super::constructNodes();
+
+    auto n = getNode();
+    n->createChild(sfbxS_Version, sfbxI_BlendShapeChannelVersion);
+    n->createChild(sfbxS_DeformPercent, (float64)0);
+    if (!m_shape_data.empty()) {
+        auto full_weights = n->createChild(sfbxS_FullWeights);
+        auto* dst = full_weights->createProperty()->allocateArray<float64>(m_shape_data.size()).data();
+        for (auto& data : m_shape_data)
+            *dst++ = data.weight;
+    }
 }
 
+span<BlendShapeChannel::ShapeData> BlendShapeChannel::getShapeData() const
+{
+    return make_span(m_shape_data);
+}
+
+void BlendShapeChannel::addShape(Shape* shape, float weight)
+{
+    if (shape) {
+        addChild(shape);
+        m_shape_data.push_back({ shape, weight });
+    }
+}
+
+Shape* BlendShapeChannel::createShape(const char* name, float weight)
+{
+    auto ret = createChild<Shape>(name);
+    m_shape_data.push_back({ ret, weight });
+    return ret;
+}
 
 
 ObjectClass Pose::getClass() const { return ObjectClass::Pose; }

@@ -42,14 +42,15 @@ public:
     void eraseNode(Node* n);
     Node* findNode(const char* name) const;
     Node* findNode(const std::string& name) const { return findNode(name.c_str()); }
-    span<NodePtr> getAllNodes();
-    span<Node*> getRootNodes();
+    span<NodePtr> getAllNodes() const;
+    span<Node*> getRootNodes() const;
 
     Object* createObject(ObjectClass t, ObjectSubClass s);
     template<class T> T* createObject(const std::string& name = "");
-    Object* findObject(int64 id);
-    span<ObjectPtr> getAllObjects();
-    span<Object*> getRootObjects();
+    Object* findObject(int64 id) const;
+    span<ObjectPtr> getAllObjects() const;
+    span<Object*> getRootObjects() const;
+    Model* getRootModel() const;
 
     void constructNodes();
     std::string toString();
