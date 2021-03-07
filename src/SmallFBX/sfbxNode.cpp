@@ -91,7 +91,7 @@ uint64_t Node::write(std::ostream& os, uint64_t start_offset)
         write1(os, uint32_t(property_size));
     }
     write1(os, uint8_t(m_name.size()));
-    writev(os, m_name.data(), m_name.size());
+    writev(os, m_name);
 
     for (auto prop : m_properties)
         prop->write(os);

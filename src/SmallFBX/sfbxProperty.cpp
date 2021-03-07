@@ -92,7 +92,7 @@ void Property::write(std::ostream& os)
     write1(os, m_type);
     if (m_type == PropertyType::Blob || m_type == PropertyType::String) {
         write1(os, (uint32_t)m_data.size());
-        writev(os, m_data.data(), m_data.size());
+        writev(os, m_data);
     }
     else if (!isArray()) {
         // scalar
@@ -133,14 +133,14 @@ void Property::write(std::ostream& os)
             compressed.resize(dest_size);
 
             write1(os, (uint32_t)compressed.size());
-            writev(os, compressed.data(), compressed.size());
+            writev(os, compressed);
         }
         else {
             // without zlib compression
             write1(os, (uint32_t)getArraySize());
             write1(os, (uint32_t)0); // encoding: plain
             write1(os, (uint32_t)m_data.size());
-            writev(os, m_data.data(), m_data.size());
+            writev(os, m_data);
         }
     }
 }

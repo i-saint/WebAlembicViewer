@@ -4,6 +4,19 @@
 
 namespace sfbx {
 
+static const char* g_creator = "SmallFBX 1.0.0";
+
+static const uint8_t g_fbx_header_magic[23]{
+    'K', 'a', 'y', 'd', 'a', 'r', 'a', ' ', 'F', 'B', 'X', ' ', 'B', 'i', 'n', 'a', 'r', 'y', ' ', ' ', 0x00, 0x1a, 0x00,
+};
+
+// *** these must not be changed. it leads to CRC check failure. ***
+static const char g_fbx_time_id[] = "1970-01-01 10:00:00:000";
+static const uint8_t g_fbx_file_id[16]{ 0x28, 0xb3, 0x2a, 0xeb, 0xb6, 0x24, 0xcc, 0xc2, 0xbf, 0xc8, 0xb0, 0x2a, 0xa9, 0x2b, 0xfc, 0xf1 };
+static const uint8_t g_fbx_footer_magic1[16]{ 0xfa, 0xbc, 0xab, 0x09, 0xd0, 0xc8, 0xd4, 0x66, 0xb1, 0x76, 0xfb, 0x83, 0x1c, 0xf7, 0x26, 0x7e };
+static const uint8_t g_fbx_footer_magic2[16]{ 0xf8, 0x5a, 0x8c, 0x6a, 0xde, 0xf5, 0xd9, 0x7e, 0xec, 0xe9, 0x0c, 0xe3, 0x75, 0x8f, 0x29, 0x0b };
+
+
 Document::Document()
 {
     initialize();
@@ -15,18 +28,14 @@ void Document::initialize()
     m_root_model->setID(0);
 }
 
-static const char g_fbx_magic[23]{
-    'K', 'a', 'y', 'd', 'a', 'r', 'a', ' ', 'F', 'B', 'X', ' ', 'B', 'i', 'n', 'a', 'r', 'y', ' ', ' ', '\x00', '\x1A', '\x00',
-};
-
 bool Document::read(std::istream& is)
 {
     unload();
     initialize();
 
-    char magic[23];
-    readv(is, magic, 23);
-    if (memcmp(magic, g_fbx_magic, 23) != 0) {
+    char magic[std::size(g_fbx_header_magic)];
+    readv(is, magic, std::size(g_fbx_header_magic));
+    if (memcmp(magic, g_fbx_header_magic, std::size(g_fbx_header_magic)) != 0) {
         sfbxPrint("sfbx::Document::read(): not a fbx file\n");
         return false;
     }
@@ -34,7 +43,7 @@ bool Document::read(std::istream& is)
 
 
     try {
-        uint64_t pos = 27; // magic (23) + version (4)
+        uint64_t pos = std::size(g_fbx_header_magic) + 4;
         for (;;) {
             auto node = createNode();
             pos += node->read(is, pos);
@@ -114,10 +123,10 @@ bool Document::read(const std::string& path)
 
 bool Document::writeBinary(std::ostream& os)
 {
-    writev(os, g_fbx_magic, 23);
+    writev(os, g_fbx_header_magic);
     write1(os, m_version);
 
-    uint64_t pos = 27; // magic: 23, version: 4
+    uint64_t pos = std::size(g_fbx_header_magic) + 4;
     for (Node* node : m_root_nodes)
         pos += node->write(os, pos);
     {
@@ -128,11 +137,8 @@ bool Document::writeBinary(std::ostream& os)
 
     // footer
 
-    const uint8_t footer_magic1[16] = { 0xfa, 0xbc, 0xab, 0x09, 0xd0, 0xc8, 0xd4, 0x66, 0xb1, 0x76, 0xfb, 0x83, 0x1c, 0xf7, 0x26, 0x7e };
-    const uint8_t footer_magic2[16] = { 0xf8, 0x5a, 0x8c, 0x6a, 0xde, 0xf5, 0xd9, 0x7e, 0xec, 0xe9, 0x0c, 0xe3, 0x75, 0x8f, 0x29, 0x0b };
-
-    writev(os, footer_magic1, std::size(footer_magic1));
-    pos += std::size(footer_magic1);
+    writev(os, g_fbx_footer_magic1);
+    pos += std::size(g_fbx_footer_magic1);
 
     // add padding to 16 byte align
     uint64_t pad = 16 - (pos % 16);
@@ -146,7 +152,7 @@ bool Document::writeBinary(std::ostream& os)
     for (uint64_t i = 0; i < 120; ++i)
         write1(os, (int8)0);
 
-    writev(os, footer_magic2, std::size(footer_magic2));
+    writev(os, g_fbx_footer_magic2);
 
     return true;
 }
@@ -327,11 +333,11 @@ Object* Document::findObject(int64 id) const
 }
 
 #ifdef sfbxEnableLegacyFormatSupport
+static const string_view g_model_scene = make_view("Scene" "\x00\x01" "Model");
+
 Object* Document::findObject(string_view name) const
 {
-    static const char s_scene_[]{ "Scene" "\x00\x01" "Model" };
-    static const string_view s_scene{ s_scene_, sizeof(s_scene_) - 1 };
-    if (name == s_scene)
+    if (name == g_model_scene)
         return m_root_model;
 
     auto it = std::find_if(m_objects.begin(), m_objects.end(),
@@ -358,12 +364,6 @@ void Document::constructNodes()
     m_nodes.clear();
     m_root_nodes.clear();
 
-    const char* smallfbx = "SmallFBX 1.0.0";
-
-    // *** these must not be changed *** because it leads to CRC check failure.
-    const char time_id[] = "1970-01-01 10:00:00:000";
-    const uint8_t file_id[]{ 0x28, 0xb3, 0x2a, 0xeb, 0xb6, 0x24, 0xcc, 0xc2, 0xbf, 0xc8, 0xb0, 0x2a, 0xa9, 0x2b, 0xfc, 0xf1 };
-
     std::time_t t = std::time(nullptr);
     std::tm* now = std::localtime(&t);
 
@@ -383,7 +383,7 @@ void Document::constructNodes()
             timestamp->createChild(sfbxS_Second, now->tm_sec);
             timestamp->createChild(sfbxS_Millisecond, 0);
         }
-        header_extension->createChild(sfbxS_Creator, smallfbx);
+        header_extension->createChild(sfbxS_Creator, g_creator);
         {
             auto other_flags = header_extension->createChild(sfbxS_OtherFlags);
             other_flags->createChild(sfbxS_TCDefinition, sfbxI_TCDefinition);
@@ -421,9 +421,9 @@ void Document::constructNodes()
         }
     }
 
-    createNode(sfbxS_FileId)->addProperty(make_span(file_id));
-    createNode(sfbxS_CreationTime)->addProperties(time_id);
-    createNode(sfbxS_Creator)->addProperties(smallfbx);
+    createNode(sfbxS_FileId)->addProperty(make_span(g_fbx_file_id));
+    createNode(sfbxS_CreationTime)->addProperties(g_fbx_time_id);
+    createNode(sfbxS_Creator)->addProperties(g_creator);
 
     auto global_settings = createNode(sfbxS_GlobalSettings);
     {

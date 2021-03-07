@@ -14,13 +14,11 @@
 
 namespace sfbx {
 
-// is_contiguous_container_v<T> : true if T has data() and size(). intended to detect std::vector, sfbx::RawVector and sfbx::span.
+// is_contiguous_container<T> : true if T has data() and size(). intended to detect std::vector, sfbx::RawVector and sfbx::span.
 template<class T, class = void>
-struct is_contiguous_container : std::false_type {};
+inline constexpr bool is_contiguous_container = false;
 template<class T>
-struct is_contiguous_container<T, std::void_t<decltype(std::declval<T>().data()), decltype(std::declval<T>().size())>> : std::true_type {};
-template<class T>
-constexpr bool is_contiguous_container_v = is_contiguous_container<T>::value;
+inline constexpr bool is_contiguous_container<T, std::void_t<decltype(std::declval<T>().data()), decltype(std::declval<T>().size())>> = true;
 
 
 // SmallFBX require C++17, but not C++20. use std::span only if C++20 is available and our own version if not.
@@ -49,7 +47,7 @@ public:
     template<size_t N>
     span(const T(&v)[N]) : m_data(const_cast<T*>(v)), m_size(N) {}
 
-    template<class Cont, sfbxRestrict(is_contiguous_container_v<Cont>)>
+    template<class Cont, sfbxRestrict(is_contiguous_container<Cont>)>
     span(const Cont& v) : m_data(const_cast<T*>(v.data())), m_size(v.size()) {}
 
     span& operator=(const span& v) { m_data = const_cast<T*>(v.m_data); m_size = v.m_size; return *this; }
@@ -81,31 +79,35 @@ private:
 #endif
 
 template<class T, size_t N>
-struct make_span_impl
+struct array_to_span
 {
     span<T> operator()(const T(&v)[N]) const { return { const_cast<T*>(v), N }; }
 };
-// specialization for char array to ignore last '\0'
 template<size_t N>
-struct make_span_impl<char, N>
+struct array_to_span<char, N>
 {
-    span<char> operator()(const char(&v)[N]) const { return { const_cast<char*>(v), N - 1 }; }
+    span<char> operator()(const char(&v)[N]) const { return { const_cast<char*>(v), N - 1 }; } // -1 to ignore null terminator
 };
+// from array
 template<class T, size_t N>
-inline span<T> make_span(const T (&v)[N]) { return make_span_impl<T, N>()(v); }
+inline constexpr span<T> make_span(const T (&v)[N]) { return array_to_span<T, N>()(v); }
 
-// Container must have data(), size() and value_type. mainly intended to std::vector and sfbx::RawVector.
-template<class Cont>
-inline span<typename Cont::value_type> make_span(const Cont& v) { return { const_cast<typename Cont::value_type*>(v.data()), v.size() }; }
+// from contagious container (std::vector, etc)
+template<class Cont, sfbxRestrict(is_contiguous_container<Cont>)>
+inline constexpr span<typename Cont::value_type> make_span(const Cont& v) { return { const_cast<typename Cont::value_type*>(v.data()), v.size() }; }
 
+// from pointer & size
 template<class T>
-inline span<T> make_span(const T* v, size_t n) { return { const_cast<T*>(v), n }; }
+inline constexpr span<T> make_span(const T* v, size_t n) { return { const_cast<T*>(v), n }; }
 
 
 using std::string_view;
 
-template<class Cont>
-inline string_view make_view(const Cont& v) { return { const_cast<typename Cont::value_type*>(v.data()), v.size() }; }
+template<size_t N>
+inline constexpr string_view make_view(const char(&v)[N]) { return string_view{ v, N - 1 }; } // -1 to ignore null terminator
+
+template<class Cont, sfbxRestrict(is_contiguous_container<Cont>)>
+inline constexpr string_view make_view(const Cont& v) { return { const_cast<typename Cont::value_type*>(v.data()), v.size() }; }
 
 
 class noncopyable

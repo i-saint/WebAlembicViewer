@@ -10,36 +10,46 @@
 
 namespace sfbx {
 
-template<class T>
+template<class T, sfbxRestrict(std::is_pod_v<T> && !std::is_pointer_v<T>)>
 inline T read1(std::istream& is)
 {
-    static_assert(std::is_pod_v<T>);
     T r;
     is.read((char*)&r, sizeof(T));
     return r;
 }
-
 inline void readv(std::istream& is, void* dst, size_t size)
 {
     is.read((char*)dst, size);
 }
-
 inline void readv(std::istream& is, std::string& dst, size_t s)
 {
     dst.resize(s);
     is.read(dst.data(), s);
 }
 
-template<class T>
+template<class T, sfbxRestrict(std::is_pod_v<T> && !std::is_pointer_v<T>)>
 inline void write1(std::ostream& os, T v)
 {
-    static_assert(std::is_pod_v<T>);
     os.write((const char*)&v, sizeof(T));
 }
-
 inline void writev(std::ostream& os, const void* src, size_t size)
 {
     os.write((const char*)src, size);
+}
+template<class T>
+inline void writev(std::ostream& os, span<T> v)
+{
+    writev(os, v.data(), v.size_bytes());
+}
+template<class Cont, sfbxRestrict(is_contiguous_container<Cont>)>
+inline void writev(std::ostream& os, const Cont& v)
+{
+    writev(os, make_span(v));
+}
+template<class T, size_t N>
+inline void writev(std::ostream& os, const T(&v)[N])
+{
+    writev(os, make_span(v));
 }
 
 
