@@ -5,20 +5,19 @@
 namespace sfbx {
 
 template<class T, class = void>
-struct resize_impl
-{
-    void operator()(T&, size_t) {}
-};
+inline constexpr bool has_resize = false;
 template<class T>
-struct resize_impl<T, std::void_t<decltype(std::declval<T>().resize(0))>>
-{
-    void operator()(T& dst, size_t n) { dst.resize(n); }
-};
+inline constexpr bool has_resize<T, std::void_t<decltype(std::declval<T>().resize(0))>> = true;
+
 // call resize() if Cont has. otherwise do nothing.
-template <class Cont>
-inline void resize(Cont& cont, size_t n)
+template <class Cont, sfbxRestrict(has_resize<Cont>)>
+inline void resize(Cont& dst, size_t n)
 {
-    resize_impl<Cont>()(cont, n);
+    dst.resize(n);
+}
+template <class Cont, sfbxRestrict(!has_resize<Cont>)>
+inline void resize(Cont& dst, size_t n)
+{
 }
 
 

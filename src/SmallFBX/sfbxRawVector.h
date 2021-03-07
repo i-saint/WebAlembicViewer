@@ -21,39 +21,19 @@ public:
     using const_iterator = const_pointer;
 
     RawVector() {}
-    RawVector(const RawVector& v) { operator=(v); }
     RawVector(RawVector&& v) noexcept { swap(v); }
-    RawVector(std::initializer_list<T> v) { operator=(v); }
+    RawVector(const RawVector& v) { assign(v.begin(), v.end()); }
+    RawVector(std::initializer_list<T> v) { assign(v); }
     RawVector(const_iterator b, const_iterator e) { assign(b, e); }
+    template<class U> RawVector(span<U> v) { assign(v); }
+    template<class U, size_t N> RawVector(U(&v)[N]) { assign(v); }
     explicit RawVector(size_t initial_size) { resize(initial_size); }
 
-    RawVector& operator=(const RawVector& v)
-    {
-        assign(v.begin(), v.end());
-        return *this;
-    }
-    RawVector& operator=(RawVector&& v) noexcept
-    {
-        swap(v);
-        return *this;
-    }
-    RawVector& operator=(std::initializer_list<T> v)
-    {
-        assign(v);
-        return *this;
-    }
-    template<class U>
-    RawVector& operator=(span<U> v)
-    {
-        assign(v);
-        return *this;
-    }
-    template<class U, size_t N>
-    RawVector& operator=(U (&v)[N])
-    {
-        assign(v, v + N);
-        return *this;
-    }
+    void operator=(RawVector&& v) noexcept { swap(v); }
+    void operator=(const RawVector& v) { assign(v.begin(), v.end()); }
+    void operator=(std::initializer_list<T> v) { assign(v); }
+    template<class U> void operator=(span<U> v) { assign(v); }
+    template<class U, size_t N> void operator=(U (&v)[N]) { assign(v, v + N); }
 
     ~RawVector()
     {

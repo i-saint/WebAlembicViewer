@@ -376,6 +376,8 @@ class Deformer : public Object
 using super = Object;
 public:
     ObjectClass getClass() const override;
+
+    GeomMesh* getBaseMesh() const;
 };
 
 class SubDeformer : public Deformer
@@ -472,6 +474,10 @@ public:
     span<BlendShapeChannel*> getChannels() const;
     BlendShapeChannel* createChannel(string_view name);
 
+    // apply delta to dst. size of dst must be equal with base mesh.
+    void deformPoints(span<float3> dst);
+    void deformNormals(span<float3> dst);
+
 protected:
     std::vector<BlendShapeChannel*> m_channels;
 };
@@ -491,14 +497,19 @@ public:
     void constructObject() override;
     void constructNodes() override;
 
+    float getWeight() const;
     span<ShapeData> getShapeData() const;
+    // weight: 0.0f - 1.0f
+    void addShape(Shape* shape, float weight = 1.0f);
+    Shape* createShape(string_view name, float weight = 1.0f);
 
-    // weight: 0.0f - 100.0f
-    void addShape(Shape* shape, float weight = 100.0f);
-    Shape* createShape(string_view name, float weight = 100.0f);
+    void setWeight(float v);
+    void deformPoints(span<float3> dst);
+    void deformNormals(span<float3> dst);
 
 protected:
     std::vector<ShapeData> m_shape_data;
+    float m_weight = 0.0f; // 0.0f - 1.0f
 };
 
 

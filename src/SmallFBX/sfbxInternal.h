@@ -28,7 +28,7 @@ inline void readv(std::istream& is, std::string& dst, size_t s)
 }
 
 template<class T, sfbxRestrict(std::is_pod_v<T> && !std::is_pointer_v<T>)>
-inline void write1(std::ostream& os, T v)
+inline void writev(std::ostream& os, T v)
 {
     os.write((const char*)&v, sizeof(T));
 }

@@ -154,16 +154,25 @@ testCase(fbxWrite)
             int indices[]{
                 6, 7, 8, 9,
             };
-            float3 points[]{
+            float3 delta_points[]{
                 {-s, 0, 0}, {s, 0, 0},
                 {-s, 0, 0}, {s, 0, 0},
             };
 
             sfbx::BlendShape* blendshape = mesh->createBlendshape();
             sfbx::BlendShapeChannel* channel = blendshape->createChannel("shape");
-            sfbx::Shape* shape = channel->createShape("shape", 100.0f);
+            sfbx::Shape* shape = channel->createShape("shape", 1.0f);
             shape->setIndices(indices);
-            shape->setDeltaPoints(points);
+            shape->setDeltaPoints(delta_points);
+
+            // verify
+            RawVector<float3> points;
+            for (float w = -0.1f; w < 1.1f; w+=0.1f) {
+                points = mesh->getPoints();
+                channel->setWeight(w);
+                blendshape->deformPoints(points);
+                testPrint("");
+            }
         }
 
         // joints & skin

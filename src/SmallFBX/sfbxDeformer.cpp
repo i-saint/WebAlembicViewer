@@ -7,6 +7,15 @@ namespace sfbx {
 
 ObjectClass Deformer::getClass() const { return ObjectClass::Deformer; }
 
+GeomMesh* Deformer::getBaseMesh() const
+{
+    for (auto* p = getParent(); p; p = p->getParent())
+        if (auto geom = as<GeomMesh>(p))
+            return geom;
+    return nullptr;
+}
+
+
 string_view SubDeformer::getClassName() const { return sfbxS_SubDeformer; }
 
 
@@ -258,6 +267,18 @@ BlendShapeChannel* BlendShape::createChannel(string_view name)
     return createChild<BlendShapeChannel>(name);
 }
 
+void BlendShape::deformPoints(span<float3> dst)
+{
+    for (auto ch : m_channels)
+        ch->deformPoints(dst);
+}
+
+void BlendShape::deformNormals(span<float3> dst)
+{
+    for (auto ch : m_channels)
+        ch->deformNormals(dst);
+}
+
 
 ObjectSubClass BlendShapeChannel::getSubClass() const { return ObjectSubClass::BlendShapeChannel; }
 
@@ -267,7 +288,7 @@ void BlendShapeChannel::constructObject()
 
     for (auto c : getChildren()) {
         if (auto shape = as<Shape>(c))
-            m_shape_data.push_back({ shape, 100.0f });
+            m_shape_data.push_back({ shape, 1.0f });
     }
     if (auto n = getNode()->findChild(sfbxS_FullWeights)) {
         RawVector<float> weights;
@@ -275,7 +296,7 @@ void BlendShapeChannel::constructObject()
         if (weights.size() == m_shape_data.size()) {
             size_t n = weights.size();
             for (size_t i = 0; i < n; ++i)
-                m_shape_data[i].weight = weights[i];
+                m_shape_data[i].weight = weights[i] * 0.01f; // percent to 0-1
         }
     }
 }
@@ -291,8 +312,13 @@ void BlendShapeChannel::constructNodes()
         auto full_weights = n->createChild(sfbxS_FullWeights);
         auto* dst = full_weights->createProperty()->allocateArray<float64>(m_shape_data.size()).data();
         for (auto& data : m_shape_data)
-            *dst++ = data.weight;
+            *dst++ = float64(data.weight) * 100.0; // 0-1 to percent
     }
+}
+
+float BlendShapeChannel::getWeight() const
+{
+    return m_weight;
 }
 
 span<BlendShapeChannel::ShapeData> BlendShapeChannel::getShapeData() const
@@ -313,6 +339,50 @@ Shape* BlendShapeChannel::createShape(string_view name, float weight)
     auto ret = createChild<Shape>(name);
     m_shape_data.push_back({ ret, weight });
     return ret;
+}
+
+void BlendShapeChannel::setWeight(float v)
+{
+    m_weight = v;
+}
+
+void BlendShapeChannel::deformPoints(span<float3> dst)
+{
+    if (m_weight <= 0.0f || m_shape_data.empty())
+        return;
+
+    if (m_shape_data.size() == 1) {
+        auto& sd = m_shape_data[0];
+        auto shape = sd.shape;
+        auto indices = shape->getIndices();
+        auto delta = shape->getDeltaPoints();
+        size_t n = indices.size();
+        float w = m_weight / sd.weight;
+        for (size_t i = 0; i < n; ++i)
+            dst[indices[i]] += delta[i] * w;
+    }
+    else {
+        // todo
+    }
+}
+
+void BlendShapeChannel::deformNormals(span<float3> dst)
+{
+    if (m_weight == 0.0f)
+        return;
+    if (m_shape_data.size() == 1) {
+        auto& sd = m_shape_data[0];
+        auto shape = sd.shape;
+        auto indices = shape->getIndices();
+        auto delta = shape->getDeltaNormals();
+        size_t n = indices.size();
+        float w = m_weight / sd.weight;
+        for (size_t i = 0; i < n; ++i)
+            dst[indices[i]] += delta[i] * w;
+    }
+    else if (m_shape_data.size() > 1) {
+        // todo
+    }
 }
 
 

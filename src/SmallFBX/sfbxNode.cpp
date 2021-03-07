@@ -53,7 +53,7 @@ uint64_t Node::write(std::ostream& os, uint64_t start_offset)
     uint32_t header_size = getHeaderSize() + m_name.size();
     if (isNull()) {
         for (uint32_t i = 0; i < header_size; i++)
-            write1(os, (uint8_t)0);
+            writev(os, (uint8_t)0);
         return header_size;
     }
 
@@ -81,16 +81,16 @@ uint64_t Node::write(std::ostream& os, uint64_t start_offset)
     uint64_t end_offset = start_offset + header_size + property_size + children_size;
     if (getDocumentVersion() >= sfbxI_FBX2016_FileVersion) {
         // size records are 64bit since FBX 2016
-        write1(os, uint64_t(end_offset));
-        write1(os, uint64_t(m_properties.size()));
-        write1(os, uint64_t(property_size));
+        writev(os, uint64_t(end_offset));
+        writev(os, uint64_t(m_properties.size()));
+        writev(os, uint64_t(property_size));
     }
     else {
-        write1(os, uint32_t(end_offset));
-        write1(os, uint32_t(m_properties.size()));
-        write1(os, uint32_t(property_size));
+        writev(os, uint32_t(end_offset));
+        writev(os, uint32_t(m_properties.size()));
+        writev(os, uint32_t(property_size));
     }
-    write1(os, uint8_t(m_name.size()));
+    writev(os, uint8_t(m_name.size()));
     writev(os, m_name);
 
     for (auto prop : m_properties)

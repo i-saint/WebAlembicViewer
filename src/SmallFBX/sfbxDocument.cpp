@@ -124,7 +124,7 @@ bool Document::read(const std::string& path)
 bool Document::writeBinary(std::ostream& os)
 {
     writev(os, g_fbx_header_magic);
-    write1(os, m_version);
+    writev(os, m_version);
 
     uint64_t pos = std::size(g_fbx_header_magic) + 4;
     for (Node* node : m_root_nodes)
@@ -143,14 +143,14 @@ bool Document::writeBinary(std::ostream& os)
     // add padding to 16 byte align
     uint64_t pad = 16 - (pos % 16);
     for (uint64_t i = 0; i < pad; ++i)
-        write1(os, (int8)0);
+        writev(os, (int8)0);
 
-    write1(os, (int32)0);
-    write1(os, m_version);
+    writev(os, (int32)0);
+    writev(os, m_version);
 
     // 120 byte space
     for (uint64_t i = 0; i < 120; ++i)
-        write1(os, (int8)0);
+        writev(os, (int8)0);
 
     writev(os, g_fbx_footer_magic2);
 

@@ -89,27 +89,27 @@ void Property::read(std::istream& is)
 
 void Property::write(std::ostream& os)
 {
-    write1(os, m_type);
+    writev(os, m_type);
     if (m_type == PropertyType::Blob || m_type == PropertyType::String) {
-        write1(os, (uint32_t)m_data.size());
+        writev(os, (uint32_t)m_data.size());
         writev(os, m_data);
     }
     else if (!isArray()) {
         // scalar
         switch (m_type) {
         case PropertyType::Bool:
-            write1(os, m_scalar.b);
+            writev(os, m_scalar.b);
             break;
         case PropertyType::Int16:
-            write1(os, m_scalar.i16);
+            writev(os, m_scalar.i16);
             break;
         case PropertyType::Int32:
         case PropertyType::Float32:
-            write1(os, m_scalar.i32);
+            writev(os, m_scalar.i32);
             break;
         case PropertyType::Int64:
         case PropertyType::Float64:
-            write1(os, m_scalar.i64);
+            writev(os, m_scalar.i64);
             break;
         default:
             sfbxPrint("sfbx::Property::write(): Unsupported property type %c\n", (char)m_type);
@@ -123,8 +123,8 @@ void Property::write(std::ostream& os)
 
         if (use_zlib) {
             // with zlib compression
-            write1(os, (uint32_t)getArraySize());
-            write1(os, (uint32_t)1); // encoding: zlib
+            writev(os, (uint32_t)getArraySize());
+            writev(os, (uint32_t)1); // encoding: zlib
 
             uLong src_size = m_data.size();
             uLong dest_size = compressBound(src_size);
@@ -132,14 +132,14 @@ void Property::write(std::ostream& os)
             compress((Bytef*)compressed.data(), &dest_size, (const Bytef*)m_data.data(), src_size);
             compressed.resize(dest_size);
 
-            write1(os, (uint32_t)compressed.size());
+            writev(os, (uint32_t)compressed.size());
             writev(os, compressed);
         }
         else {
             // without zlib compression
-            write1(os, (uint32_t)getArraySize());
-            write1(os, (uint32_t)0); // encoding: plain
-            write1(os, (uint32_t)m_data.size());
+            writev(os, (uint32_t)getArraySize());
+            writev(os, (uint32_t)0); // encoding: plain
+            writev(os, (uint32_t)m_data.size());
             writev(os, m_data);
         }
     }
