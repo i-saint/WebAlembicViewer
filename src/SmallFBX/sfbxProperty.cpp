@@ -188,9 +188,9 @@ template<> span<double4> Property::allocateArray(size_t size)
 template<class T>
 static inline void Assign(RawVector<char>& dst, const span<T>& v)
 {
-    size_t s = sizeof(T) * v.size();
+    size_t s = v.size_bytes();
     dst.resize(s);
-    dst.assign((char*)v.data(), (char*)v.data() + s);
+    dst.assign((char*)v.data(), s);
 }
 
 template<> void Property::assign(boolean v) { m_type = PropertyType::Bool; m_scalar.b = v; }
@@ -201,16 +201,11 @@ template<> void Property::assign(int64 v)   { m_type = PropertyType::Int64; m_sc
 template<> void Property::assign(float32 v) { m_type = PropertyType::Float32; m_scalar.f32 = v; }
 template<> void Property::assign(float64 v) { m_type = PropertyType::Float64; m_scalar.f64 = v; }
 
-template<> void Property::assign(float2 v)      { m_type = PropertyType::Float32Array; Assign(m_data, make_span(v)); }
-template<> void Property::assign(float3 v)      { m_type = PropertyType::Float32Array; Assign(m_data, make_span(v)); }
-template<> void Property::assign(float4 v)      { m_type = PropertyType::Float32Array; Assign(m_data, make_span(v)); }
-template<> void Property::assign(float4x4 v)    { m_type = PropertyType::Float32Array; Assign(m_data, make_span(v)); }
 template<> void Property::assign(double2 v)     { m_type = PropertyType::Float64Array; Assign(m_data, make_span(v)); }
 template<> void Property::assign(double3 v)     { m_type = PropertyType::Float64Array; Assign(m_data, make_span(v)); }
 template<> void Property::assign(double4 v)     { m_type = PropertyType::Float64Array; Assign(m_data, make_span(v)); }
 template<> void Property::assign(double4x4 v)   { m_type = PropertyType::Float64Array; Assign(m_data, make_span(v)); }
 
-template<> void Property::assign(span<char> v)    { m_type = PropertyType::String; Assign(m_data, v); }
 template<> void Property::assign(span<uint8_t> v) { m_type = PropertyType::Blob; Assign(m_data, v); }
 template<> void Property::assign(span<boolean> v) { m_type = PropertyType::BoolArray; Assign(m_data, v); }
 template<> void Property::assign(span<int16> v)   { m_type = PropertyType::Int16Array; Assign(m_data, v); }

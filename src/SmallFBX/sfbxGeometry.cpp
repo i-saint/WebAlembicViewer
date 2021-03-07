@@ -26,11 +26,11 @@ void GeomMesh::constructObject()
     for (auto n : getNode()->getChildren()) {
         if (n->getName() == sfbxS_Vertices) {
             // points
-            GetPropertyArray<double3>(m_points, n);
+            GetPropertyValue<double3>(m_points, n);
         }
         else if (n->getName() == sfbxS_PolygonVertexIndex) {
             // counts & indices
-            GetPropertyArray<int>(m_indices, n);
+            GetPropertyValue<int>(m_indices, n);
             m_counts.resize(m_indices.size()); // reserve
             int* dst_counts = m_counts.data();
             size_t cfaces = 0;
@@ -51,24 +51,24 @@ void GeomMesh::constructObject()
             //auto ref = n->findChildProperty(sfbxS_ReferenceInformationType);
             LayerElementF3 tmp;
             tmp.name = GetChildPropertyString(n, sfbxS_Name);
-            GetChildPropertyArray<double3>(tmp.data, n, sfbxS_Normals);
-            GetChildPropertyArray<int>(tmp.indices, n, sfbxS_NormalsIndex);
+            GetChildPropertyValue<double3>(tmp.data, n, sfbxS_Normals);
+            GetChildPropertyValue<int>(tmp.indices, n, sfbxS_NormalsIndex);
             m_normal_layers.push_back(std::move(tmp));
         }
         else if (n->getName() == sfbxS_LayerElementUV) {
             // uv
             LayerElementF2 tmp;
             tmp.name = GetChildPropertyString(n, sfbxS_Name);
-            GetChildPropertyArray<double2>(tmp.data, n, sfbxS_UV);
-            GetChildPropertyArray<int>(tmp.indices, n, sfbxS_UVIndex);
+            GetChildPropertyValue<double2>(tmp.data, n, sfbxS_UV);
+            GetChildPropertyValue<int>(tmp.indices, n, sfbxS_UVIndex);
             m_uv_layers.push_back(std::move(tmp));
         }
         else if (n->getName() == sfbxS_LayerElementColor) {
             // colors
             LayerElementF4 tmp;
             tmp.name = GetChildPropertyString(n, sfbxS_Name);
-            GetChildPropertyArray<double4>(tmp.data, n, sfbxS_Colors);
-            GetChildPropertyArray<int>(tmp.indices, n, sfbxS_ColorIndex);
+            GetChildPropertyValue<double4>(tmp.data, n, sfbxS_Colors);
+            GetChildPropertyValue<int>(tmp.indices, n, sfbxS_ColorIndex);
             m_color_layers.push_back(std::move(tmp));
         }
     }
@@ -176,6 +176,7 @@ void GeomMesh::constructNodes()
     }
 
     if (clayers) {
+        // layer info
         auto l = n->createChild(sfbxS_Layer, 0);
         l->createChild(sfbxS_Version, sfbxI_LayerVersion);
         if (!m_normal_layers.empty()) {
@@ -228,12 +229,13 @@ void Shape::constructObject()
     super::constructObject();
 
     for (auto n : getNode()->getChildren()) {
-        if (n->getName() == sfbxS_Indexes)
-            GetPropertyArray<int>(m_indices, n);
-        else if (n->getName() == sfbxS_Vertices)
-            GetPropertyArray<double3>(m_delta_points, n);
-        else if (n->getName() == sfbxS_Normals)
-            GetPropertyArray<double3>(m_delta_normals, n);
+        auto name = n->getName();
+        if (name == sfbxS_Indexes)
+            GetPropertyValue<int>(m_indices, n);
+        else if (name == sfbxS_Vertices)
+            GetPropertyValue<double3>(m_delta_points, n);
+        else if (name == sfbxS_Normals)
+            GetPropertyValue<double3>(m_delta_normals, n);
     }
 }
 

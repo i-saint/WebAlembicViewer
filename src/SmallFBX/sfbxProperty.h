@@ -30,8 +30,8 @@ enum class PropertyType : uint8_t
 uint32_t SizeOfElement(PropertyType type);
 
 
-template<class T> struct is_propery_pod : std::false_type {};
-#define PropPOD(T) template<> struct is_propery_pod<T> : std::true_type {}
+template<class T> inline constexpr bool is_propery_pod = false;
+#define PropPOD(T) template<> inline constexpr bool is_propery_pod<T> = true;
 PropPOD(bool);
 PropPOD(boolean);
 PropPOD(int16);
@@ -40,10 +40,6 @@ PropPOD(int64);
 PropPOD(float32);
 PropPOD(float64);
 
-PropPOD(float2);
-PropPOD(float3);
-PropPOD(float4);
-PropPOD(float4x4);
 PropPOD(double2);
 PropPOD(double3);
 PropPOD(double4);
@@ -74,7 +70,7 @@ public:
     template<class T> span<T> allocateArray(size_t size);
 
     // T: corresponding types with PropertyType (boolean ... float64 and span<> & std::vector<>, std::string)
-    template<class T, sfbxEnableIf(is_propery_pod<T>::value)> void assign(T v);
+    template<class T, sfbxRestrict(is_propery_pod<T>)> void assign(T v);
     template<class T> void assign(span<T> v);
     template<class T> void assign(const RawVector<T>& v) { assign(make_span(v)); }
     template<class D, class S> void assign(ArrayAdaptor<D, S> v) { copy(allocateArray<D>(v.values.size()), v.values); }

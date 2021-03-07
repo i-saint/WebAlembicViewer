@@ -181,10 +181,10 @@ void Cluster::constructObject()
     super::constructObject();
 
     auto n = getNode();
-    GetChildPropertyArray<int>(m_indices, n, sfbxS_Indexes);
-    GetChildPropertyArray<float64>(m_weights, n, sfbxS_Weights);
-    m_transform = GetChildPropertyValue<double4x4>(n, sfbxS_Transform);
-    m_transform_link = GetChildPropertyValue<double4x4>(n, sfbxS_TransformLink);
+    GetChildPropertyValue<int>(m_indices, n, sfbxS_Indexes);
+    GetChildPropertyValue<float64>(m_weights, n, sfbxS_Weights);
+    GetChildPropertyValue<double4x4>(m_transform, n, sfbxS_Transform);
+    GetChildPropertyValue<double4x4>(m_transform_link, n, sfbxS_TransformLink);
 }
 
 void Cluster::constructNodes()
@@ -271,7 +271,7 @@ void BlendShapeChannel::constructObject()
     }
     if (auto n = getNode()->findChild(sfbxS_FullWeights)) {
         RawVector<float> weights;
-        GetPropertyArray<float>(weights, n);
+        GetPropertyValue<float64>(weights, n);
         if (weights.size() == m_shape_data.size()) {
             size_t n = weights.size();
             for (size_t i = 0; i < n; ++i)
@@ -327,9 +327,10 @@ void BindPose::constructObject()
     for (auto n : getNode()->getChildren()) {
         if (n->getName() == sfbxS_PoseNode) {
             auto nid = GetChildPropertyValue<int64>(n, sfbxS_Node);
-            auto mat = GetChildPropertyValue<double4x4>(n, sfbxS_Matrix);
             auto model = as<Model>(m_document->findObject(nid));
             if (model) {
+                float4x4 mat;
+                GetChildPropertyValue<double4x4>(mat, n, sfbxS_Matrix);
                 m_pose_data.push_back({ model, float4x4(mat) });
             }
             else {

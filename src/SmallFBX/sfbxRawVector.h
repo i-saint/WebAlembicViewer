@@ -174,6 +174,11 @@ public:
         for (size_t i = 0; i < n; ++i)
             m_data[i] = T(v[i]);
     }
+    template<class U>
+    void assign(const U* v, size_t n)
+    {
+        assign(make_span(v, n));
+    }
 
     template<class ForwardIter>
     void insert(iterator pos, ForwardIter first, ForwardIter last)
@@ -243,5 +248,8 @@ private:
     size_t m_size = 0;
     size_t m_capacity = 0;
 };
+
+template<class T> inline constexpr bool is_RawVector = false;
+template<class T> inline constexpr bool is_RawVector<RawVector<T>> = true;
 
 } // namespace sfbx

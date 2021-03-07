@@ -161,23 +161,40 @@ Property* Node::getProperty(size_t i)
 }
 
 #ifdef sfbxEnableLegacyFormatSupport
-template<class D, class S> void Node::getPropertiesValues(RawVector<D>& dst) const
-{
-    using SS = typename get_scalar_type<S>::type;
-    using DS = typename get_scalar_type<D>::type;
-    dst.resize(m_properties.size() / get_vector_size<D>::value);
-    auto d = (DS*)dst.data();
-    for (auto prop : m_properties)
-        *d++ = prop->getValue<SS>();
-}
-template void Node::getPropertiesValues<int32, int32>(RawVector<int32>& dst) const;
-template void Node::getPropertiesValues<int64, int64>(RawVector<int64>& dst) const;
-template void Node::getPropertiesValues<float32, float32>(RawVector<float32>& dst) const;
-template void Node::getPropertiesValues<float32, float64>(RawVector<float32>& dst) const;
 
-template void Node::getPropertiesValues<float2, double2>(RawVector<float2>& dst) const;
-template void Node::getPropertiesValues<float3, double3>(RawVector<float3>& dst) const;
-template void Node::getPropertiesValues<float4, double4>(RawVector<float4>& dst) const;
+template<class S, class D>
+static inline void ToArray(span<PropertyPtr> props, RawVector<D>& dst)
+{
+    dst.resize(props.size() / get_vector_size<D>);
+    auto* d = (get_scalar_t<D>*)dst.data();
+    for (auto prop : props)
+        *d++ = prop->getValue<get_scalar_t<S>>();
+}
+
+#define Def(S, D)\
+    template<> void Node::getPropertiesValues<S, D>(RawVector<D>& dst) const { ToArray<S, D>(getProperties(), dst); }
+
+Def(int32, int32);
+Def(int64, int64);
+Def(float32, float32);
+Def(float64, float32);
+Def(double2, float2);
+Def(double3, float3);
+Def(double4, float4);
+#undef Def
+
+
+template<class S, class D>
+void ToVector(span<PropertyPtr> props, D& dst)
+{
+    if (props.size() == get_vector_size<D>) {
+        auto* d = dst.data();
+        for (auto prop : props)
+            *d++ = prop->getValue<get_scalar_t<S>>();
+    }
+}
+template<> void Node::getPropertiesValues<double4x4, float4x4>(float4x4& dst) const { ToVector<double4x4, float4x4>(getProperties(), dst); }
+
 #endif
 
 

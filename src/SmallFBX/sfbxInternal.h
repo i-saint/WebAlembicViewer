@@ -6,7 +6,7 @@
 #include "sfbxNode.h"
 #include "sfbxUtil.h"
 
-//#define sfbxEnableLegacyFormatSupport
+#define sfbxEnableLegacyFormatSupport
 
 namespace sfbx {
 
@@ -65,7 +65,7 @@ inline PropertyType GetPropertyType(Node* node, size_t pi = 0)
     return PropertyType::Unknown;
 }
 
-template<class T>
+template<class T, sfbxRestrict(is_scalar<T>)>
 inline T GetPropertyValue(Node* node, size_t pi = 0)
 {
     if (node)
@@ -82,16 +82,9 @@ inline string_view GetPropertyString(Node* node, size_t pi = 0)
     return {};
 }
 
-template<class T>
-inline span<T> GetPropertyArray(Node* node)
-{
-    if (node)
-        if (Property* prop = node->getProperty(0))
-            return prop->getArray<T>();
-    return {};
-}
-template<class T, class Cont>
-inline void GetPropertyArray(Cont& dst, Node* node)
+
+template<class T, class Dst, sfbxRestrict(is_RawVector<Dst>)>
+inline void GetPropertyValue(Dst& dst, Node* node)
 {
     if (node) {
         if (Property* prop = node->getProperty(0)) {
@@ -99,20 +92,39 @@ inline void GetPropertyArray(Cont& dst, Node* node)
                 dst = prop->getArray<T>();
 #ifdef sfbxEnableLegacyFormatSupport
             else
-                node->getPropertiesValues<typename Cont::value_type, T>(dst);
+                node->getPropertiesValues<T>(dst);
+#endif
+        }
+    }
+}
+template<class T, class Dst, sfbxRestrict(is_vector<Dst>)>
+inline void GetPropertyValue(Dst& dst, Node* node)
+{
+    if (node) {
+        if (Property* prop = node->getProperty(0)) {
+            if (prop->isArray())
+                dst = prop->getValue<T>();
+#ifdef sfbxEnableLegacyFormatSupport
+            else
+                node->getPropertiesValues<T>(dst);
 #endif
         }
     }
 }
 
-template<class T>
+template<class T, sfbxRestrict(is_scalar<T>)>
 inline T GetChildPropertyValue(Node* node, string_view name, size_t pi = 0)
 {
     if (node)
         return GetPropertyValue<T>(node->findChild(name), pi);
     return {};
 }
-
+template<class T, class Dst, sfbxRestrict(is_RawVector<Dst> || is_vector<Dst>)>
+inline void GetChildPropertyValue(Dst& dst, Node* node, string_view name)
+{
+    if (node)
+        GetPropertyValue<T>(dst, node->findChild(name));
+}
 inline string_view GetChildPropertyString(Node* node, string_view name, size_t pi = 0)
 {
     if (node)
@@ -120,19 +132,6 @@ inline string_view GetChildPropertyString(Node* node, string_view name, size_t p
     return {};
 }
 
-template<class T>
-inline span<T> GetChildPropertyArray(Node* node, string_view name)
-{
-    if (node)
-        return GetPropertyArray<T>(node->findChild(name));
-    return {};
-}
-template<class T, class Cont>
-inline void GetChildPropertyArray(Cont& dst, Node* node, string_view name)
-{
-    if (node)
-        GetPropertyArray<T>(dst, node->findChild(name));
-}
 
 template<class Body>
 inline void EnumerateProperties(Node* n, const Body& body)

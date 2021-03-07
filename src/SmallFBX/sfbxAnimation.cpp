@@ -131,11 +131,11 @@ void AnimationCurve::constructObject()
         }
         else if (name == sfbxS_KeyTime) {
             RawVector<int64> times_i64;
-            GetPropertyArray<int64>(times_i64, n);
+            GetPropertyValue<int64>(times_i64, n);
             transform(m_times, times_i64, [](int64 v) { return float((double)v / sfbxI_TicksPerSecond); });
         }
         else if (name == sfbxS_KeyValueFloat) {
-            GetPropertyArray<float32>(m_values, n);
+            GetPropertyValue<float32>(m_values, n);
         }
     }
 }

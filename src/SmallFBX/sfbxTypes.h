@@ -10,15 +10,20 @@
     #include <span>
 #endif
 
-#define sfbxEnableIf(...) std::enable_if_t<__VA_ARGS__, bool> = true
+#define sfbxRestrict(...) std::enable_if_t<__VA_ARGS__, bool> = true
 
 namespace sfbx {
 
+// is_contiguous_container_v<T> : true if T has data() and size(). intended to detect std::vector, sfbx::RawVector and sfbx::span.
 template<class T, class = void>
-struct is_sequential_container : std::false_type {};
+struct is_contiguous_container : std::false_type {};
 template<class T>
-struct is_sequential_container<T, std::void_t<decltype(std::declval<T>().data()), decltype(std::declval<T>().size())>> : std::true_type {};
+struct is_contiguous_container<T, std::void_t<decltype(std::declval<T>().data()), decltype(std::declval<T>().size())>> : std::true_type {};
+template<class T>
+constexpr bool is_contiguous_container_v = is_contiguous_container<T>::value;
 
+
+// SmallFBX require C++17, but not C++20. use std::span only if C++20 is available and our own version if not.
 
 #ifdef __cpp_lib_span
 
@@ -26,7 +31,6 @@ template<class T> using span = std::span<T>;
 
 #else
 
-// equivalent of std::span in C++20 (with dynamic_extent)
 template<class T>
 class span
 {
@@ -41,13 +45,12 @@ public:
 
     span() {}
     span(const T* d, size_t s) : m_data(const_cast<T*>(d)), m_size(s) {}
-    span(const span& v) : m_data(const_cast<T*>(v.m_data)), m_size(v.m_size) {}
-
-    template<class Cont, sfbxEnableIf(is_sequential_container<Cont>::value)>
-    span(const Cont& v) : m_data(const_cast<T*>(v.data())), m_size(v.size()) {}
 
     template<size_t N>
-    span(const T (&v)[N]) : m_data(const_cast<T*>(v)), m_size(N) {}
+    span(const T(&v)[N]) : m_data(const_cast<T*>(v)), m_size(N) {}
+
+    template<class Cont, sfbxRestrict(is_contiguous_container_v<Cont>)>
+    span(const Cont& v) : m_data(const_cast<T*>(v.data())), m_size(v.size()) {}
 
     span& operator=(const span& v) { m_data = const_cast<T*>(v.m_data); m_size = v.m_size; return *this; }
 
@@ -72,8 +75,8 @@ public:
     const_iterator end() const { return m_data + m_size; }
 
 private:
-    T* m_data = nullptr;
-    size_t m_size = 0;
+    T* m_data{};
+    size_t m_size{};
 };
 #endif
 
@@ -137,6 +140,14 @@ struct tvec2
     bool operator!=(const tvec2& v) const { return !((*this) == v); }
     template<class U> operator tvec2<U>() const { return { (U)x, (U)y }; }
 
+    template<class U> void assign(const U* v)
+    {
+        T* d = data();
+        for (size_t i = 0; i < size(); ++i)
+            *d++ = T(*v++);
+    }
+    template<class U> void operator=(span<U> v) { assign(v.data()); }
+
     static constexpr tvec2 zero() { return { (T)0, (T)0 }; }
     static constexpr tvec2 one()  { return { (T)1, (T)1 }; }
 };
@@ -156,6 +167,14 @@ struct tvec3
     bool operator==(const tvec3& v) const { return x == v.x && y == v.y && z == v.z; }
     bool operator!=(const tvec3& v) const { return !((*this) == v); }
     template<class U> operator tvec3<U>() const { return { (U)x, (U)y, (U)z }; }
+
+    template<class U> void assign(const U* v)
+    {
+        T* d = data();
+        for (size_t i = 0; i < size(); ++i)
+            *d++ = T(*v++);
+    }
+    template<class U> void operator=(span<U> v) { assign(v.data()); }
 
     static constexpr tvec3 zero() { return { (T)0, (T)0, (T)0 }; }
     static constexpr tvec3 one()  { return { (T)1, (T)1, (T)1 }; }
@@ -177,6 +196,14 @@ struct tvec4
     bool operator!=(const tvec4& v) const { return !((*this) == v); }
     template<class U> operator tvec4<U>() const { return { (U)x, (U)y, (U)z, (U)w }; }
 
+    template<class U> void assign(const U* v)
+    {
+        T* d = data();
+        for (size_t i = 0; i < size(); ++i)
+            *d++ = T(*v++);
+    }
+    template<class U> void operator=(span<U> v) { assign(v.data()); }
+
     static constexpr tvec4 zero() { return { (T)0, (T)0, (T)0, (T)0 }; }
     static constexpr tvec4 one()  { return { (T)1, (T)1, (T)1, (T)1 }; }
 };
@@ -196,6 +223,14 @@ struct tquat
     bool operator==(const tquat& v) const { return x == v.x && y == v.y && z == v.z && w == v.w; }
     bool operator!=(const tquat& v) const { return !((*this) == v); }
     template<class U> operator tquat<U>() const { return { (U)x, (U)y, (U)z, (U)w }; }
+
+    template<class U> void assign(const U* v)
+    {
+        T* d = data();
+        for (size_t i = 0; i < size(); ++i)
+            *d++ = T(*v++);
+    }
+    template<class U> void operator=(span<U> v) { assign(v.data()); }
 
     static constexpr tquat identity() { return{ (T)0, (T)0, (T)0, (T)1 }; }
 };
@@ -227,12 +262,13 @@ struct tmat4x4
         return { { tvec4<U>(m[0]), tvec4<U>(m[1]), tvec4<U>(m[2]), tvec4<U>(m[3]) } };
     }
 
-    template<class U> void assign(const U* s) const
+    template<class U> void assign(const U* v)
     {
-        T* d = (T*)this;
-        for (size_t i = 0; i < 16; ++i)
-            *d++ = T(*s++);
+        T* d = data();
+        for (size_t i = 0; i < size(); ++i)
+            *d++ = T(*v++);
     }
+    template<class U> void operator=(span<U> v) { assign(v.data()); }
 
     static constexpr tmat4x4 identity()
     {
@@ -245,19 +281,23 @@ struct tmat4x4
     }
 };
 
-template<class T> struct get_vector_size { static constexpr size_t value = 1; };
-template<class T> struct get_vector_size<tvec2<T>> { static constexpr size_t value = 2; };
-template<class T> struct get_vector_size<tvec3<T>> { static constexpr size_t value = 3; };
-template<class T> struct get_vector_size<tvec4<T>> { static constexpr size_t value = 4; };
-template<class T> struct get_vector_size<tquat<T>> { static constexpr size_t value = 4; };
-template<class T> struct get_vector_size<tmat4x4<T>> { static constexpr size_t value = 16; };
+template<class T> inline constexpr size_t get_vector_size = 1;
+template<class T> inline constexpr size_t get_vector_size<tvec2<T>> = 2;
+template<class T> inline constexpr size_t get_vector_size<tvec3<T>> = 3;
+template<class T> inline constexpr size_t get_vector_size<tvec4<T>> = 4;
+template<class T> inline constexpr size_t get_vector_size<tquat<T>> = 4;
+template<class T> inline constexpr size_t get_vector_size<tmat4x4<T>> = 16;
 
-template<class T> struct get_scalar_type { using type = T; };
-template<class T> struct get_scalar_type<tvec2<T>> { using type = T; };
-template<class T> struct get_scalar_type<tvec3<T>> { using type = T; };
-template<class T> struct get_scalar_type<tvec4<T>> { using type = T; };
-template<class T> struct get_scalar_type<tquat<T>> { using type = T; };
-template<class T> struct get_scalar_type<tmat4x4<T>> { using type = T; };
+template<class T> inline constexpr bool is_scalar = get_vector_size<T> == 1;
+template<class T> inline constexpr bool is_vector = get_vector_size<T> != 1;
+
+template<class T> struct get_scalar { using type = T; };
+template<class T> struct get_scalar<tvec2<T>> { using type = T; };
+template<class T> struct get_scalar<tvec3<T>> { using type = T; };
+template<class T> struct get_scalar<tvec4<T>> { using type = T; };
+template<class T> struct get_scalar<tquat<T>> { using type = T; };
+template<class T> struct get_scalar<tmat4x4<T>> { using type = T; };
+template<class T> using get_scalar_t = typename get_scalar<T>::type;
 
 using int2 = tvec2<int>;
 using int3 = tvec3<int>;
