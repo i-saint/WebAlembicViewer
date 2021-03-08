@@ -8,6 +8,23 @@ namespace sfbx {
 
 ObjectClass AnimationStack::getClass() const { return ObjectClass::AnimationStack; }
 
+void AnimationStack::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto l = as<AnimationLayer>(v))
+        m_anim_layers.push_back(l);
+}
+
+span<AnimationLayer*> AnimationStack::getAnimationLayers() const
+{
+    return m_anim_layers;
+}
+
+AnimationLayer* AnimationStack::createLayer(string_view name)
+{
+    return createChild<AnimationLayer>(name);
+}
+
 
 ObjectClass AnimationLayer::getClass() const { return ObjectClass::AnimationLayer; }
 
@@ -33,6 +50,29 @@ span<AnimationCurveNode*> AnimationLayer::getAnimationCurveNodes() const
     return make_span(m_anim_nodes);
 }
 
+AnimationCurveNode* AnimationLayer::createCurveNode(AnimationKind kind, Object* target)
+{
+    auto ret = createChild<AnimationCurveNode>();
+    ret->initialize(kind, target);
+    return ret;
+}
+
+
+struct AnimationKindData
+{
+    std::string object_name;
+    std::string link_name;
+    std::vector<std::string> curve_names;
+};
+static const AnimationKindData g_akdata[] = {
+    {}, // Unknown
+    {sfbxS_T, sfbxS_LclTranslation, {"d|X", "d|Y", "d|Z"}}, // Position
+    {sfbxS_R, sfbxS_LclRotation, {"d|X", "d|Y", "d|Z"}}, // Rotation
+    {sfbxS_S, sfbxS_LclScale, {"d|X", "d|Y", "d|Z"}}, // Scale
+    {sfbxS_DeformPercent, sfbxS_DeformPercent, {"d|" sfbxS_DeformPercent}}, // Weight
+    {sfbxS_FocalLength, sfbxS_FocalLength, {"d|" sfbxS_FocalLength}}, // Weight
+};
+
 
 ObjectClass AnimationCurveNode::getClass() const { return ObjectClass::AnimationCurveNode; }
 
@@ -41,49 +81,33 @@ void AnimationCurveNode::constructObject()
     super::constructObject();
 
     auto name = getDisplayName();
-    if (name == sfbxS_T)
-        m_target = AnimationTarget::Position;
-    else if (name == sfbxS_R)
-        m_target = AnimationTarget::Rotation;
-    else if (name == sfbxS_S)
-        m_target = AnimationTarget::Scale;
-    else if (name == sfbxS_DeformPercent)
-        m_target = AnimationTarget::DeformWeight;
-    else if (name == sfbxS_FocalLength)
-        m_target = AnimationTarget::FocalLength;
-    else
+    for (int i = 0; i < std::size(g_akdata); ++i) {
+        if (name == g_akdata[i].object_name) {
+            m_kind = (AnimationKind)i;
+            break;
+        }
+    }
+    if (m_kind == AnimationKind::Unknown) {
         sfbxPrint("sfbx::AnimationCurveNode: unrecognized animation target \"%s\"\n", std::string(name).c_str());
+    }
 }
 
 void AnimationCurveNode::constructNodes()
 {
     super::constructNodes();
+}
 
-    if (m_parent_model && m_target != AnimationTarget::Unknown) {
-        int64 pid = m_parent_model->getID();
-        switch (m_target) {
-        case AnimationTarget::Position:
-            setName(sfbxS_T);
-            addLinkOP(pid, sfbxS_LclTranslation);
-            break;
-        case AnimationTarget::Rotation:
-            setName(sfbxS_R);
-            addLinkOP(pid, sfbxS_LclRotation);
-            break;
-        case AnimationTarget::Scale:
-            setName(sfbxS_S);
-            addLinkOP(pid, sfbxS_LclScale);
-            break;
-        case AnimationTarget::DeformWeight:
-            setName(sfbxS_DeformPercent);
-            addLinkOP(pid, sfbxS_DeformPercent);
-            break;
-        case AnimationTarget::FocalLength:
-            setName(sfbxS_FocalLength);
-            addLinkOP(pid, sfbxS_FocalLength);
-            break;
-        default: break;
-        }
+void AnimationCurveNode::constructLinks()
+{
+    // ignore super::constructLinks()
+
+    m_document->createLinkOO(this, getParent());
+
+    auto& acd = g_akdata[(int)m_kind];
+    if (m_curves.size() == acd.curve_names.size()) {
+        m_document->createLinkOP(this, m_target, acd.link_name);
+        for (size_t i = 0; i < m_curves.size(); ++i)
+            m_document->createLinkOP(m_curves[i], this, acd.curve_names[i]);
     }
 }
 
@@ -94,18 +118,9 @@ void AnimationCurveNode::addChild(Object* v)
         m_curves.push_back(curve);
 }
 
-void AnimationCurveNode::addParent(Object* v)
+AnimationKind AnimationCurveNode::getKind() const
 {
-    super::addParent(v);
-    if (auto model = as<Model>(v))
-        m_parent_model = model;
-    if (auto bschannel = as<BlendShapeChannel>(v))
-        m_parent_bschannel = bschannel;
-}
-
-AnimationTarget AnimationCurveNode::getTarget() const
-{
-    return m_target;
+    return m_kind;
 }
 
 float AnimationCurveNode::getStartTime() const
@@ -137,30 +152,32 @@ float3 AnimationCurveNode::evaluate3(float time) const
     };
 }
 
-void AnimationCurveNode::apply(float time) const
+void AnimationCurveNode::applyAnimation(float time) const
 {
-    if (m_curves.empty() || m_target == AnimationTarget::Unknown)
+    if (m_curves.empty() || m_kind == AnimationKind::Unknown)
         return;
 
-    switch (m_target) {
-    case AnimationTarget::Position:
-        if (m_parent_model)
-            m_parent_model->setPosition(evaluate3(time));
+    switch (m_kind) {
+    case AnimationKind::Position:
+        if (auto* model = as<Model>(m_target))
+            model->setPosition(evaluate3(time));
         break;
-    case AnimationTarget::Rotation:
-        if (m_parent_model)
-            m_parent_model->setRotation(evaluate3(time));
+    case AnimationKind::Rotation:
+        if (auto* model = as<Model>(m_target))
+            model->setRotation(evaluate3(time));
         break;
-    case AnimationTarget::Scale:
-        if (m_parent_model)
-            m_parent_model->setScale(evaluate3(time));
+    case AnimationKind::Scale:
+        if (auto* model = as<Model>(m_target))
+            model->setScale(evaluate3(time));
         break;
-    case AnimationTarget::DeformWeight:
-        if (m_parent_bschannel)
-            m_parent_bschannel->setWeight(evaluate(time));
+    case AnimationKind::DeformWeight:
+        if (auto* bsc = as<BlendShapeChannel>(m_target))
+            bsc->setWeight(evaluate(time));
         break;
-    case AnimationTarget::FocalLength:
-        // todo
+    case AnimationKind::FocalLength:
+        if (auto cam = as<Camera>(m_target)) {
+            // todo
+        }
         break;
     default:
         // should not be here
@@ -169,17 +186,21 @@ void AnimationCurveNode::apply(float time) const
     }
 }
 
-void AnimationCurveNode::setTarget(AnimationTarget v)
+void AnimationCurveNode::initialize(AnimationKind kind, Object* target)
 {
-    m_target = v;
+    m_kind = kind;
+    m_target = target;
+    m_target->addChild(this);
+
+    auto& acd = g_akdata[(int)m_kind];
+    setName(acd.object_name);
+    for (auto& cn : acd.curve_names)
+        createChild<AnimationCurve>();
 }
 
 void AnimationCurveNode::addValue(float time, float value)
 {
-    if (m_curves.empty()) {
-        createChild<AnimationCurve>();
-    }
-    else if (m_curves.size() != 1) {
+    if (m_curves.size() != 1) {
         sfbxPrint("afbx::AnimationCurveNode::addValue() curve count mismatch\n");
         return;
     }
@@ -188,12 +209,7 @@ void AnimationCurveNode::addValue(float time, float value)
 
 void AnimationCurveNode::addValue(float time, float3 value)
 {
-    if (m_curves.empty()) {
-        createChild<AnimationCurve>();
-        createChild<AnimationCurve>();
-        createChild<AnimationCurve>();
-    }
-    else if (m_curves.size() != 3) {
+    if (m_curves.size() != 3) {
         sfbxPrint("afbx::AnimationCurveNode::addValue() curve count mismatch\n");
         return;
     }
@@ -228,7 +244,24 @@ void AnimationCurve::constructObject()
 void AnimationCurve::constructNodes()
 {
     super::constructNodes();
-    // todo
+
+    auto n = getNode();
+    n->createChild(sfbxS_Default, (float64)m_default);
+    n->createChild(sfbxS_KeyVer, sfbxI_KeyVer);
+    n->createChild(sfbxS_KeyTime, MakeAdaptor<float64>(m_times));
+    n->createChild(sfbxS_KeyValueFloat, m_values); // float array
+
+    int attr_flags[] = { 24836 };
+    float attr_data[] = { 0, 0, 0, 0 };
+    int attr_refcount[] = { (int)m_times.size() };
+    n->createChild(sfbxS_KeyAttrFlags, make_span(attr_flags));
+    n->createChild(sfbxS_KeyAttrDataFloat, make_span(attr_data));
+    n->createChild(sfbxS_KeyAttrRefCount, make_span(attr_refcount));
+}
+
+void AnimationCurve::constructLinks()
+{
+    // do nothing
 }
 
 span<float> AnimationCurve::getTimes() const { return make_span(m_times); }

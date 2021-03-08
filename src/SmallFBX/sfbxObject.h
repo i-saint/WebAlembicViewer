@@ -59,6 +59,7 @@ public:
     virtual ObjectSubClass getSubClass() const;
     virtual void constructObject();
     virtual void constructNodes();
+    virtual void constructLinks();
 
     template<class T> T* createChild(string_view name = {});
     virtual void addChild(Object* v);
@@ -83,8 +84,6 @@ protected:
     Object();
     virtual string_view getClassName() const;
     virtual void addParent(Object* v);
-    void addLinkOO(int64 id);
-    void addLinkOP(int64 id, string_view target);
 
     Document* m_document{};
     Node* m_node{};
@@ -394,9 +393,9 @@ public:
     virtual void deformNormals(span<float3> dst) const;
 };
 
-class SubDeformer : public Object
+class SubDeformer : public Deformer
 {
-using super = Object;
+using super = Deformer;
 public:
 protected:
     string_view getClassName() const override;
@@ -580,7 +579,7 @@ public:
 // animation-related classes
 // (AnimationStack, AnimationLayer, AnimationCurveNode, AnimationCurve)
 
-enum class AnimationTarget
+enum class AnimationKind
 {
     Unknown,
     Position,       // float3
@@ -595,12 +594,17 @@ class AnimationStack : public Object
 using super = Object;
 public:
     ObjectClass getClass() const override;
+    void addChild(Object* v) override;
+    span<AnimationLayer*> getAnimationLayers() const;
+
+    AnimationLayer* createLayer(string_view name = {});
 
 protected:
     float m_local_start{};
     float m_local_stop{};
     float m_reference_start{};
     float m_reference_stop{};
+    std::vector<AnimationLayer*> m_anim_layers;
 };
 
 class AnimationLayer : public Object
@@ -614,6 +618,8 @@ public:
 
     span<AnimationCurveNode*> getAnimationCurveNodes() const;
 
+    AnimationCurveNode* createCurveNode(AnimationKind kind, Object* target);
+
 protected:
     std::vector<AnimationCurveNode*> m_anim_nodes;
 };
@@ -625,9 +631,10 @@ public:
     ObjectClass getClass() const override;
     void constructObject() override;
     void constructNodes() override;
+    void constructLinks() override;
     void addChild(Object* v) override;
 
-    AnimationTarget getTarget() const;
+    AnimationKind getKind() const;
     float getStartTime() const;
     float getEndTime() const;
 
@@ -636,18 +643,16 @@ public:
     float3 evaluate3(float time) const;
 
     // apply evaluated value to target
-    void apply(float time) const;
+    void applyAnimation(float time) const;
 
-    void setTarget(AnimationTarget v);
+    void initialize(AnimationKind kind, Object* target);
     void addValue(float time, float value);
     void addValue(float time, float3 value);
 
 protected:
-    void addParent(Object* v) override;
 
-    Model* m_parent_model{};
-    BlendShapeChannel* m_parent_bschannel{};
-    AnimationTarget m_target = AnimationTarget::Unknown;
+    AnimationKind m_kind = AnimationKind::Unknown;
+    Object* m_target{};
     std::vector<AnimationCurve*> m_curves;
 };
 
@@ -658,6 +663,7 @@ public:
     ObjectClass getClass() const override;
     void constructObject() override;
     void constructNodes() override;
+    void constructLinks() override;
 
     span<float> getTimes() const;
     span<float> getValues() const;

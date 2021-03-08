@@ -29,7 +29,7 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
     }
     else if (auto anim = as<sfbx::AnimationLayer>(obj)) {
         for (auto n : anim->getAnimationCurveNodes()) {
-            if (n->getTarget() == sfbx::AnimationTarget::Position) {
+            if (n->getKind() == sfbx::AnimationKind::Position) {
                 float start = n->getStartTime();
                 float end = n->getEndTime();
                 for (float t = start; t <= end; t += 0.033334f) {
@@ -75,15 +75,15 @@ testCase(fbxWrite)
 {
     {
         sfbx::DocumentPtr doc = sfbx::MakeDocument();
-        auto root = doc->getRootModel();
+        sfbx::Model* root = doc->getRootModel();
 
-        auto node = root->createChild<sfbx::Mesh>("mesh");
+        sfbx::Mesh* node = root->createChild<sfbx::Mesh>("mesh");
         node->setPosition({ 0.0f, 0.0f, 0.0f });
         node->setRotation({ 0.0f, 0.0f, 0.0f });
         node->setScale({ 1.0f, 1.0f, 1.0f });
 
         float s = 10.0f;
-        auto mesh = node->getGeometry();
+        sfbx::GeomMesh* mesh = node->getGeometry();
 
         {
             // counts & indices & points
@@ -152,6 +152,8 @@ testCase(fbxWrite)
         }
 
         // blend shape
+        sfbx::BlendShape* blendshape{};
+        sfbx::BlendShapeChannel* bschannel{};
         {
             int indices[]{
                 6, 7, 8, 9,
@@ -161,9 +163,9 @@ testCase(fbxWrite)
                 {-s, 0, 0}, {s, 0, 0},
             };
 
-            sfbx::BlendShape* blendshape = mesh->createDeformer<sfbx::BlendShape>();
-            sfbx::BlendShapeChannel* channel = blendshape->createChannel("shape");
-            sfbx::Shape* shape = channel->createShape("shape", 1.0f);
+            blendshape = mesh->createDeformer<sfbx::BlendShape>();
+            bschannel = blendshape->createChannel("shape");
+            sfbx::Shape* shape = bschannel->createShape("shape", 1.0f);
             shape->setIndices(indices);
             shape->setDeltaPoints(delta_points);
 
@@ -171,15 +173,16 @@ testCase(fbxWrite)
             RawVector<float3> points;
             for (float w = -0.1f; w < 1.1f; w+=0.1f) {
                 points = mesh->getPoints();
-                channel->setWeight(w);
+                bschannel->setWeight(w);
                 blendshape->deformPoints(points);
                 testPrint("");
             }
         }
 
         // joints & skin
+        sfbx::Model* joints[5]{};
+        sfbx::Skin* skin{};
         {
-            sfbx::Model* joints[5]{};
             joints[0] = root->createChild<sfbx::Root>("joint1");
             joints[1] = joints[0]->createChild<sfbx::LimbNode>("joint2");
             joints[2] = joints[1]->createChild<sfbx::LimbNode>("joint3");
@@ -188,7 +191,7 @@ testCase(fbxWrite)
             for (int i = 1; i < 5; ++i)
                 joints[i]->setPosition({ 0, s, 0 });
 
-            sfbx::Skin* skin = mesh->createDeformer<sfbx::Skin>();
+            skin = mesh->createDeformer<sfbx::Skin>();
             for (int i = 0; i < 5; ++i) {
                 sfbx::Cluster* cluster = skin->createCluster(joints[i]);
                 int indices[2]{ i * 2 + 0, i * 2 + 1 };
@@ -197,6 +200,20 @@ testCase(fbxWrite)
                 cluster->setWeights(make_span(weights));
                 cluster->setBindMatrix(joints[i]->getGlobalMatrix());
             }
+        }
+
+        {
+            sfbx::AnimationStack* anim = doc->createObject<sfbx::AnimationStack>("test animation");
+            sfbx::AnimationLayer* layer = anim->createLayer("deform");
+            sfbx::AnimationCurveNode* n1 = layer->createCurveNode(sfbx::AnimationKind::Rotation, joints[1]);
+            n1->addValue(0.0f, float3{  0.0f, 0.0f, 0.0f });
+            n1->addValue(3.0f, float3{ 30.0f, 0.0f, 0.0f });
+            n1->addValue(6.0f, float3{  0.0f, 0.0f, 0.0f });
+            n1->addValue(9.0f, float3{-30.0f, 0.0f, 0.0f });
+
+            sfbx::AnimationCurveNode* bsw = layer->createCurveNode(sfbx::AnimationKind::DeformWeight, bschannel);
+            bsw->addValue(0.0f, 0.0f);
+            bsw->addValue(9.0f, 1.0f);
         }
 
 

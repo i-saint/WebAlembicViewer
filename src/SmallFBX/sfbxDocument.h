@@ -44,6 +44,10 @@ public:
     span<NodePtr> getAllNodes() const;
     span<Node*> getRootNodes() const;
 
+    void createLinkOO(Object* child, Object* parent);
+    void createLinkOP(Object* child, Object* parent, string_view target);
+
+
     Object* createObject(ObjectClass t, ObjectSubClass s);
     template<class T> T* createObject(string_view name = {});
     Object* findObject(int64 id) const;

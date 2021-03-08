@@ -246,6 +246,22 @@ Node* Document::findNode(string_view name) const
 span<sfbx::NodePtr> Document::getAllNodes() const { return make_span(m_nodes); }
 span<Node*> Document::getRootNodes() const { return make_span(m_root_nodes); }
 
+void Document::createLinkOO(Object* child, Object* parent)
+{
+    if (!child || !parent)
+        return;
+    if (auto c = findNode(sfbxS_Connections))
+        c->createChild(sfbxS_C, sfbxS_OO, child->getID(), parent->getID());
+}
+
+void Document::createLinkOP(Object* child, Object* parent, string_view target)
+{
+    if (!child || !parent)
+        return;
+    if (auto c = findNode(sfbxS_Connections))
+        c->createChild(sfbxS_C, sfbxS_OP, child->getID(), parent->getID(), target);
+}
+
 Object* Document::createObject(ObjectClass c, ObjectSubClass s)
 {
     Object* r{};
@@ -478,6 +494,8 @@ void Document::constructNodes()
     // index based loop because m_objects maybe push_backed in the loop
     for (size_t i = 0; i < m_objects.size(); ++i)
         m_objects[i]->constructNodes();
+    for (size_t i = 0; i < m_objects.size(); ++i)
+        m_objects[i]->constructLinks();
 
     {
         auto add_object_type = [definitions](size_t n, const char* type) -> Node* {

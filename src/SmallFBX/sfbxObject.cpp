@@ -183,11 +183,14 @@ void Object::constructNodes()
         return;
 
     auto objects = m_document->findNode(sfbxS_Objects);
-    m_node = objects->createChild(GetObjectClassName(getClass()));
-    m_node->addProperties(m_id, getName(), GetObjectSubClassName(getSubClass()));
+    m_node = objects->createChild(
+        GetObjectClassName(getClass()), m_id, getName(), GetObjectSubClassName(getSubClass()));
+}
 
+void Object::constructLinks()
+{
     for (auto parent : getParents())
-        addLinkOO(parent->getID());
+        m_document->createLinkOO(this, parent);
 }
 
 template<class T> T* Object::createChild(string_view name)
@@ -214,20 +217,6 @@ void Object::addParent(Object* v)
 {
     if (v)
         m_parents.push_back(v);
-}
-
-void Object::addLinkOO(int64 id)
-{
-    if (auto connections = m_document->findNode(sfbxS_Connections)) {
-        connections->createChild(sfbxS_C, sfbxS_OO, getID(), id);
-    }
-}
-
-void Object::addLinkOP(int64 id, string_view target)
-{
-    if (auto connections = m_document->findNode(sfbxS_Connections)) {
-        connections->createChild(sfbxS_C, sfbxS_OP, getID(), id, target);
-    }
 }
 
 int64 Object::getID() const { return m_id; }

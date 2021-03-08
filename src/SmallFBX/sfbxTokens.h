@@ -178,6 +178,7 @@
 #define sfbxI_BlendShapeVersion         100
 #define sfbxI_BlendShapeChannelVersion  100
 #define sfbxI_MaterialVersion   102
+#define sfbxI_KeyVer 4008
 
 #define sfbxI_TicksPerSecond 46186158000
 
