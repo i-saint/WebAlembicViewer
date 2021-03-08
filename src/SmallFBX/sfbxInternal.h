@@ -59,6 +59,11 @@ inline void AddTabs(std::string& dst, int n)
         dst += '\t';
 }
 
+inline int64 ToTick(float v)
+{
+    return int64((float64)v * sfbxI_TicksPerSecond);
+}
+
 
 inline size_t GetPropertyCount(Node* node)
 {

@@ -160,6 +160,17 @@
 #define sfbxS_R                 "R"
 #define sfbxS_S                 "S"
 #define sfbxS_FocalLength       "FocalLength"
+#define sfbxS_LocalStart        "LocalStart"
+#define sfbxS_LocalStop         "LocalStop"
+#define sfbxS_ReferenceStart    "ReferenceStart"
+#define sfbxS_ReferenceStop     "ReferenceStop"
+#define sfbxS_Time              "Time"
+#define sfbxS_KTime             "KTime"
+#define sfbxS_Number            "Number"
+#define sfbxS_Take              "Take"
+#define sfbxS_FileName          "FileName"
+#define sfbxS_LocalTime         "LocalTime"
+#define sfbxS_ReferenceTime     "ReferenceTime"
 
 
 #define sfbxI_TCDefinition      127

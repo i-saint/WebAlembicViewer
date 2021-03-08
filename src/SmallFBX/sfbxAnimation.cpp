@@ -7,6 +7,44 @@ namespace sfbx {
 
 
 ObjectClass AnimationStack::getClass() const { return ObjectClass::AnimationStack; }
+string_view AnimationStack::getClassName() const { return "AnimStack"; }
+
+void AnimationStack::constructObject()
+{
+    super::constructObject();
+}
+
+void AnimationStack::constructNodes()
+{
+    super::constructNodes();
+
+    float start{}, stop{};
+    bool first = true;
+    for (auto* layer : getAnimationLayers()) {
+        for (auto* node : layer->getAnimationCurveNodes()) {
+            if (first) {
+                start = node->getStartTime();
+                stop = node->getStopTime();
+            }
+            else {
+                start = std::min(start, node->getStartTime());
+                stop = std::min(start, node->getStopTime());
+            }
+        }
+    }
+
+    m_reference_start = m_local_start = start;
+    m_reference_stop = m_local_stop = stop;
+    auto props = getNode()->createChild(sfbxS_Properties70);
+    if (m_local_start != 0.0f)
+        props->createChild(sfbxS_P, sfbxS_LocalStart, sfbxS_KTime, sfbxS_Time, "", ToTick(m_local_start));
+    if (m_local_stop != 0.0f)
+        props->createChild(sfbxS_P, sfbxS_LocalStop, sfbxS_KTime, sfbxS_Time, "", ToTick(m_local_stop));
+    if (m_reference_start != 0.0f)
+        props->createChild(sfbxS_P, sfbxS_ReferenceStart, sfbxS_KTime, sfbxS_Time, "", ToTick(m_reference_start));
+    if (m_reference_stop != 0.0f)
+        props->createChild(sfbxS_P, sfbxS_ReferenceStop, sfbxS_KTime, sfbxS_Time, "", ToTick(m_reference_stop));
+}
 
 void AnimationStack::addChild(Object* v)
 {
@@ -15,10 +53,11 @@ void AnimationStack::addChild(Object* v)
         m_anim_layers.push_back(l);
 }
 
-span<AnimationLayer*> AnimationStack::getAnimationLayers() const
-{
-    return m_anim_layers;
-}
+float AnimationStack::getLocalStart() const { return m_local_start; }
+float AnimationStack::getLocalStop() const { return m_local_stop; }
+float AnimationStack::getReferenceStart() const { return m_reference_start; }
+float AnimationStack::getReferenceStop() const { return m_reference_stop; }
+span<AnimationLayer*> AnimationStack::getAnimationLayers() const { return m_anim_layers; }
 
 AnimationLayer* AnimationStack::createLayer(string_view name)
 {
@@ -27,6 +66,7 @@ AnimationLayer* AnimationStack::createLayer(string_view name)
 
 
 ObjectClass AnimationLayer::getClass() const { return ObjectClass::AnimationLayer; }
+string_view AnimationLayer::getClassName() const { return "AnimLayer"; }
 
 void AnimationLayer::constructObject()
 {
@@ -60,34 +100,49 @@ AnimationCurveNode* AnimationLayer::createCurveNode(AnimationKind kind, Object* 
 
 struct AnimationKindData
 {
+    AnimationKind kind;
     std::string object_name;
     std::string link_name;
     std::vector<std::string> curve_names;
 };
 static const AnimationKindData g_akdata[] = {
-    {}, // Unknown
-    {sfbxS_T, sfbxS_LclTranslation, {"d|X", "d|Y", "d|Z"}}, // Position
-    {sfbxS_R, sfbxS_LclRotation, {"d|X", "d|Y", "d|Z"}}, // Rotation
-    {sfbxS_S, sfbxS_LclScale, {"d|X", "d|Y", "d|Z"}}, // Scale
-    {sfbxS_DeformPercent, sfbxS_DeformPercent, {"d|" sfbxS_DeformPercent}}, // Weight
-    {sfbxS_FocalLength, sfbxS_FocalLength, {"d|" sfbxS_FocalLength}}, // Weight
+    {AnimationKind::Position,     sfbxS_T, sfbxS_LclTranslation, {"d|X", "d|Y", "d|Z"}},
+    {AnimationKind::Rotation,     sfbxS_R, sfbxS_LclRotation, {"d|X", "d|Y", "d|Z"}},
+    {AnimationKind::Scale,        sfbxS_S, sfbxS_LclScale, {"d|X", "d|Y", "d|Z"}},
+    {AnimationKind::DeformWeight, sfbxS_DeformPercent, sfbxS_DeformPercent, {"d|" sfbxS_DeformPercent}},
+    {AnimationKind::FocalLength,  sfbxS_FocalLength, sfbxS_FocalLength, {"d|" sfbxS_FocalLength}},
 };
+static const AnimationKindData* FindAnimationKindData(AnimationKind v)
+{
+    for (auto& akd : g_akdata)
+        if (akd.kind == v)
+            return &akd;
+    return nullptr;
+}
+static const AnimationKindData* FindAnimationKindData(string_view name)
+{
+    for (auto& akd : g_akdata)
+        if (akd.object_name == name)
+            return &akd;
+    return nullptr;
+}
 
 
 ObjectClass AnimationCurveNode::getClass() const { return ObjectClass::AnimationCurveNode; }
+string_view AnimationCurveNode::getClassName() const { return "AnimCurveNode"; }
 
 void AnimationCurveNode::constructObject()
 {
     super::constructObject();
 
     auto name = getDisplayName();
-    for (int i = 0; i < std::size(g_akdata); ++i) {
-        if (name == g_akdata[i].object_name) {
-            m_kind = (AnimationKind)i;
-            break;
-        }
+    auto* akd = FindAnimationKindData(name);
+    if (akd) {
+        m_kind = akd->kind;
+        EnumerateProperties(getNode(), [this, akd](Node* p) {
+            });
     }
-    if (m_kind == AnimationKind::Unknown) {
+    else {
         sfbxPrint("sfbx::AnimationCurveNode: unrecognized animation target \"%s\"\n", std::string(name).c_str());
     }
 }
@@ -95,6 +150,17 @@ void AnimationCurveNode::constructObject()
 void AnimationCurveNode::constructNodes()
 {
     super::constructNodes();
+
+    auto props = getNode()->createChild(sfbxS_Properties70);
+    if (auto* akd = FindAnimationKindData(getDisplayName())) {
+        size_t n = m_curves.size();
+        if (akd->curve_names.size() == n) {
+            for (size_t i = 0; i < n; ++i) {
+                float v = m_curves[i]->evaluate(m_curves[i]->getStartTime());
+                props->createChild(sfbxS_P, akd->curve_names[i], sfbxS_Number, "", sfbxS_A, (float64)v);
+            }
+        }
+    }
 }
 
 void AnimationCurveNode::constructLinks()
@@ -103,11 +169,11 @@ void AnimationCurveNode::constructLinks()
 
     m_document->createLinkOO(this, getParent());
 
-    auto& acd = g_akdata[(int)m_kind];
-    if (m_curves.size() == acd.curve_names.size()) {
-        m_document->createLinkOP(this, m_target, acd.link_name);
+    auto* acd = FindAnimationKindData(m_kind);
+    if (acd && m_curves.size() == acd->curve_names.size()) {
+        m_document->createLinkOP(this, m_target, acd->link_name);
         for (size_t i = 0; i < m_curves.size(); ++i)
-            m_document->createLinkOP(m_curves[i], this, acd.curve_names[i]);
+            m_document->createLinkOP(m_curves[i], this, acd->curve_names[i]);
     }
 }
 
@@ -128,9 +194,9 @@ float AnimationCurveNode::getStartTime() const
     return m_curves.empty() ? 0.0f : m_curves[0]->getStartTime();
 }
 
-float AnimationCurveNode::getEndTime() const
+float AnimationCurveNode::getStopTime() const
 {
-    return m_curves.empty() ? 0.0f : m_curves[0]->getEndTime();
+    return m_curves.empty() ? 0.0f : m_curves[0]->getStopTime();
 }
 
 float AnimationCurveNode::evaluate(float time) const
@@ -192,10 +258,11 @@ void AnimationCurveNode::initialize(AnimationKind kind, Object* target)
     m_target = target;
     m_target->addChild(this);
 
-    auto& acd = g_akdata[(int)m_kind];
-    setName(acd.object_name);
-    for (auto& cn : acd.curve_names)
-        createChild<AnimationCurve>();
+    if (auto* acd = FindAnimationKindData(m_kind)) {
+        setName(acd->object_name);
+        for (auto& cn : acd->curve_names)
+            createChild<AnimationCurve>();
+    }
 }
 
 void AnimationCurveNode::addValue(float time, float value)
@@ -220,6 +287,7 @@ void AnimationCurveNode::addValue(float time, float3 value)
 
 
 ObjectClass AnimationCurve::getClass() const { return ObjectClass::AnimationCurve; }
+string_view AnimationCurve::getClassName() const { return "AnimCurve"; }
 
 void AnimationCurve::constructObject()
 {
@@ -245,10 +313,13 @@ void AnimationCurve::constructNodes()
 {
     super::constructNodes();
 
+    RawVector<int64> times_i64;
+    transform(times_i64, m_times, [](float v) { return ToTick(v); });
+
     auto n = getNode();
     n->createChild(sfbxS_Default, (float64)m_default);
     n->createChild(sfbxS_KeyVer, sfbxI_KeyVer);
-    n->createChild(sfbxS_KeyTime, MakeAdaptor<float64>(m_times));
+    n->createChild(sfbxS_KeyTime, times_i64);
     n->createChild(sfbxS_KeyValueFloat, m_values); // float array
 
     int attr_flags[] = { 24836 };
@@ -268,7 +339,7 @@ span<float> AnimationCurve::getTimes() const { return make_span(m_times); }
 span<float> AnimationCurve::getValues() const { return make_span(m_values); }
 
 float AnimationCurve::getStartTime() const { return m_times.empty() ? 0.0f : m_times.front(); }
-float AnimationCurve::getEndTime() const { return m_times.empty() ? 0.0f : m_times.back(); }
+float AnimationCurve::getStopTime() const { return m_times.empty() ? 0.0f : m_times.back(); }
 
 float AnimationCurve::evaluate(float time) const
 {

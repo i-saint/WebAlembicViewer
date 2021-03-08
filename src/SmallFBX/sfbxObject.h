@@ -517,9 +517,9 @@ public:
 
     float getWeight() const;
     span<ShapeData> getShapeData() const;
-    // weight: 0.0f - 1.0f
-    void addShape(Shape* shape, float weight = 1.0f);
-    Shape* createShape(string_view name, float weight = 1.0f);
+    // weight: 0.0f - 100.0f
+    void addShape(Shape* shape, float weight = 100.0f);
+    Shape* createShape(string_view name, float weight = 100.0f);
 
     void setWeight(float v);
     void deformPoints(span<float3> dst) const;
@@ -527,7 +527,7 @@ public:
 
 protected:
     std::vector<ShapeData> m_shape_data;
-    float m_weight = 0.0f; // 0.0f - 1.0f
+    float m_weight = 0.0f;
 };
 
 
@@ -594,12 +594,21 @@ class AnimationStack : public Object
 using super = Object;
 public:
     ObjectClass getClass() const override;
+    void constructObject() override;
+    void constructNodes() override;
     void addChild(Object* v) override;
+
+    float getLocalStart() const;
+    float getLocalStop() const;
+    float getReferenceStart() const;
+    float getReferenceStop() const;
     span<AnimationLayer*> getAnimationLayers() const;
 
     AnimationLayer* createLayer(string_view name = {});
 
 protected:
+    string_view getClassName() const override;
+
     float m_local_start{};
     float m_local_stop{};
     float m_reference_start{};
@@ -621,6 +630,8 @@ public:
     AnimationCurveNode* createCurveNode(AnimationKind kind, Object* target);
 
 protected:
+    string_view getClassName() const override;
+
     std::vector<AnimationCurveNode*> m_anim_nodes;
 };
 
@@ -636,7 +647,7 @@ public:
 
     AnimationKind getKind() const;
     float getStartTime() const;
-    float getEndTime() const;
+    float getStopTime() const;
 
     // evaluate curve(s)
     float evaluate(float time) const;
@@ -650,6 +661,7 @@ public:
     void addValue(float time, float3 value);
 
 protected:
+    string_view getClassName() const override;
 
     AnimationKind m_kind = AnimationKind::Unknown;
     Object* m_target{};
@@ -668,7 +680,7 @@ public:
     span<float> getTimes() const;
     span<float> getValues() const;
     float getStartTime() const;
-    float getEndTime() const;
+    float getStopTime() const;
     float evaluate(float time) const;
 
     void setTimes(span<float> v);
@@ -676,6 +688,8 @@ public:
     void addValue(float time, float value);
 
 protected:
+    string_view getClassName() const override;
+
     float m_default{};
     RawVector<float> m_times;
     RawVector<float> m_values;

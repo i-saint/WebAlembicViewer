@@ -31,8 +31,8 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
         for (auto n : anim->getAnimationCurveNodes()) {
             if (n->getKind() == sfbx::AnimationKind::Position) {
                 float start = n->getStartTime();
-                float end = n->getEndTime();
-                for (float t = start; t <= end; t += 0.033334f) {
+                float stop = n->getStopTime();
+                for (float t = start; t <= stop; t += 0.033334f) {
                     auto v = n->evaluate3(t);
                     testPrint("");
                 }
@@ -165,13 +165,13 @@ testCase(fbxWrite)
 
             blendshape = mesh->createDeformer<sfbx::BlendShape>();
             bschannel = blendshape->createChannel("shape");
-            sfbx::Shape* shape = bschannel->createShape("shape", 1.0f);
+            sfbx::Shape* shape = bschannel->createShape("shape", 100.0f);
             shape->setIndices(indices);
             shape->setDeltaPoints(delta_points);
 
             // verify
             RawVector<float3> points;
-            for (float w = -0.1f; w < 1.1f; w+=0.1f) {
+            for (float w = -10.0f; w < 110.f; w+=10.0f) {
                 points = mesh->getPoints();
                 bschannel->setWeight(w);
                 blendshape->deformPoints(points);
@@ -202,9 +202,10 @@ testCase(fbxWrite)
             }
         }
 
+        // animation
         {
-            sfbx::AnimationStack* anim = doc->createObject<sfbx::AnimationStack>("test animation");
-            sfbx::AnimationLayer* layer = anim->createLayer("deform");
+            sfbx::AnimationStack* take = doc->createObject<sfbx::AnimationStack>("test");
+            sfbx::AnimationLayer* layer = take->createLayer("deform");
             sfbx::AnimationCurveNode* n1 = layer->createCurveNode(sfbx::AnimationKind::Rotation, joints[1]);
             n1->addValue(0.0f, float3{  0.0f, 0.0f, 0.0f });
             n1->addValue(3.0f, float3{ 30.0f, 0.0f, 0.0f });
@@ -212,8 +213,11 @@ testCase(fbxWrite)
             n1->addValue(9.0f, float3{-30.0f, 0.0f, 0.0f });
 
             sfbx::AnimationCurveNode* bsw = layer->createCurveNode(sfbx::AnimationKind::DeformWeight, bschannel);
-            bsw->addValue(0.0f, 0.0f);
-            bsw->addValue(9.0f, 1.0f);
+            bsw->addValue(0.0f,   0.0f);
+            bsw->addValue(4.5f, 100.0f);
+            bsw->addValue(9.0f,   0.0f);
+
+            doc->setCurrentTake(take);
         }
 
 

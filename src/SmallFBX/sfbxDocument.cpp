@@ -336,6 +336,17 @@ T* Document::createObject(string_view name)
     m_objects.push_back(ObjectPtr(r));
     return r;
 }
+template<>
+AnimationStack* Document::createObject<AnimationStack>(string_view name)
+{
+    AnimationStack* r = new AnimationStack();
+    r->m_document = this;
+    r->setName(name);
+    m_objects.push_back(ObjectPtr(r));
+    m_takes.push_back(r);
+    return r;
+}
+
 #define Body(T) template T* Document::createObject(string_view name);
 sfbxEachObjectType(Body)
 #undef Body
@@ -365,6 +376,8 @@ Object* Document::findObject(string_view name) const
 span<ObjectPtr> Document::getAllObjects() const { return make_span(m_objects); }
 span<Object*> Document::getRootObjects() const { return make_span(m_root_objects); }
 Model* Document::getRootModel() const { return m_root_model; }
+AnimationStack* Document::getCurrentTake() const { return m_current_take; }
+void Document::setCurrentTake(AnimationStack* v) { m_current_take = v; }
 
 template<class T>
 static inline size_t CountObject(std::vector<ObjectPtr>& objects)
@@ -382,6 +395,7 @@ void Document::constructNodes()
 
     std::time_t t = std::time(nullptr);
     std::tm* now = std::localtime(&t);
+    std::string take_name{ m_current_take ? m_current_take->getDisplayName() : "" };
 
     auto header_extension = createNode(sfbxS_FBXHeaderExtension);
     {
@@ -476,7 +490,7 @@ void Document::constructNodes()
 
             auto prop = doc->createChild(sfbxS_Properties70);
             prop->createChild(sfbxS_P, "SourceObject", "object", "", "");
-            prop->createChild(sfbxS_P, "ActiveAnimStackName", "KString", "", "", "");
+            prop->createChild(sfbxS_P, "ActiveAnimStackName", "KString", "", "", take_name);
 
             doc->createChild(sfbxS_RootNode, 0);
         }
@@ -488,8 +502,6 @@ void Document::constructNodes()
 
     createNode(sfbxS_Objects);
     createNode(sfbxS_Connections);
-
-    createNode(sfbxS_Takes)->createChild(sfbxS_Current, "");
 
     // index based loop because m_objects maybe push_backed in the loop
     for (size_t i = 0; i < m_objects.size(); ++i)
@@ -521,6 +533,22 @@ void Document::constructNodes()
         add_object_type(CountObject<AnimationCurve>(m_objects), sfbxS_AnimationCurve);
 
         add_object_type(CountObject<Material>(m_objects), sfbxS_Material);
+    }
+
+    auto takes = createNode(sfbxS_Takes);
+    takes->createChild(sfbxS_Current, take_name);
+    for (auto* t : m_takes) {
+        auto take = takes->createChild(sfbxS_Take, t->getDisplayName());
+        take->createChild(sfbxS_FileName, std::string(t->getDisplayName()) + ".tak");
+
+        float lstart = t->getLocalStart();
+        float lstop = t->getLocalStop();
+        float rstart = t->getReferenceStart();
+        float rstop = t->getReferenceStop();
+        if (lstart != 0.0f || lstop != 0.0f)
+            take->createChild(sfbxS_LocalTime, ToTick(lstart), ToTick(lstop));
+        if (rstart != 0.0f || rstop != 0.0f)
+            take->createChild(sfbxS_ReferenceTime, ToTick(rstart), ToTick(rstop));
     }
 }
 

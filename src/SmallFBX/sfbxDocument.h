@@ -55,6 +55,8 @@ public:
     span<ObjectPtr> getAllObjects() const;
     span<Object*> getRootObjects() const;
     Model* getRootModel() const;
+    AnimationStack* getCurrentTake() const;
+    void setCurrentTake(AnimationStack* v);
 
     void constructNodes();
     std::string toString();
@@ -69,7 +71,9 @@ private:
 
     std::vector<ObjectPtr> m_objects;
     std::vector<Object*> m_root_objects;
+    std::vector<AnimationStack*> m_takes;
     Model* m_root_model{};
+    AnimationStack* m_current_take{};
 };
 
 template<class... T>
