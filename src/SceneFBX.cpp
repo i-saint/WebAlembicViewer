@@ -181,7 +181,7 @@ void SceneFBX::scanObjects(ImportContext ctx)
                 break;
             }
         }
-        tmp->weights = skin->getJointWeightsVariable();
+        tmp->weights = skin->getJointWeights();
         tmp->points_deformed.resize(tmp->weights.counts.size());
 
         m_skin_data.push_back(tmp);

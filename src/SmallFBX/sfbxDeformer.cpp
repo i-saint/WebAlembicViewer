@@ -15,6 +15,9 @@ GeomMesh* Deformer::getBaseMesh() const
     return nullptr;
 }
 
+void Deformer::deformPoints(span<float3> dst) const {}
+void Deformer::deformNormals(span<float3> dst) const {}
+
 
 string_view SubDeformer::getClassName() const { return sfbxS_SubDeformer; }
 
@@ -46,17 +49,25 @@ void Skin::addParent(Object* v)
 void Skin::addChild(Object* v)
 {
     super::addChild(v);
-    if (auto cluster = as<Cluster>(v))
+    if (auto cluster = as<Cluster>(v)) {
         m_clusters.push_back(cluster);
+
+        // clear cached skin data
+        m_weights = {};
+        m_joint_matrices = {};
+    }
 }
 
 GeomMesh* Skin::getMesh() const { return m_mesh; }
 span<Cluster*> Skin::getClusters() const { return make_span(m_clusters); }
 
-JointWeights Skin::getJointWeightsVariable()
+const JointWeights& Skin::getJointWeights()
 {
-    JointWeights ret;
-    auto mesh = as<GeomMesh>(getParent());
+    auto& ret = m_weights;
+    if (!ret.counts.empty())
+        return ret;
+
+    auto mesh = getBaseMesh();
     if (!mesh)
         return ret;
 
@@ -100,12 +111,21 @@ JointWeights Skin::getJointWeightsVariable()
             ret.weights[pos] = { (int)ci, weight };
         }
     }
+
+    // sort weights
+    {
+        auto* w = ret.weights.data();
+        for (int c : ret.counts) {
+            std::sort(w, w + c, [](auto& a, auto& b) { return b.weight < a.weight; });
+            w += c;
+        }
+    }
     return ret;
 }
 
-JointWeights Skin::getJointWeightsFixed(int joints_per_vertex)
+JointWeights Skin::createFixedJointWeights(int joints_per_vertex)
 {
-    JointWeights tmp = getJointWeightsVariable();
+    auto& tmp = getJointWeights();
     if (tmp.weights.empty())
         return tmp;
 
@@ -140,18 +160,16 @@ JointWeights Skin::getJointWeightsFixed(int joints_per_vertex)
             copy(dst, src, size_t(count));
         }
         else {
-            std::nth_element(src, src + joints_per_vertex, src + count,
-                [](auto& a, auto& b) { return a.weight < b.weight; });
-            normalize_weights(make_span(src, joints_per_vertex));
             copy(dst, src, size_t(joints_per_vertex));
+            normalize_weights(make_span(dst, joints_per_vertex));
         }
     }
     return ret;
 }
 
-JointMatrices Skin::getJointMatrices()
+const JointMatrices& Skin::getJointMatrices()
 {
-    JointMatrices ret;
+    auto& ret = m_joint_matrices;
 
     size_t cclusters = m_clusters.size();
 
@@ -267,13 +285,13 @@ BlendShapeChannel* BlendShape::createChannel(string_view name)
     return createChild<BlendShapeChannel>(name);
 }
 
-void BlendShape::deformPoints(span<float3> dst)
+void BlendShape::deformPoints(span<float3> dst) const
 {
     for (auto ch : m_channels)
         ch->deformPoints(dst);
 }
 
-void BlendShape::deformNormals(span<float3> dst)
+void BlendShape::deformNormals(span<float3> dst) const
 {
     for (auto ch : m_channels)
         ch->deformNormals(dst);
@@ -346,7 +364,7 @@ void BlendShapeChannel::setWeight(float v)
     m_weight = v;
 }
 
-void BlendShapeChannel::deformPoints(span<float3> dst)
+void BlendShapeChannel::deformPoints(span<float3> dst) const
 {
     if (m_weight <= 0.0f || m_shape_data.empty())
         return;
@@ -366,7 +384,7 @@ void BlendShapeChannel::deformPoints(span<float3> dst)
     }
 }
 
-void BlendShapeChannel::deformNormals(span<float3> dst)
+void BlendShapeChannel::deformNormals(span<float3> dst) const
 {
     if (m_weight == 0.0f)
         return;

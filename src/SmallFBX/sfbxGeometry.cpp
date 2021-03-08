@@ -16,6 +16,9 @@ void Geometry::addChild(Object* v)
 
 span<Deformer*> Geometry::getDeformers() const { return make_span(m_deformers); }
 
+template<> Skin* Geometry::createDeformer() { return createChild<Skin>(); }
+template<> BlendShape* Geometry::createDeformer() { return createChild<BlendShape>(); }
+
 
 ObjectSubClass GeomMesh::getSubClass() const { return ObjectSubClass::Mesh; }
 
@@ -210,16 +213,6 @@ void GeomMesh::setPoints(span<float3> v) { m_points = v; }
 void GeomMesh::addNormalLayer(LayerElementF3&& v) { m_normal_layers.push_back(v); }
 void GeomMesh::addUVLayer(LayerElementF2&& v) { m_uv_layers.push_back(v); }
 void GeomMesh::addColorLayer(LayerElementF4&& v) { m_color_layers.push_back(v); }
-
-Skin* GeomMesh::createSkin()
-{
-    return createChild<Skin>();
-}
-
-BlendShape* GeomMesh::createBlendshape()
-{
-    return createChild<BlendShape>();
-}
 
 
 ObjectSubClass Shape::getSubClass() const { return ObjectSubClass::Shape; }

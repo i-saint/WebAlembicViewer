@@ -22,18 +22,20 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
 
     // for test
     if (auto skin = as<sfbx::Skin>(obj)) {
-        auto weights_v = skin->getJointWeightsVariable();
-        auto weights_4 = skin->getJointWeightsFixed(4);
+        auto weights_v = skin->getJointWeights();
+        auto weights_4 = skin->createFixedJointWeights(4);
         auto matrices = skin->getJointMatrices();
         testPrint("");
     }
     else if (auto anim = as<sfbx::AnimationLayer>(obj)) {
-        if (auto pos = anim->getPosition()) {
-            float start = pos->getStartTime();
-            float end = pos->getEndTime();
-            for (float t = start; t <= end; t += 0.033334f) {
-                auto v = pos->evaluate3(t);
-                testPrint("");
+        for (auto n : anim->getAnimationCurveNodes()) {
+            if (n->getTarget() == sfbx::AnimationTarget::Position) {
+                float start = n->getStartTime();
+                float end = n->getEndTime();
+                for (float t = start; t <= end; t += 0.033334f) {
+                    auto v = n->evaluate3(t);
+                    testPrint("");
+                }
             }
         }
     }
@@ -159,7 +161,7 @@ testCase(fbxWrite)
                 {-s, 0, 0}, {s, 0, 0},
             };
 
-            sfbx::BlendShape* blendshape = mesh->createBlendshape();
+            sfbx::BlendShape* blendshape = mesh->createDeformer<sfbx::BlendShape>();
             sfbx::BlendShapeChannel* channel = blendshape->createChannel("shape");
             sfbx::Shape* shape = channel->createShape("shape", 1.0f);
             shape->setIndices(indices);
@@ -186,7 +188,7 @@ testCase(fbxWrite)
             for (int i = 1; i < 5; ++i)
                 joints[i]->setPosition({ 0, s, 0 });
 
-            sfbx::Skin* skin = mesh->createSkin();
+            sfbx::Skin* skin = mesh->createDeformer<sfbx::Skin>();
             for (int i = 0; i < 5; ++i) {
                 sfbx::Cluster* cluster = skin->createCluster(joints[i]);
                 int indices[2]{ i * 2 + 0, i * 2 + 1 };

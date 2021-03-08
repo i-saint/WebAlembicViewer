@@ -14,31 +14,24 @@ ObjectClass AnimationLayer::getClass() const { return ObjectClass::AnimationLaye
 void AnimationLayer::constructObject()
 {
     super::constructObject();
-    for (auto* n : getChildren()) {
-        if (auto* cnode = as<AnimationCurveNode>(n)) {
-            auto name = cnode->getDisplayName();
-            if (name == sfbxS_T)
-                m_position = cnode;
-            else if (name == sfbxS_R)
-                m_rotation = cnode;
-            else if (name == sfbxS_S )
-                m_scale = cnode;
-            else if (name == sfbxS_FocalLength)
-                m_focal_length = cnode;
-        }
-    }
 }
 
 void AnimationLayer::constructNodes()
 {
     super::constructNodes();
-    // todo
 }
 
-AnimationCurveNode* AnimationLayer::getPosition() const     { return m_position; }
-AnimationCurveNode* AnimationLayer::getRotation() const     { return m_rotation; }
-AnimationCurveNode* AnimationLayer::getScale() const        { return m_scale; }
-AnimationCurveNode* AnimationLayer::getFocalLength() const  { return m_focal_length; }
+void AnimationLayer::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto acn = as<AnimationCurveNode>(v))
+        m_anim_nodes.push_back(acn);
+}
+
+span<AnimationCurveNode*> AnimationLayer::getAnimationCurveNodes() const
+{
+    return make_span(m_anim_nodes);
+}
 
 
 ObjectClass AnimationCurveNode::getClass() const { return ObjectClass::AnimationCurveNode; }
@@ -46,12 +39,52 @@ ObjectClass AnimationCurveNode::getClass() const { return ObjectClass::Animation
 void AnimationCurveNode::constructObject()
 {
     super::constructObject();
+
+    auto name = getDisplayName();
+    if (name == sfbxS_T)
+        m_target = AnimationTarget::Position;
+    else if (name == sfbxS_R)
+        m_target = AnimationTarget::Rotation;
+    else if (name == sfbxS_S)
+        m_target = AnimationTarget::Scale;
+    else if (name == sfbxS_DeformPercent)
+        m_target = AnimationTarget::DeformWeight;
+    else if (name == sfbxS_FocalLength)
+        m_target = AnimationTarget::FocalLength;
+    else
+        sfbxPrint("sfbx::AnimationCurveNode: unrecognized animation target \"%s\"\n", std::string(name).c_str());
 }
 
 void AnimationCurveNode::constructNodes()
 {
     super::constructNodes();
-    // todo
+
+    if (m_parent_model && m_target != AnimationTarget::Unknown) {
+        int64 pid = m_parent_model->getID();
+        switch (m_target) {
+        case AnimationTarget::Position:
+            setName(sfbxS_T);
+            addLinkOP(pid, sfbxS_LclTranslation);
+            break;
+        case AnimationTarget::Rotation:
+            setName(sfbxS_R);
+            addLinkOP(pid, sfbxS_LclRotation);
+            break;
+        case AnimationTarget::Scale:
+            setName(sfbxS_S);
+            addLinkOP(pid, sfbxS_LclScale);
+            break;
+        case AnimationTarget::DeformWeight:
+            setName(sfbxS_DeformPercent);
+            addLinkOP(pid, sfbxS_DeformPercent);
+            break;
+        case AnimationTarget::FocalLength:
+            setName(sfbxS_FocalLength);
+            addLinkOP(pid, sfbxS_FocalLength);
+            break;
+        default: break;
+        }
+    }
 }
 
 void AnimationCurveNode::addChild(Object* v)
@@ -59,6 +92,20 @@ void AnimationCurveNode::addChild(Object* v)
     super::addChild(v);
     if (auto curve = as<AnimationCurve>(v))
         m_curves.push_back(curve);
+}
+
+void AnimationCurveNode::addParent(Object* v)
+{
+    super::addParent(v);
+    if (auto model = as<Model>(v))
+        m_parent_model = model;
+    if (auto bschannel = as<BlendShapeChannel>(v))
+        m_parent_bschannel = bschannel;
+}
+
+AnimationTarget AnimationCurveNode::getTarget() const
+{
+    return m_target;
 }
 
 float AnimationCurveNode::getStartTime() const
@@ -90,6 +137,43 @@ float3 AnimationCurveNode::evaluate3(float time) const
     };
 }
 
+void AnimationCurveNode::apply(float time) const
+{
+    if (m_curves.empty() || m_target == AnimationTarget::Unknown)
+        return;
+
+    switch (m_target) {
+    case AnimationTarget::Position:
+        if (m_parent_model)
+            m_parent_model->setPosition(evaluate3(time));
+        break;
+    case AnimationTarget::Rotation:
+        if (m_parent_model)
+            m_parent_model->setRotation(evaluate3(time));
+        break;
+    case AnimationTarget::Scale:
+        if (m_parent_model)
+            m_parent_model->setScale(evaluate3(time));
+        break;
+    case AnimationTarget::DeformWeight:
+        if (m_parent_bschannel)
+            m_parent_bschannel->setWeight(evaluate(time));
+        break;
+    case AnimationTarget::FocalLength:
+        // todo
+        break;
+    default:
+        // should not be here
+        sfbxPrint("sfbx::AnimationCurveNode: something wrong\n");
+        break;
+    }
+}
+
+void AnimationCurveNode::setTarget(AnimationTarget v)
+{
+    m_target = v;
+}
+
 void AnimationCurveNode::addValue(float time, float value)
 {
     if (m_curves.empty()) {
@@ -117,6 +201,7 @@ void AnimationCurveNode::addValue(float time, float3 value)
     m_curves[1]->addValue(time, value.y);
     m_curves[2]->addValue(time, value.z);
 }
+
 
 ObjectClass AnimationCurve::getClass() const { return ObjectClass::AnimationCurve; }
 

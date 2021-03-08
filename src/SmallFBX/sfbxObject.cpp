@@ -223,6 +223,13 @@ void Object::addLinkOO(int64 id)
     }
 }
 
+void Object::addLinkOP(int64 id, string_view target)
+{
+    if (auto connections = m_document->findNode(sfbxS_Connections)) {
+        connections->createChild(sfbxS_C, sfbxS_OP, getID(), id, target);
+    }
+}
+
 int64 Object::getID() const { return m_id; }
 string_view Object::getName() const { return m_name; }
 string_view Object::getDisplayName() const { return m_name.c_str(); }

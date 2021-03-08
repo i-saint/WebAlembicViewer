@@ -65,7 +65,7 @@ public:
 
     int64 getID() const;
     string_view getName() const; // in object name format (e.g. "hoge\x00\x01Mesh")
-    string_view getDisplayName() const; // return name part (e.g. "hoge" if object name is "hoge\x00\x01Mesh")
+    string_view getDisplayName() const; // return display part (e.g. "hoge" if object name is "hoge\x00\x01Mesh")
     Node* getNode() const;
 
     span<Object*> getParents() const;
@@ -84,6 +84,7 @@ protected:
     virtual string_view getClassName() const;
     virtual void addParent(Object* v);
     void addLinkOO(int64 id);
+    void addLinkOP(int64 id, string_view target);
 
     Document* m_document{};
     Node* m_node{};
@@ -286,6 +287,9 @@ protected:
 // Geometry and its subclasses:
 //  (Mesh, Shape)
 
+template<class T>
+inline constexpr bool is_deformer = std::is_base_of_v<Deformer, T>;
+
 class Geometry : public Object
 {
 using super = Object;
@@ -294,6 +298,10 @@ public:
     void addChild(Object* v) override;
 
     span<Deformer*> getDeformers() const;
+
+    // T: Skin, BlendShape
+    template<class T, sfbxRestrict(is_deformer<T>)>
+    T* createDeformer();
 
 protected:
     std::vector<Deformer*> m_deformers;
@@ -304,8 +312,9 @@ template<class T>
 struct LayerElement
 {
     std::string name;
-    RawVector<T> data;
     RawVector<int> indices; // can be empty. in that case, size of data must equal with vertex count or index count.
+    RawVector<T> data;
+    RawVector<T> data_deformed;
 };
 using LayerElementF2 = LayerElement<float2>;
 using LayerElementF3 = LayerElement<float3>;
@@ -333,13 +342,14 @@ public:
     void addUVLayer(LayerElementF2&& v);
     void addColorLayer(LayerElementF4&& v);
 
-    Skin* createSkin();
-    BlendShape* createBlendshape();
+    span<float3> getPointsDeformed();
+    span<float3> getNormalsDeformed(size_t layer_index = 0);
 
 protected:
     RawVector<int> m_counts;
     RawVector<int> m_indices;
     RawVector<float3> m_points;
+    RawVector<float3> m_points_deformed;
     std::vector<LayerElementF3> m_normal_layers;
     std::vector<LayerElementF2> m_uv_layers;
     std::vector<LayerElementF4> m_color_layers;
@@ -378,11 +388,15 @@ public:
     ObjectClass getClass() const override;
 
     GeomMesh* getBaseMesh() const;
+
+    // apply deform to dst. size of dst must be equal with base mesh.
+    virtual void deformPoints(span<float3> dst) const;
+    virtual void deformNormals(span<float3> dst) const;
 };
 
-class SubDeformer : public Deformer
+class SubDeformer : public Object
 {
-using super = Deformer;
+using super = Object;
 public:
 protected:
     string_view getClassName() const override;
@@ -421,18 +435,24 @@ public:
 
     GeomMesh* getMesh() const;
     span<Cluster*> getClusters() const;
-    JointWeights getJointWeightsVariable();
-    JointWeights getJointWeightsFixed(int joints_per_vertex);
-    JointMatrices getJointMatrices();
+    const JointWeights& getJointWeights();
+    JointWeights createFixedJointWeights(int joints_per_vertex);
+    const JointMatrices& getJointMatrices();
 
     // joint should be Null, Root or LimbNode
     Cluster* createCluster(Model* joint);
+
+    //// apply deform to dst. size of dst must be equal with base mesh.
+    //void deformPoints(span<float3> dst) const override;
+    //void deformNormals(span<float3> dst) const override;
 
 protected:
     void addParent(Object* v) override;
 
     GeomMesh* m_mesh{};
     std::vector<Cluster*> m_clusters;
+    mutable JointWeights m_weights;
+    mutable JointMatrices m_joint_matrices;
 };
 
 
@@ -474,9 +494,8 @@ public:
     span<BlendShapeChannel*> getChannels() const;
     BlendShapeChannel* createChannel(string_view name);
 
-    // apply delta to dst. size of dst must be equal with base mesh.
-    void deformPoints(span<float3> dst);
-    void deformNormals(span<float3> dst);
+    void deformPoints(span<float3> dst) const override;
+    void deformNormals(span<float3> dst) const override;
 
 protected:
     std::vector<BlendShapeChannel*> m_channels;
@@ -504,8 +523,8 @@ public:
     Shape* createShape(string_view name, float weight = 1.0f);
 
     void setWeight(float v);
-    void deformPoints(span<float3> dst);
-    void deformNormals(span<float3> dst);
+    void deformPoints(span<float3> dst) const;
+    void deformNormals(span<float3> dst) const;
 
 protected:
     std::vector<ShapeData> m_shape_data;
@@ -561,6 +580,16 @@ public:
 // animation-related classes
 // (AnimationStack, AnimationLayer, AnimationCurveNode, AnimationCurve)
 
+enum class AnimationTarget
+{
+    Unknown,
+    Position,       // float3
+    Rotation,       // float3
+    Scale,          // float3
+    DeformWeight,   // float
+    FocalLength,    // float
+};
+
 class AnimationStack : public Object
 {
 using super = Object;
@@ -581,17 +610,12 @@ public:
     ObjectClass getClass() const override;
     void constructObject() override;
     void constructNodes() override;
+    void addChild(Object* v) override;
 
-    AnimationCurveNode* getPosition() const;
-    AnimationCurveNode* getRotation() const;
-    AnimationCurveNode* getScale() const;
-    AnimationCurveNode* getFocalLength() const;
+    span<AnimationCurveNode*> getAnimationCurveNodes() const;
 
 protected:
-    AnimationCurveNode* m_position{};
-    AnimationCurveNode* m_rotation{};
-    AnimationCurveNode* m_scale{};
-    AnimationCurveNode* m_focal_length{};
+    std::vector<AnimationCurveNode*> m_anim_nodes;
 };
 
 class AnimationCurveNode : public Object
@@ -603,15 +627,27 @@ public:
     void constructNodes() override;
     void addChild(Object* v) override;
 
+    AnimationTarget getTarget() const;
     float getStartTime() const;
     float getEndTime() const;
+
+    // evaluate curve(s)
     float evaluate(float time) const;
     float3 evaluate3(float time) const;
 
+    // apply evaluated value to target
+    void apply(float time) const;
+
+    void setTarget(AnimationTarget v);
     void addValue(float time, float value);
     void addValue(float time, float3 value);
 
 protected:
+    void addParent(Object* v) override;
+
+    Model* m_parent_model{};
+    BlendShapeChannel* m_parent_bschannel{};
+    AnimationTarget m_target = AnimationTarget::Unknown;
     std::vector<AnimationCurve*> m_curves;
 };
 
