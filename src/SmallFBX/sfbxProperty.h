@@ -64,6 +64,10 @@ class Property
 {
 public:
     Property();
+    Property(Property&& v);
+    Property(const Property&) = delete;
+    Property& operator=(const Property&) = delete;
+
     void read(std::istream& input);
     void write(std::ostream& output);
 

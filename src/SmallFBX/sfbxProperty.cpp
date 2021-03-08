@@ -39,6 +39,12 @@ uint32_t SizeOfElement(PropertyType type)
 
 Property::Property() {}
 
+Property::Property(Property&& v)
+    : m_type(v.m_type)
+    , m_scalar(v.m_scalar)
+    , m_data(std::move(v.m_data))
+{}
+
 void Property::read(std::istream& is)
 {
     m_type = read1<PropertyType>(is);

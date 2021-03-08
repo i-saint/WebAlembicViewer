@@ -33,10 +33,9 @@ uint64_t Node::read(std::istream& is, uint64_t start_offset)
     ret += 1;
     ret += name_len;
 
-    for (uint32_t i = 0; i < num_props; i++) {
-        auto p = createProperty();
-        p->read(is);
-    }
+    reserveProperties(num_props);
+    for (uint32_t i = 0; i < num_props; i++)
+        createProperty()->read(is);
     ret += prop_size;
 
     while (start_offset + ret < end_offset) {
@@ -65,8 +64,8 @@ uint64_t Node::write(std::ostream& os, uint64_t start_offset)
     bool null_terminate = !m_children.empty() || m_properties.empty();
     {
         CounterStream cs;
-        for (auto prop : m_properties)
-            prop->write(cs);
+        for (auto& prop : m_properties)
+            prop.write(cs);
         property_size = cs.size();
     }
     {
@@ -93,8 +92,8 @@ uint64_t Node::write(std::ostream& os, uint64_t start_offset)
     writev(os, uint8_t(m_name.size()));
     writev(os, m_name);
 
-    for (auto prop : m_properties)
-        prop->write(os);
+    for (auto& prop : m_properties)
+        prop.write(os);
 
     uint64_t pos = header_size + property_size;
     for (auto child : m_children)
@@ -119,11 +118,15 @@ void Node::setName(string_view v)
     m_name = v;
 }
 
+void Node::reserveProperties(size_t v)
+{
+    m_properties.reserve(v);
+}
+
 Property* Node::createProperty()
 {
-    auto p = std::make_shared<Property>();
-    m_properties.push_back(p);
-    return p.get();
+    m_properties.emplace_back();
+    return &m_properties.back();
 }
 
 Node* Node::createChild(string_view name)
@@ -148,7 +151,7 @@ string_view Node::getName() const
     return m_name;
 }
 
-span<PropertyPtr> Node::getProperties() const
+span<Property> Node::getProperties() const
 {
     return make_span(m_properties);
 }
@@ -156,19 +159,19 @@ span<PropertyPtr> Node::getProperties() const
 Property* Node::getProperty(size_t i)
 {
     if (i < m_properties.size())
-        return m_properties[i].get();
+        return &m_properties[i];
     return nullptr;
 }
 
 #ifdef sfbxEnableLegacyFormatSupport
 
 template<class S, class D>
-static inline void ToArray(span<PropertyPtr> props, RawVector<D>& dst)
+static inline void ToArray(span<Property> props, RawVector<D>& dst)
 {
     dst.resize(props.size() / get_vector_size<D>);
     auto* d = (get_scalar_t<D>*)dst.data();
-    for (auto prop : props)
-        *d++ = prop->getValue<get_scalar_t<S>>();
+    for (auto& prop : props)
+        *d++ = prop.getValue<get_scalar_t<S>>();
 }
 
 #define Def(S, D)\
@@ -185,12 +188,12 @@ Def(double4, float4);
 
 
 template<class S, class D>
-void ToVector(span<PropertyPtr> props, D& dst)
+void ToVector(span<Property> props, D& dst)
 {
     if (props.size() == get_vector_size<D>) {
         auto* d = dst.data();
-        for (auto prop : props)
-            *d++ = prop->getValue<get_scalar_t<S>>();
+        for (auto& prop : props)
+            *d++ = prop.getValue<get_scalar_t<S>>();
     }
 }
 template<> void Node::getPropertiesValues<double4x4, float4x4>(float4x4& dst) const { ToVector<double4x4, float4x4>(getProperties(), dst); }
@@ -227,7 +230,7 @@ std::string Node::toString(int depth) const
     s += getName();
     s += ": ";
     join(s, m_properties, ", ",
-        [depth](auto& p) { return p->toString(depth); });
+        [depth](auto& p) { return p.toString(depth); });
     s += " ";
 
     if (!m_children.empty() || (m_children.empty() && m_properties.empty())) {

@@ -460,7 +460,7 @@ void Document::constructNodes()
         }
     }
 
-    createNode(sfbxS_FileId)->addProperty(make_span(g_fbx_file_id));
+    createNode(sfbxS_FileId)->addProperties(make_span(g_fbx_file_id));
     createNode(sfbxS_CreationTime)->addProperties(g_fbx_time_id);
     createNode(sfbxS_Creator)->addProperties(g_creator);
 

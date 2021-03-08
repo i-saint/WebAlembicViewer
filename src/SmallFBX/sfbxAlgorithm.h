@@ -10,14 +10,12 @@ template<class T>
 inline constexpr bool has_resize<T, std::void_t<decltype(std::declval<T>().resize(0))>> = true;
 
 // call resize() if Cont has. otherwise do nothing.
-template <class Cont, sfbxRestrict(has_resize<Cont>)>
+template <class Cont>
 inline void resize(Cont& dst, size_t n)
 {
-    dst.resize(n);
-}
-template <class Cont, sfbxRestrict(!has_resize<Cont>)>
-inline void resize(Cont& dst, size_t n)
-{
+    if constexpr (has_resize<Cont>) {
+        dst.resize(n);
+    }
 }
 
 

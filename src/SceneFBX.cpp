@@ -55,7 +55,6 @@ private:
     void applyDeform();
 
     sfbx::DocumentPtr m_document;
-    std::tuple<double, double> m_time_range;
 
     double m_time = -1.0;
     MeshPtr m_mono_mesh;
@@ -203,10 +202,6 @@ bool SceneFBX::load(const char* path)
         return false;
     }
 
-    if (auto take = m_document->getCurrentTake()) {
-        m_time_range = { take->getLocalStart(), take->getLocalStop() };
-    }
-
     m_mono_mesh = std::make_shared<Mesh>();
 
     ImportContext ctx;
@@ -222,7 +217,6 @@ bool SceneFBX::load(const char* path)
 void SceneFBX::unload()
 {
     m_document = nullptr;
-    m_time_range = {};
 
     m_time = -1.0;
     m_mono_mesh = {};
@@ -233,7 +227,9 @@ void SceneFBX::unload()
 
 std::tuple<double, double> SceneFBX::getTimeRange() const
 {
-    return m_time_range;
+    if (auto take = m_document->getCurrentTake())
+        return { take->getLocalStart(), take->getLocalStop() };
+    return {};
 }
 
 void SceneFBX::applyDeform()

@@ -210,9 +210,9 @@ span<LayerElementF4> GeomMesh::getColorLayers() const { return make_span(m_color
 void GeomMesh::setCounts(span<int> v) { m_counts = v; }
 void GeomMesh::setIndices(span<int> v) { m_indices = v; }
 void GeomMesh::setPoints(span<float3> v) { m_points = v; }
-void GeomMesh::addNormalLayer(LayerElementF3&& v) { m_normal_layers.push_back(v); }
-void GeomMesh::addUVLayer(LayerElementF2&& v) { m_uv_layers.push_back(v); }
-void GeomMesh::addColorLayer(LayerElementF4&& v) { m_color_layers.push_back(v); }
+void GeomMesh::addNormalLayer(LayerElementF3&& v) { m_normal_layers.push_back(std::move(v)); }
+void GeomMesh::addUVLayer(LayerElementF2&& v) { m_uv_layers.push_back(std::move(v)); }
+void GeomMesh::addColorLayer(LayerElementF4&& v) { m_color_layers.push_back(std::move(v)); }
 
 
 ObjectSubClass Shape::getSubClass() const { return ObjectSubClass::Shape; }
