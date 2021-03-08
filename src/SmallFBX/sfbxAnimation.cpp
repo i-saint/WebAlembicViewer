@@ -12,6 +12,17 @@ string_view AnimationStack::getClassName() const { return "AnimStack"; }
 void AnimationStack::constructObject()
 {
     super::constructObject();
+
+    EnumerateProperties(getNode(), [this](Node* n) {
+        if (GetPropertyString(n, 0) == sfbxS_LocalStart)
+            m_local_start = FromTicks(GetPropertyValue<int64>(n, 4));
+        else if (GetPropertyString(n, 0) == sfbxS_LocalStop)
+            m_local_stop = FromTicks(GetPropertyValue<int64>(n, 4));
+        else if (GetPropertyString(n, 0) == sfbxS_ReferenceStart)
+            m_reference_start = FromTicks(GetPropertyValue<int64>(n, 4));
+        else if (GetPropertyString(n, 0) == sfbxS_ReferenceStop)
+            m_reference_stop = FromTicks(GetPropertyValue<int64>(n, 4));
+        });
 }
 
 void AnimationStack::constructNodes()
@@ -37,13 +48,13 @@ void AnimationStack::constructNodes()
     m_reference_stop = m_local_stop = stop;
     auto props = getNode()->createChild(sfbxS_Properties70);
     if (m_local_start != 0.0f)
-        props->createChild(sfbxS_P, sfbxS_LocalStart, sfbxS_KTime, sfbxS_Time, "", ToTick(m_local_start));
+        props->createChild(sfbxS_P, sfbxS_LocalStart, sfbxS_KTime, sfbxS_Time, "", ToTicks(m_local_start));
     if (m_local_stop != 0.0f)
-        props->createChild(sfbxS_P, sfbxS_LocalStop, sfbxS_KTime, sfbxS_Time, "", ToTick(m_local_stop));
+        props->createChild(sfbxS_P, sfbxS_LocalStop, sfbxS_KTime, sfbxS_Time, "", ToTicks(m_local_stop));
     if (m_reference_start != 0.0f)
-        props->createChild(sfbxS_P, sfbxS_ReferenceStart, sfbxS_KTime, sfbxS_Time, "", ToTick(m_reference_start));
+        props->createChild(sfbxS_P, sfbxS_ReferenceStart, sfbxS_KTime, sfbxS_Time, "", ToTicks(m_reference_start));
     if (m_reference_stop != 0.0f)
-        props->createChild(sfbxS_P, sfbxS_ReferenceStop, sfbxS_KTime, sfbxS_Time, "", ToTick(m_reference_stop));
+        props->createChild(sfbxS_P, sfbxS_ReferenceStop, sfbxS_KTime, sfbxS_Time, "", ToTicks(m_reference_stop));
 }
 
 void AnimationStack::addChild(Object* v)
@@ -64,6 +75,11 @@ AnimationLayer* AnimationStack::createLayer(string_view name)
     return createChild<AnimationLayer>(name);
 }
 
+void AnimationStack::applyAnimation(float time)
+{
+    for (auto layer : m_anim_layers)
+        layer->applyAnimation(time);
+}
 
 ObjectClass AnimationLayer::getClass() const { return ObjectClass::AnimationLayer; }
 string_view AnimationLayer::getClassName() const { return "AnimLayer"; }
@@ -97,13 +113,20 @@ AnimationCurveNode* AnimationLayer::createCurveNode(AnimationKind kind, Object* 
     return ret;
 }
 
+void AnimationLayer::applyAnimation(float time)
+{
+    for (auto n : m_anim_nodes)
+        n->applyAnimation(time);
+}
+
+
 
 struct AnimationKindData
 {
     AnimationKind kind;
-    std::string object_name;
-    std::string link_name;
-    std::vector<std::string> curve_names;
+    string_view object_name;
+    string_view link_name;
+    std::vector<string_view> curve_names;
 };
 static const AnimationKindData g_akdata[] = {
     {AnimationKind::Position,     sfbxS_T, sfbxS_LclTranslation, {"d|X", "d|Y", "d|Z"}},
@@ -139,6 +162,10 @@ void AnimationCurveNode::constructObject()
     auto* akd = FindAnimationKindData(name);
     if (akd) {
         m_kind = akd->kind;
+        for (auto p : getParents()) {
+            if (!as<AnimationLayer>(p))
+                m_target = p;
+        }
         EnumerateProperties(getNode(), [this, akd](Node* p) {
             });
     }
@@ -301,7 +328,7 @@ void AnimationCurve::constructObject()
         else if (name == sfbxS_KeyTime) {
             RawVector<int64> times_i64;
             GetPropertyValue<int64>(times_i64, n);
-            transform(m_times, times_i64, [](int64 v) { return float((double)v / sfbxI_TicksPerSecond); });
+            transform(m_times, times_i64, [](int64 v) { return FromTicks(v); });
         }
         else if (name == sfbxS_KeyValueFloat) {
             GetPropertyValue<float32>(m_values, n);
@@ -314,7 +341,7 @@ void AnimationCurve::constructNodes()
     super::constructNodes();
 
     RawVector<int64> times_i64;
-    transform(times_i64, m_times, [](float v) { return ToTick(v); });
+    transform(times_i64, m_times, [](float v) { return ToTicks(v); });
 
     auto n = getNode();
     n->createChild(sfbxS_Default, (float64)m_default);

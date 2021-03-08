@@ -19,6 +19,7 @@ void Deformer::deformPoints(span<float3> dst) const {}
 void Deformer::deformNormals(span<float3> dst) const {}
 
 
+ObjectClass SubDeformer::getClass() const { return ObjectClass::Deformer; }
 string_view SubDeformer::getClassName() const { return sfbxS_SubDeformer; }
 
 

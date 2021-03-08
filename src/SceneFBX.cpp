@@ -203,6 +203,10 @@ bool SceneFBX::load(const char* path)
         return false;
     }
 
+    if (auto take = m_document->getCurrentTake()) {
+        m_time_range = { take->getLocalStart(), take->getLocalStop() };
+    }
+
     m_mono_mesh = std::make_shared<Mesh>();
 
     ImportContext ctx;
@@ -268,6 +272,10 @@ void SceneFBX::seek(double time)
 {
     if (!m_document || time == m_time)
         return;
+
+    if (auto take = m_document->getCurrentTake()) {
+        take->applyAnimation(time);
+    }
 
     applyDeform();
 }

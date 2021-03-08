@@ -101,6 +101,16 @@ bool Document::read(std::istream& is)
             if (obj->getParents().empty())
                 m_root_objects.push_back(obj.get());
         }
+
+        if (Node* takes = findNode(sfbxS_Takes)) {
+            auto current = GetChildPropertyString(takes, sfbxS_Current);
+            for (auto t : m_takes) {
+                if (t->getDisplayName() == current) {
+                    m_current_take = t;
+                    break;
+                }
+            }
+        }
     }
     catch (const std::runtime_error& e) {
         sfbxPrint("sfbx::Document::read(): exception %s\n", e.what());
@@ -310,7 +320,13 @@ Object* Document::createObject(ObjectClass c, ObjectSubClass s)
         }
         break;
     case ObjectClass::Material:          r = new Material(); break;
-    case ObjectClass::AnimationStack:    r = new AnimationStack(); break;
+    case ObjectClass::AnimationStack:
+    {
+        auto anim_stack = new AnimationStack();
+        m_takes.push_back(anim_stack);
+        r = anim_stack;
+        break;
+    }
     case ObjectClass::AnimationLayer:    r = new AnimationLayer(); break;
     case ObjectClass::AnimationCurveNode:r = new AnimationCurveNode(); break;
     case ObjectClass::AnimationCurve:    r = new AnimationCurve(); break;
@@ -334,16 +350,9 @@ T* Document::createObject(string_view name)
     r->m_document = this;
     r->setName(name);
     m_objects.push_back(ObjectPtr(r));
-    return r;
-}
-template<>
-AnimationStack* Document::createObject<AnimationStack>(string_view name)
-{
-    AnimationStack* r = new AnimationStack();
-    r->m_document = this;
-    r->setName(name);
-    m_objects.push_back(ObjectPtr(r));
-    m_takes.push_back(r);
+    if constexpr (std::is_same_v<T, AnimationStack>) {
+        m_takes.push_back(r);
+    }
     return r;
 }
 
@@ -546,9 +555,9 @@ void Document::constructNodes()
         float rstart = t->getReferenceStart();
         float rstop = t->getReferenceStop();
         if (lstart != 0.0f || lstop != 0.0f)
-            take->createChild(sfbxS_LocalTime, ToTick(lstart), ToTick(lstop));
+            take->createChild(sfbxS_LocalTime, ToTicks(lstart), ToTicks(lstop));
         if (rstart != 0.0f || rstop != 0.0f)
-            take->createChild(sfbxS_ReferenceTime, ToTick(rstart), ToTick(rstop));
+            take->createChild(sfbxS_ReferenceTime, ToTicks(rstart), ToTicks(rstop));
     }
 }
 

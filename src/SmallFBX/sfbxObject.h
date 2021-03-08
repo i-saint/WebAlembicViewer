@@ -393,11 +393,12 @@ public:
     virtual void deformNormals(span<float3> dst) const;
 };
 
-class SubDeformer : public Deformer
+class SubDeformer : public Object
 {
-using super = Deformer;
+using super = Object;
 public:
 protected:
+    ObjectClass getClass() const override;
     string_view getClassName() const override;
 };
 
@@ -606,6 +607,8 @@ public:
 
     AnimationLayer* createLayer(string_view name = {});
 
+    void applyAnimation(float time);
+
 protected:
     string_view getClassName() const override;
 
@@ -628,6 +631,8 @@ public:
     span<AnimationCurveNode*> getAnimationCurveNodes() const;
 
     AnimationCurveNode* createCurveNode(AnimationKind kind, Object* target);
+
+    void applyAnimation(float time);
 
 protected:
     string_view getClassName() const override;

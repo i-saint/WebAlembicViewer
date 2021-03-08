@@ -59,9 +59,13 @@ inline void AddTabs(std::string& dst, int n)
         dst += '\t';
 }
 
-inline int64 ToTick(float v)
+inline int64 ToTicks(float v)
 {
     return int64((float64)v * sfbxI_TicksPerSecond);
+}
+inline float FromTicks(int64 v)
+{
+    return float((float64)v / sfbxI_TicksPerSecond);
 }
 
 
