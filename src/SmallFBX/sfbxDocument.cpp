@@ -24,7 +24,7 @@ Document::Document()
 
 void Document::initialize()
 {
-    m_root_model = createObject<Model>("RootNode");
+    m_root_model = createObject<Model>("Scene");
     m_root_model->setID(0);
 }
 
@@ -368,19 +368,12 @@ Object* Document::findObject(int64 id) const
     return it != m_objects.end() ? it->get() : nullptr;
 }
 
-#ifdef sfbxEnableLegacyFormatSupport
-static const string_view g_model_scene = make_view("Scene" "\x00\x01" "Model");
-
 Object* Document::findObject(string_view name) const
 {
-    if (name == g_model_scene)
-        return m_root_model;
-
     auto it = std::find_if(m_objects.begin(), m_objects.end(),
         [&name](auto& p) { return p->getName() == name; });
     return it != m_objects.end() ? it->get() : nullptr;
 }
-#endif
 
 span<ObjectPtr> Document::getAllObjects() const { return make_span(m_objects); }
 span<Object*> Document::getRootObjects() const { return make_span(m_root_objects); }

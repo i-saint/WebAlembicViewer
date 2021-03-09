@@ -162,11 +162,8 @@ void AnimationCurveNode::constructObject()
     auto* akd = FindAnimationKindData(name);
     if (akd) {
         m_kind = akd->kind;
-        for (auto p : getParents()) {
-            if (!as<AnimationLayer>(p))
-                m_target = p;
-        }
         EnumerateProperties(getNode(), [this, akd](Node* p) {
+            // todo
             });
     }
     else {
@@ -198,7 +195,8 @@ void AnimationCurveNode::constructLinks()
 
     auto* acd = FindAnimationKindData(m_kind);
     if (acd && m_curves.size() == acd->curve_names.size()) {
-        m_document->createLinkOP(this, m_target, acd->link_name);
+        if (auto* target = getAnimationTarget())
+            m_document->createLinkOP(this, target, acd->link_name);
         for (size_t i = 0; i < m_curves.size(); ++i)
             m_document->createLinkOP(m_curves[i], this, acd->curve_names[i]);
     }
@@ -211,9 +209,17 @@ void AnimationCurveNode::addChild(Object* v)
         m_curves.push_back(curve);
 }
 
-AnimationKind AnimationCurveNode::getKind() const
+AnimationKind AnimationCurveNode::getAnimationKind() const
 {
     return m_kind;
+}
+
+Object* AnimationCurveNode::getAnimationTarget() const
+{
+    for (auto p : getParents()) 
+        if (!as<AnimationLayer>(p))
+            return p;
+    return nullptr;
 }
 
 float AnimationCurveNode::getStartTime() const
@@ -250,25 +256,26 @@ void AnimationCurveNode::applyAnimation(float time) const
     if (m_curves.empty() || m_kind == AnimationKind::Unknown)
         return;
 
+    auto* target = getAnimationTarget();
     switch (m_kind) {
     case AnimationKind::Position:
-        if (auto* model = as<Model>(m_target))
+        if (auto* model = as<Model>(target))
             model->setPosition(evaluate3(time));
         break;
     case AnimationKind::Rotation:
-        if (auto* model = as<Model>(m_target))
+        if (auto* model = as<Model>(target))
             model->setRotation(evaluate3(time));
         break;
     case AnimationKind::Scale:
-        if (auto* model = as<Model>(m_target))
+        if (auto* model = as<Model>(target))
             model->setScale(evaluate3(time));
         break;
     case AnimationKind::DeformWeight:
-        if (auto* bsc = as<BlendShapeChannel>(m_target))
+        if (auto* bsc = as<BlendShapeChannel>(target))
             bsc->setWeight(evaluate(time));
         break;
     case AnimationKind::FocalLength:
-        if (auto cam = as<Camera>(m_target)) {
+        if (auto cam = as<Camera>(target)) {
             // todo
         }
         break;
@@ -282,8 +289,8 @@ void AnimationCurveNode::applyAnimation(float time) const
 void AnimationCurveNode::initialize(AnimationKind kind, Object* target)
 {
     m_kind = kind;
-    m_target = target;
-    m_target->addChild(this);
+    if (target)
+        target->addChild(this);
 
     if (auto* acd = FindAnimationKindData(m_kind)) {
         setName(acd->object_name);

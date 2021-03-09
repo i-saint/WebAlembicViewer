@@ -29,7 +29,7 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
     }
     else if (auto anim = as<sfbx::AnimationLayer>(obj)) {
         for (auto n : anim->getAnimationCurveNodes()) {
-            if (n->getKind() == sfbx::AnimationKind::Position) {
+            if (n->getAnimationKind() == sfbx::AnimationKind::Position) {
                 float start = n->getStartTime();
                 float stop = n->getStopTime();
                 for (float t = start; t <= stop; t += 0.033334f) {
@@ -58,9 +58,6 @@ testCase(fbxRead)
 
     sfbx::DocumentPtr doc = sfbx::MakeDocument();
     if (doc->read(path)) {
-        testPrint("Nodes:\n");
-        testPuts(doc->toString().c_str());
-
         testPrint("Objects:\n");
         for (auto obj : doc->getRootObjects())
             PrintObject(obj);
@@ -168,15 +165,6 @@ testCase(fbxWrite)
             sfbx::Shape* shape = bschannel->createShape("shape", 100.0f);
             shape->setIndices(indices);
             shape->setDeltaPoints(delta_points);
-
-            // verify
-            RawVector<float3> points;
-            for (float w = -10.0f; w < 110.f; w+=10.0f) {
-                points = mesh->getPoints();
-                bschannel->setWeight(w);
-                blendshape->deformPoints(points);
-                testPrint("");
-            }
         }
 
         // joints & skin

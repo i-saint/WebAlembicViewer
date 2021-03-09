@@ -234,9 +234,7 @@ void Mesh::constructObject()
     // in old fbx, Model::Mesh has geometry data
     auto n = getNode();
     if (n->findChild(sfbxS_Vertices)) {
-        auto geom = getGeometry();
-        geom->setNode(n);
-        geom->constructObject();
+        getGeometry()->setNode(n);
     }
 #endif
 }

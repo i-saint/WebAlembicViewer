@@ -26,16 +26,6 @@ public:
     };
     using MeshDataPtr = std::shared_ptr<MeshData>;
 
-    struct SkinData
-    {
-        sfbx::Skin* skin_fbx{};
-        sfbx::JointWeights weights;
-        sfbx::JointMatrices matrices;
-        RawVector<float3> points_deformed;
-        MeshDataPtr mesh;
-    };
-    using SkinDataPtr = std::shared_ptr<SkinData>;
-
     void release() override;
 
     bool load(const char* path) override;
@@ -59,7 +49,6 @@ private:
     double m_time = -1.0;
     MeshPtr m_mono_mesh;
     std::vector<MeshDataPtr> m_mesh_data;
-    std::vector<SkinDataPtr> m_skin_data;
 
     std::map<std::string, CameraPtr> m_camera_table;
     std::vector<ICamera*> m_cameras;
@@ -170,21 +159,6 @@ void SceneFBX::scanObjects(ImportContext ctx)
             src_indices += c;
         }
     }
-    else if (auto skin = as<sfbx::Skin>(obj)) {
-        auto tmp = std::make_shared<SkinData>();
-        tmp->skin_fbx = skin;
-        auto mesh_fbx = skin->getMesh();
-        for (auto& p : m_mesh_data) {
-            if (p->mesh_fbx == mesh_fbx) {
-                tmp->mesh = p;
-                break;
-            }
-        }
-        tmp->weights = skin->getJointWeights();
-        tmp->points_deformed.resize(tmp->weights.counts.size());
-
-        m_skin_data.push_back(tmp);
-    }
 
     for (auto child : obj->getChildren()) {
         ctx.obj = child;
@@ -236,29 +210,18 @@ void SceneFBX::applyDeform()
 {
     bool needs_upload = false;
 
-    // skin
-    for (auto& skin : m_skin_data) {
-        if (!skin->mesh || skin->mesh->indices_tri.empty())
+    for (auto& mesh : m_mesh_data) {
+        if (!mesh->mesh_fbx->hasDeformer())
             continue;
 
-        skin->matrices = skin->skin_fbx->getJointMatrices();
-        auto mesh = skin->mesh;
-        {
-            auto src = mesh->mesh_fbx->getPoints();
-            auto dst = make_span((sfbx::float3*)skin->points_deformed.data(), skin->points_deformed.size());
-            sfbx::DeformPoints(dst, skin->weights, skin->matrices, src);
-        }
-        {
-            auto src = make_span(skin->points_deformed.data(), skin->points_deformed.size());
-            auto dst = make_span(m_mono_mesh->m_points.data() + mesh->points_offset, m_mono_mesh->m_points.size());
-            auto dst_ex = make_span(m_mono_mesh->m_points_ex.data() + mesh->pointsex_offset, mesh->indices_tri.size());
-            sfbx::copy(dst, src);
-            sfbx::copy_indexed(dst_ex, src, mesh->indices_tri);
-        }
         needs_upload = true;
+        auto points_deformed = mesh->mesh_fbx->getPointsDeformed();
+        auto src = make_span((float3*)points_deformed.data(), points_deformed.size());
+        auto dst = make_span(m_mono_mesh->m_points.data() + mesh->points_offset, m_mono_mesh->m_points.size());
+        auto dst_ex = make_span(m_mono_mesh->m_points_ex.data() + mesh->pointsex_offset, mesh->indices_tri.size());
+        sfbx::copy(dst, src);
+        sfbx::copy_indexed(dst_ex, src, mesh->indices_tri);
     }
-
-    // todo: blend shape
 
     if (needs_upload)
         m_mono_mesh->upload();

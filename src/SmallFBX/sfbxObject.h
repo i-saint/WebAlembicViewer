@@ -50,16 +50,13 @@ bool SplitObjectName(string_view node_name, string_view& display_name, string_vi
 
 // base object class
 
-class Object
+class Object : public std::enable_shared_from_this<Object>
 {
 friend class Document;
 public:
     virtual ~Object();
     virtual ObjectClass getClass() const;
     virtual ObjectSubClass getSubClass() const;
-    virtual void constructObject();
-    virtual void constructNodes();
-    virtual void constructLinks();
 
     template<class T> T* createChild(string_view name = {});
     virtual void addChild(Object* v);
@@ -79,9 +76,13 @@ public:
     virtual void setNode(Node* v);
 
 protected:
+    Object();
     Object(const Object&) = delete;
     Object& operator=(const Object) = delete;
-    Object();
+
+    virtual void constructObject(); // import data from fbx nodes
+    virtual void constructNodes(); // export data to fbx nodes
+    virtual void constructLinks(); // export connections to fbx nodes
     virtual string_view getClassName() const;
     virtual void addParent(Object* v);
 
@@ -160,8 +161,6 @@ class Model : public Object
 using super = Object;
 public:
     ObjectClass getClass() const override;
-    void constructObject() override;
-    void constructNodes() override;
     void addChild(Object* v) override;
 
     Model* getParentModel() const;
@@ -185,6 +184,8 @@ public:
     void setScale(float3 v);
 
 protected:
+    void constructObject() override;
+    void constructNodes() override;
     void addParent(Object* v) override;
 
     Model* m_parent_model{};
@@ -203,23 +204,24 @@ class Null : public Model
 using super = Model;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructNodes() override;
     void addChild(Object* v) override;
 
 protected:
+    void constructNodes() override;
+
     NullAttribute* m_attr{};
 };
-
 
 class Root : public Model
 {
 using super = Model;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructNodes() override;
     void addChild(Object* v) override;
 
 protected:
+    void constructNodes() override;
+
     RootAttribute* m_attr{};
 };
 
@@ -229,10 +231,11 @@ class LimbNode : public Model
 using super = Model;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructNodes() override;
     void addChild(Object* v) override;
 
 protected:
+    void constructNodes() override;
+
     LimbNodeAttribute* m_attr{};
 };
 
@@ -242,13 +245,14 @@ class Mesh : public Model
 using super = Model;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructObject() override;
     void addChild(Object* v) override;
 
     GeomMesh* getGeometry();
     span<Material*> getMaterials() const;
 
 protected:
+    void constructObject() override;
+
     GeomMesh* m_geom{};
     std::vector<Material*> m_materials;
 };
@@ -259,11 +263,12 @@ class Light : public Model
 using super = Model;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructObject() override;
-    void constructNodes() override;
     void addChild(Object* v) override;
 
 protected:
+    void constructObject() override;
+    void constructNodes() override;
+
     LightAttribute* m_attr{};
 };
 
@@ -296,6 +301,7 @@ public:
     ObjectClass getClass() const override;
     void addChild(Object* v) override;
 
+    bool hasDeformer() const;
     span<Deformer*> getDeformers() const;
 
     // T: Skin, BlendShape
@@ -324,8 +330,6 @@ class GeomMesh : public Geometry
 using super = Geometry;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructObject() override;
-    void constructNodes() override;
 
     span<int> getCounts() const;
     span<int> getIndices() const;
@@ -345,6 +349,9 @@ public:
     span<float3> getNormalsDeformed(size_t layer_index = 0);
 
 protected:
+    void constructObject() override;
+    void constructNodes() override;
+
     RawVector<int> m_counts;
     RawVector<int> m_indices;
     RawVector<float3> m_points;
@@ -359,8 +366,6 @@ class Shape : public Geometry
 using super = Geometry;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructObject() override;
-    void constructNodes() override;
 
     span<int> getIndices() const;
     span<float3> getDeltaPoints() const;
@@ -371,6 +376,9 @@ public:
     void setDeltaNormals(span<float3> v);
 
 public:
+    void constructObject() override;
+    void constructNodes() override;
+
     RawVector<int> m_indices;
     RawVector<float3> m_delta_points;
     RawVector<float3> m_delta_normals;
@@ -429,24 +437,24 @@ class Skin : public Deformer
 using super = Deformer;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructObject() override;
-    void constructNodes() override;
     void addChild(Object* v) override;
 
     GeomMesh* getMesh() const;
     span<Cluster*> getClusters() const;
-    const JointWeights& getJointWeights();
-    JointWeights createFixedJointWeights(int joints_per_vertex);
-    const JointMatrices& getJointMatrices();
+    const JointWeights& getJointWeights() const;
+    JointWeights createFixedJointWeights(int joints_per_vertex) const;
+    const JointMatrices& getJointMatrices() const;
 
     // joint should be Null, Root or LimbNode
     Cluster* createCluster(Model* joint);
 
-    //// apply deform to dst. size of dst must be equal with base mesh.
-    //void deformPoints(span<float3> dst) const override;
-    //void deformNormals(span<float3> dst) const override;
+    // apply deform to dst. size of dst must be equal with base mesh.
+    void deformPoints(span<float3> dst) const override;
+    void deformNormals(span<float3> dst) const override;
 
 protected:
+    void constructObject() override;
+    void constructNodes() override;
     void addParent(Object* v) override;
 
     GeomMesh* m_mesh{};
@@ -461,8 +469,6 @@ class Cluster : public SubDeformer
 using super = SubDeformer;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructObject() override;
-    void constructNodes() override;
     void addChild(Object* v) override;
 
     span<int> getIndices() const;
@@ -475,6 +481,9 @@ public:
     void setBindMatrix(float4x4 v); // v: global matrix of the joint (not inverted)
 
 protected:
+    void constructObject() override;
+    void constructNodes() override;
+
     RawVector<int> m_indices;
     RawVector<float> m_weights;
     float4x4 m_transform = float4x4::identity();
@@ -487,8 +496,6 @@ class BlendShape : public Deformer
 using super = Deformer;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructObject() override;
-    void constructNodes() override;
     void addChild(Object* v) override;
 
     span<BlendShapeChannel*> getChannels() const;
@@ -498,6 +505,9 @@ public:
     void deformNormals(span<float3> dst) const override;
 
 protected:
+    void constructObject() override;
+    void constructNodes() override;
+
     std::vector<BlendShapeChannel*> m_channels;
 };
 
@@ -513,8 +523,6 @@ public:
     };
 
     ObjectSubClass getSubClass() const override;
-    void constructObject() override;
-    void constructNodes() override;
 
     float getWeight() const;
     span<ShapeData> getShapeData() const;
@@ -527,6 +535,9 @@ public:
     void deformNormals(span<float3> dst) const;
 
 protected:
+    void constructObject() override;
+    void constructNodes() override;
+
     std::vector<ShapeData> m_shape_data;
     float m_weight = 0.0f;
 };
@@ -554,13 +565,14 @@ public:
     };
 
     ObjectSubClass getSubClass() const override;
-    void constructObject() override;
-    void constructNodes() override;
 
     span<PoseData> getPoseData() const;
     void addPoseData(Model* joint, float4x4 bind_matrix);
 
 protected:
+    void constructObject() override;
+    void constructNodes() override;
+
     std::vector<PoseData> m_pose_data;
 };
 
@@ -572,6 +584,8 @@ class Material : public Object
 using super = Object;
 public:
     ObjectClass getClass() const override;
+
+protected:
     void constructObject() override;
     void constructNodes() override;
 };
@@ -597,8 +611,6 @@ class AnimationStack : public Object
 using super = Object;
 public:
     ObjectClass getClass() const override;
-    void constructObject() override;
-    void constructNodes() override;
     void addChild(Object* v) override;
 
     float getLocalStart() const;
@@ -613,6 +625,8 @@ public:
 
 protected:
     string_view getClassName() const override;
+    void constructObject() override;
+    void constructNodes() override;
 
     float m_local_start{};
     float m_local_stop{};
@@ -626,8 +640,6 @@ class AnimationLayer : public Object
 using super = Object;
 public:
     ObjectClass getClass() const override;
-    void constructObject() override;
-    void constructNodes() override;
     void addChild(Object* v) override;
 
     span<AnimationCurveNode*> getAnimationCurveNodes() const;
@@ -638,6 +650,8 @@ public:
 
 protected:
     string_view getClassName() const override;
+    void constructObject() override;
+    void constructNodes() override;
 
     std::vector<AnimationCurveNode*> m_anim_nodes;
 };
@@ -647,12 +661,10 @@ class AnimationCurveNode : public Object
 using super = Object;
 public:
     ObjectClass getClass() const override;
-    void constructObject() override;
-    void constructNodes() override;
-    void constructLinks() override;
     void addChild(Object* v) override;
 
-    AnimationKind getKind() const;
+    AnimationKind getAnimationKind() const;
+    Object* getAnimationTarget() const;
     float getStartTime() const;
     float getStopTime() const;
 
@@ -669,9 +681,11 @@ public:
 
 protected:
     string_view getClassName() const override;
+    void constructObject() override;
+    void constructNodes() override;
+    void constructLinks() override;
 
     AnimationKind m_kind = AnimationKind::Unknown;
-    Object* m_target{};
     std::vector<AnimationCurve*> m_curves;
 };
 
@@ -680,9 +694,6 @@ class AnimationCurve : public Object
 using super = Object;
 public:
     ObjectClass getClass() const override;
-    void constructObject() override;
-    void constructNodes() override;
-    void constructLinks() override;
 
     span<float> getTimes() const;
     span<float> getValues() const;
@@ -696,6 +707,9 @@ public:
 
 protected:
     string_view getClassName() const override;
+    void constructObject() override;
+    void constructNodes() override;
+    void constructLinks() override;
 
     float m_default{};
     RawVector<float> m_times;

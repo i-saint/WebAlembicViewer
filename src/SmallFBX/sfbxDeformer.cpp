@@ -62,7 +62,7 @@ void Skin::addChild(Object* v)
 GeomMesh* Skin::getMesh() const { return m_mesh; }
 span<Cluster*> Skin::getClusters() const { return make_span(m_clusters); }
 
-const JointWeights& Skin::getJointWeights()
+const JointWeights& Skin::getJointWeights() const
 {
     auto& ret = m_weights;
     if (!ret.counts.empty())
@@ -124,7 +124,7 @@ const JointWeights& Skin::getJointWeights()
     return ret;
 }
 
-JointWeights Skin::createFixedJointWeights(int joints_per_vertex)
+JointWeights Skin::createFixedJointWeights(int joints_per_vertex) const
 {
     auto& tmp = getJointWeights();
     if (tmp.weights.empty())
@@ -168,12 +168,12 @@ JointWeights Skin::createFixedJointWeights(int joints_per_vertex)
     return ret;
 }
 
-const JointMatrices& Skin::getJointMatrices()
+const JointMatrices& Skin::getJointMatrices() const
 {
     auto& ret = m_joint_matrices;
 
+    // todo: cache result
     size_t cclusters = m_clusters.size();
-
     ret.bindpose.resize(cclusters);
     ret.global_transform.resize(cclusters);
     ret.joint_transform.resize(cclusters);
@@ -201,6 +201,22 @@ Cluster* Skin::createCluster(Model* joint)
     r->addChild(joint);
     return r;
 }
+
+void Skin::deformPoints(span<float3> dst) const
+{
+    auto& weights = getJointWeights();
+    auto& matrices = getJointMatrices();
+    DeformPoints(dst, weights, matrices, dst);
+}
+
+void Skin::deformNormals(span<float3> dst) const
+{
+    auto& weights = getJointWeights();
+    auto& matrices = getJointMatrices();
+    DeformVectors(dst, weights, matrices, dst);
+}
+
+
 
 ObjectSubClass Cluster::getSubClass() const { return ObjectSubClass::Cluster; }
 

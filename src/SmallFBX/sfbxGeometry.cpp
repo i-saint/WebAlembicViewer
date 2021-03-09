@@ -14,6 +14,7 @@ void Geometry::addChild(Object* v)
         m_deformers.push_back(deformer);
 }
 
+bool Geometry::hasDeformer() const { return !m_deformers.empty(); }
 span<Deformer*> Geometry::getDeformers() const { return make_span(m_deformers); }
 
 template<> Skin* Geometry::createDeformer() { return createChild<Skin>(); }
@@ -213,6 +214,39 @@ void GeomMesh::setPoints(span<float3> v) { m_points = v; }
 void GeomMesh::addNormalLayer(LayerElementF3&& v) { m_normal_layers.push_back(std::move(v)); }
 void GeomMesh::addUVLayer(LayerElementF2&& v) { m_uv_layers.push_back(std::move(v)); }
 void GeomMesh::addColorLayer(LayerElementF4&& v) { m_color_layers.push_back(std::move(v)); }
+
+span<float3> GeomMesh::getPointsDeformed()
+{
+    if (m_deformers.empty()) {
+        return make_span(m_points);
+    }
+    else {
+        m_points_deformed = m_points;
+        auto ret = make_span(m_points_deformed);
+        for (auto deformer : m_deformers)
+            deformer->deformPoints(ret);
+        return make_span(ret);
+    }
+}
+
+span<float3> GeomMesh::getNormalsDeformed(size_t layer_index)
+{
+    if (layer_index >= m_normal_layers.size()) {
+        return {};
+    }
+
+    auto& l = m_normal_layers[layer_index];
+    if (m_deformers.empty()) {
+        return make_span(l.data);
+    }
+    else {
+        l.data_deformed = l.data;
+        auto ret = make_span(l.data_deformed);
+        for (auto deformer : m_deformers)
+            deformer->deformNormals(ret);
+        return make_span(ret);
+    }
+}
 
 
 ObjectSubClass Shape::getSubClass() const { return ObjectSubClass::Shape; }
