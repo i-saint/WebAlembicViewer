@@ -11,6 +11,7 @@ enum class ObjectClass : int
     Geometry,
     Deformer,
     Pose,
+    Video,
     Material,
     AnimationStack,
     AnimationLayer,
@@ -28,12 +29,35 @@ enum class ObjectSubClass : int
     Camera,
     Mesh,
     Shape,
+    BlendShape,
+    BlendShapeChannel,
     Skin,
     Cluster,
     BindPose,
-    BlendShape,
-    BlendShapeChannel,
+    Clip,
 };
+
+#define sfbxEachObjectClass(Body)\
+    Body(NodeAttribute) Body(Model) Body(Geometry) Body(Deformer) Body(Pose) Body(Video) Body(Material)\
+    Body(AnimationStack) Body(AnimationLayer) Body(AnimationCurveNode) Body(AnimationCurve)
+
+#define sfbxEachObjectSubClass(Body)\
+    Body(Null) Body(Root) Body(LimbNode) Body(Light) Body(Camera) Body(Mesh) Body(Shape)\
+    Body(BlendShape) Body(BlendShapeChannel) Body(Skin) Body(Cluster) Body(BindPose) Body(Clip)
+
+#define sfbxEachObjectType(Body)\
+    Body(NodeAttribute) Body(NullAttribute) Body(RootAttribute) Body(LimbNodeAttribute) Body(LightAttribute) Body(CameraAttribute)\
+    Body(Model) Body(Null) Body(Root) Body(LimbNode) Body(Light) Body(Camera) Body(Mesh)\
+    Body(Geometry) Body(GeomMesh) Body(Shape)\
+    Body(Deformer) Body(Skin) Body(Cluster) Body(BlendShape) Body(BlendShapeChannel)\
+    Body(Pose) Body(BindPose)\
+    Body(Video) Body(Material)\
+    Body(AnimationStack) Body(AnimationLayer) Body(AnimationCurveNode) Body(AnimationCurve)
+
+#define Decl(T) class T;
+sfbxEachObjectType(Decl)
+#undef Decl
+
 
 ObjectClass     GetObjectClass(string_view n);
 ObjectClass     GetObjectClass(Node* n);

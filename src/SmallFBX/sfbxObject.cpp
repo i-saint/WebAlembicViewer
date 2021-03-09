@@ -7,18 +7,13 @@ namespace sfbx {
 
 ObjectClass GetObjectClass(string_view n)
 {
-    if (n.empty())
+
+    if (n.empty()) {
         return ObjectClass::Unknown;
-    else if (n == sfbxS_NodeAttribute)      return ObjectClass::NodeAttribute;
-    else if (n == sfbxS_Model)              return ObjectClass::Model;
-    else if (n == sfbxS_Geometry)           return ObjectClass::Geometry;
-    else if (n == sfbxS_Deformer)           return ObjectClass::Deformer;
-    else if (n == sfbxS_Pose)               return ObjectClass::Pose;
-    else if (n == sfbxS_Material)           return ObjectClass::Material;
-    else if (n == sfbxS_AnimationStack)     return ObjectClass::AnimationStack;
-    else if (n == sfbxS_AnimationLayer)     return ObjectClass::AnimationLayer;
-    else if (n == sfbxS_AnimationCurveNode) return ObjectClass::AnimationCurveNode;
-    else if (n == sfbxS_AnimationCurve)     return ObjectClass::AnimationCurve;
+    }
+#define Case(T) else if (n == sfbxS_##T) { return ObjectClass::T; }
+    sfbxEachObjectClass(Case)
+#undef Case
     else {
         sfbxPrint("GetFbxObjectClass(): unknown type \"%s\"\n", std::string(n).c_str());
         return ObjectClass::Unknown;
@@ -32,35 +27,23 @@ ObjectClass GetObjectClass(Node* n)
 const char* GetObjectClassName(ObjectClass t)
 {
     switch (t) {
-    case ObjectClass::NodeAttribute:     return sfbxS_NodeAttribute;
-    case ObjectClass::Model:             return sfbxS_Model;
-    case ObjectClass::Geometry:          return sfbxS_Geometry;
-    case ObjectClass::Deformer:          return sfbxS_Deformer;
-    case ObjectClass::Pose:              return sfbxS_Pose;
-    case ObjectClass::Material:          return sfbxS_Material;
-    case ObjectClass::AnimationStack:    return sfbxS_AnimationStack;
-    case ObjectClass::AnimationLayer:    return sfbxS_AnimationLayer;
-    case ObjectClass::AnimationCurveNode:return sfbxS_AnimationCurveNode;
-    case ObjectClass::AnimationCurve:    return sfbxS_AnimationCurve;
-    default: return "";
+#define Case(T) case ObjectClass::T: return sfbxS_##T;
+        sfbxEachObjectClass(Case)
+#undef Case
+    default:
+        return "";
     }
 }
 
+
 ObjectSubClass GetObjectSubClass(string_view n)
 {
-    if (n.empty()) return ObjectSubClass::Unknown;
-    else if (n == sfbxS_Null)       return ObjectSubClass::Null;
-    else if (n == sfbxS_Light)      return ObjectSubClass::Light;
-    else if (n == sfbxS_Camera)     return ObjectSubClass::Camera;
-    else if (n == sfbxS_Mesh)       return ObjectSubClass::Mesh;
-    else if (n == sfbxS_Shape)      return ObjectSubClass::Shape;
-    else if (n == sfbxS_Root)       return ObjectSubClass::Root;
-    else if (n == sfbxS_LimbNode)   return ObjectSubClass::LimbNode;
-    else if (n == sfbxS_Skin)       return ObjectSubClass::Skin;
-    else if (n == sfbxS_Cluster)    return ObjectSubClass::Cluster;
-    else if (n == sfbxS_BindPose)   return ObjectSubClass::BindPose;
-    else if (n == sfbxS_BlendShape) return ObjectSubClass::BlendShape;
-    else if (n == sfbxS_BlendShapeChannel) return ObjectSubClass::BlendShapeChannel;
+    if (n.empty()) {
+        return ObjectSubClass::Unknown;
+    }
+#define Case(T) else if (n == sfbxS_##T) { return ObjectSubClass::T; }
+    sfbxEachObjectSubClass(Case)
+#undef Case
     else {
         sfbxPrint("GetFbxObjectSubClass(): unknown subtype \"%s\"\n", std::string(n).c_str());
         return ObjectSubClass::Unknown;
@@ -82,18 +65,9 @@ ObjectSubClass GetObjectSubClass(Node* n)
 const char* GetObjectSubClassName(ObjectSubClass t)
 {
     switch (t) {
-    case ObjectSubClass::Null:       return sfbxS_Null;
-    case ObjectSubClass::Light:      return sfbxS_Light;
-    case ObjectSubClass::Camera:     return sfbxS_Camera;
-    case ObjectSubClass::Mesh:       return sfbxS_Mesh;
-    case ObjectSubClass::Shape:      return sfbxS_Shape;
-    case ObjectSubClass::Root:       return sfbxS_Root;
-    case ObjectSubClass::LimbNode:   return sfbxS_LimbNode;
-    case ObjectSubClass::Skin:       return sfbxS_Skin;
-    case ObjectSubClass::Cluster:    return sfbxS_Cluster;
-    case ObjectSubClass::BindPose:   return sfbxS_BindPose;
-    case ObjectSubClass::BlendShape: return sfbxS_BlendShape;
-    case ObjectSubClass::BlendShapeChannel: return sfbxS_BlendShapeChannel;
+#define Case(T) case ObjectSubClass::T: return sfbxS_##T;
+        sfbxEachObjectSubClass(Case)
+#undef Case
     default: return "";
     }
 }

@@ -82,6 +82,7 @@
 #define sfbxS_Geometry              "Geometry"
 #define sfbxS_Deformer              "Deformer"
 #define sfbxS_Pose                  "Pose"
+#define sfbxS_Video                 "Video"
 #define sfbxS_Material              "Material"
 #define sfbxS_AnimationStack        "AnimationStack"
 #define sfbxS_AnimationLayer        "AnimationLayer"
@@ -99,6 +100,7 @@
 #define sfbxS_BindPose              "BindPose"
 #define sfbxS_BlendShape            "BlendShape"
 #define sfbxS_BlendShapeChannel     "BlendShapeChannel"
+#define sfbxS_Clip                  "Clip"
 
 #define sfbxS_Properties            "Properties"
 #define sfbxS_Properties70          "Properties70"

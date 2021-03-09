@@ -319,6 +319,7 @@ Object* Document::createObject(ObjectClass c, ObjectSubClass s)
         default: r = new Pose(); break;
         }
         break;
+    case ObjectClass::Video:             r = new Video(); break;
     case ObjectClass::Material:          r = new Material(); break;
     case ObjectClass::AnimationStack:    r = new AnimationStack(); break;
     case ObjectClass::AnimationLayer:    r = new AnimationLayer(); break;

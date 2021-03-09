@@ -339,22 +339,9 @@ struct boolean
 };
 
 
-#define sfbxEachObjectType(Body)\
-    Body(NodeAttribute) Body(NullAttribute) Body(RootAttribute) Body(LimbNodeAttribute) Body(LightAttribute) Body(CameraAttribute)\
-    Body(Model) Body(Null) Body(Root) Body(LimbNode) Body(Mesh) Body(Light) Body(Camera)\
-    Body(Geometry) Body(GeomMesh) Body(Shape)\
-    Body(Deformer) Body(Skin) Body(Cluster) Body(BlendShape) Body(BlendShapeChannel)\
-    Body(Pose) Body(BindPose)\
-    Body(Material)\
-    Body(AnimationStack) Body(AnimationLayer) Body(AnimationCurveNode) Body(AnimationCurve)
-
-#define Decl(T) class T; using T##Ptr = std::shared_ptr<T>;
-Decl(Document)
-Decl(Property)
-Decl(Node)
-Decl(Object)
-sfbxEachObjectType(Decl)
-#undef Decl
+class Node; using NodePtr = std::shared_ptr<Node>;
+class Object; using ObjectPtr = std::shared_ptr<Object>;
+class Document; using DocumentPtr = std::shared_ptr<Document>;
 
 template<class T, class U>
 T* as(U* v) { return dynamic_cast<T*>(v); }
