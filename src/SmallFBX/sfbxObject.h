@@ -187,8 +187,12 @@ protected:
     void constructObject() override;
     void constructNodes() override;
     void addParent(Object* v) override;
+    void propagateDirty();
+    void updateMatrices() const;
 
     Model* m_parent_model{};
+    std::vector<Model*> m_child_models;
+
     bool m_visibility = true;
     RotationOrder m_rotation_order = RotationOrder::XYZ;
     float3 m_position{};
@@ -196,6 +200,10 @@ protected:
     float3 m_rotation{};
     float3 m_post_rotation{};
     float3 m_scale = float3::one();
+
+    mutable bool m_matrix_dirty = true;
+    mutable float4x4 m_matrix_local = float4x4::identity();
+    mutable float4x4 m_matrix_global = float4x4::identity();
 };
 
 

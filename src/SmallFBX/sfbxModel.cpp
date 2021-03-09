@@ -126,6 +126,8 @@ void Model::addParent(Object* v)
 void Model::addChild(Object* v)
 {
     super::addChild(v);
+    if (auto model = as<Model>(v))
+        m_child_models.push_back(model);
 }
 
 Model* Model::getParentModel() const { return m_parent_model; }
@@ -139,38 +141,64 @@ float3 Model::getRotation() const { return m_rotation; }
 float3 Model::getPostRotation() const { return m_post_rotation; }
 float3 Model::getScale() const { return m_scale; }
 
+void Model::updateMatrices() const
+{
+    if (m_matrix_dirty) {
+        // scale
+        float4x4 r = scale44(m_scale);
+
+        // rotation
+        if (m_post_rotation != float3::zero())
+            r *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_post_rotation * DegToRad)));
+        if (m_rotation != float3::zero())
+            r *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_rotation * DegToRad)));
+        if (m_pre_rotation != float3::zero())
+            r *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_pre_rotation * DegToRad)));
+
+        // translation
+        (float3&)r[3] = m_position;
+
+        m_matrix_local = r;
+        m_matrix_global = m_matrix_local;
+        if (m_parent_model)
+            m_matrix_global *= m_parent_model->getGlobalMatrix();
+
+        m_matrix_dirty = false;
+    }
+}
+
 float4x4 Model::getLocalMatrix() const
 {
-    // scale
-    float4x4 ret = scale44(m_scale);
-
-    // position
-    if (m_post_rotation != float3::zero())
-        ret *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_post_rotation * DegToRad)));
-    if (m_rotation != float3::zero())
-        ret *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_rotation * DegToRad)));
-    if (m_pre_rotation != float3::zero())
-        ret *= transpose(to_mat4x4(rotate_euler(m_rotation_order, m_pre_rotation * DegToRad)));
-
-    // translation
-    (float3&)ret[3] = m_position;
-    return ret;
+    updateMatrices();
+    return m_matrix_local;
 }
 
 float4x4 Model::getGlobalMatrix() const
 {
-    float4x4 pmat = m_parent_model ? m_parent_model->getGlobalMatrix() : float4x4::identity();
-    return getLocalMatrix() * pmat;
+    updateMatrices();
+    return m_matrix_global;
 }
 
 void Model::setVisibility(bool v) { m_visibility = v; }
 void Model::setRotationOrder(RotationOrder v) { m_rotation_order = v; }
-void Model::setPosition(float3 v) { m_position = v; }
-void Model::setPreRotation(float3 v) { m_pre_rotation = v; }
-void Model::setRotation(float3 v) { m_rotation = v; }
-void Model::setPostRotation(float3 v) { m_post_rotation = v; }
-void Model::setScale(float3 v) { m_scale = v; }
 
+void Model::propagateDirty()
+{
+    // note:
+    // this is needlessly slow on huge joint structure + animations.
+    // we need to separate update transform phase and propagate dirty phase for optimal animation playback.
+    m_matrix_dirty = true;
+    for (auto c : m_child_models)
+        c->propagateDirty();
+}
+
+#define MarkDirty(V, A) if (A != V) { V = A; propagateDirty(); }
+void Model::setPosition(float3 v)     { MarkDirty(m_position, v); }
+void Model::setPreRotation(float3 v)  { MarkDirty(m_pre_rotation, v); }
+void Model::setRotation(float3 v)     { MarkDirty(m_rotation, v); }
+void Model::setPostRotation(float3 v) { MarkDirty(m_post_rotation, v); }
+void Model::setScale(float3 v)        { MarkDirty(m_scale, v); }
+#undef MarkDirty
 
 ObjectSubClass Null::getSubClass() const { return ObjectSubClass::Null; }
 
