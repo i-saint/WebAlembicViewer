@@ -60,6 +60,7 @@ public:
 
     template<class T> T* createChild(string_view name = {});
     virtual void addChild(Object* v);
+    virtual void eraseChild(Object* v);
 
     int64 getID() const;
     string_view getName() const; // in object name format (e.g. "hoge\x00\x01Mesh")
@@ -85,6 +86,7 @@ protected:
     virtual void constructLinks(); // export connections to fbx nodes
     virtual string_view getClassName() const;
     virtual void addParent(Object* v);
+    virtual void eraseParent(Object* v);
 
     Document* m_document{};
     Node* m_node{};
@@ -162,6 +164,7 @@ using super = Object;
 public:
     ObjectClass getClass() const override;
     void addChild(Object* v) override;
+    void eraseChild(Object* v) override;
 
     Model* getParentModel() const;
 
@@ -187,6 +190,7 @@ protected:
     void constructObject() override;
     void constructNodes() override;
     void addParent(Object* v) override;
+    void eraseParent(Object* v) override;
     void propagateDirty();
     void updateMatrices() const;
 
@@ -308,6 +312,7 @@ using super = Object;
 public:
     ObjectClass getClass() const override;
     void addChild(Object* v) override;
+    void eraseChild(Object* v) override;
 
     bool hasDeformer() const;
     span<Deformer*> getDeformers() const;
@@ -446,6 +451,7 @@ using super = Deformer;
 public:
     ObjectSubClass getSubClass() const override;
     void addChild(Object* v) override;
+    void eraseChild(Object* v) override;
 
     GeomMesh* getMesh() const;
     span<Cluster*> getClusters() const;
@@ -504,6 +510,7 @@ using super = Deformer;
 public:
     ObjectSubClass getSubClass() const override;
     void addChild(Object* v) override;
+    void eraseChild(Object* v) override;
 
     span<BlendShapeChannel*> getChannels() const;
     BlendShapeChannel* createChannel(string_view name);
@@ -619,6 +626,7 @@ using super = Object;
 public:
     ObjectClass getClass() const override;
     void addChild(Object* v) override;
+    void eraseChild(Object* v) override;
 
     float getLocalStart() const;
     float getLocalStop() const;
@@ -631,6 +639,7 @@ public:
     void applyAnimation(float time);
 
     bool remap(Document* doc);
+    bool remap(DocumentPtr doc) { return remap(doc.get()); }
 
 protected:
     string_view getClassName() const override;
@@ -650,6 +659,7 @@ using super = Object;
 public:
     ObjectClass getClass() const override;
     void addChild(Object* v) override;
+    void eraseChild(Object* v) override;
 
     span<AnimationCurveNode*> getAnimationCurveNodes() const;
 
@@ -673,6 +683,7 @@ using super = Object;
 public:
     ObjectClass getClass() const override;
     void addChild(Object* v) override;
+    void eraseChild(Object* v) override;
 
     AnimationKind getAnimationKind() const;
     Object* getAnimationTarget() const;

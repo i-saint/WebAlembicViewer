@@ -116,6 +116,20 @@ void Model::constructNodes()
             sfbxS_LclScale, sfbxS_LclScale, sfbxS_Empty, sfbxS_A, sfbxVector3d(m_scale));
 }
 
+void Model::addChild(Object* v)
+{
+    super::addChild(v);
+    if (auto model = as<Model>(v))
+        m_child_models.push_back(model);
+}
+
+void Model::eraseChild(Object* v)
+{
+    super::eraseChild(v);
+    if (auto model = as<Model>(v))
+        erase(m_child_models, model);
+}
+
 void Model::addParent(Object* v)
 {
     super::addParent(v);
@@ -123,11 +137,11 @@ void Model::addParent(Object* v)
         m_parent_model = model;
 }
 
-void Model::addChild(Object* v)
+void Model::eraseParent(Object* v)
 {
-    super::addChild(v);
-    if (auto model = as<Model>(v))
-        m_child_models.push_back(model);
+    super::eraseParent(v);
+    if (v == m_parent_model)
+        m_parent_model = nullptr;
 }
 
 Model* Model::getParentModel() const { return m_parent_model; }

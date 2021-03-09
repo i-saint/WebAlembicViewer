@@ -14,6 +14,13 @@ void Geometry::addChild(Object* v)
         m_deformers.push_back(deformer);
 }
 
+void Geometry::eraseChild(Object* v)
+{
+    super::eraseChild(v);
+    if (auto deformer = as<Deformer>(v))
+        erase(m_deformers, deformer);
+}
+
 bool Geometry::hasDeformer() const { return !m_deformers.empty(); }
 span<Deformer*> Geometry::getDeformers() const { return make_span(m_deformers); }
 

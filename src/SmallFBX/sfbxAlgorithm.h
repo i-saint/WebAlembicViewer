@@ -111,6 +111,29 @@ inline size_t count(const Container& cont, const Body& body)
     return r;
 }
 
+template<class Container>
+inline bool erase(Container& cont, typename Container::value_type v)
+{
+    auto it = std::find(cont.begin(), cont.end(), v);
+    if (it != cont.end()) {
+        cont.erase(it);
+        return true;
+    }
+    return false;
+}
+
+template<class Container, class Body>
+inline bool erase_if(Container& cont, const Body& v)
+{
+    auto it = std::remove_if(cont.begin(), cont.end(), v);
+    if (it != cont.end()) {
+        cont.erase(it, cont.end());
+        return true;
+    }
+    return false;
+}
+
+
 // substitution for std::string_view::starts_with() (which require C++20)
 inline bool starts_with(string_view str, string_view v)
 {

@@ -377,17 +377,9 @@ Object* Document::findObject(string_view name) const
 span<ObjectPtr> Document::getAllObjects() const { return make_span(m_objects); }
 span<Object*> Document::getRootObjects() const { return make_span(m_root_objects); }
 Model* Document::getRootModel() const { return m_root_model; }
+span<AnimationStack*> Document::getAnimationStacks() const { return make_span(m_takes); }
 AnimationStack* Document::getCurrentTake() const { return m_current_take; }
 void Document::setCurrentTake(AnimationStack* v) { m_current_take = v; }
-
-template<class T>
-static inline size_t CountObject(std::vector<ObjectPtr>& objects)
-{
-    return count(objects, [](auto& p) {
-        T* t = as<T>(p.get());
-        return t && t->getID() != 0;
-        });
-}
 
 void Document::constructNodes()
 {
@@ -522,18 +514,18 @@ void Document::constructNodes()
 
         add_object_type(1, sfbxS_GlobalSettings);
 
-        add_object_type(CountObject<NodeAttribute>(m_objects), sfbxS_NodeAttribute);
-        add_object_type(CountObject<Model>(m_objects), sfbxS_Model);
-        add_object_type(CountObject<Geometry>(m_objects), sfbxS_Geometry);
-        add_object_type(CountObject<Deformer>(m_objects), sfbxS_Deformer);
-        add_object_type(CountObject<Pose>(m_objects), sfbxS_Pose);
+        add_object_type(countObjects<NodeAttribute>(), sfbxS_NodeAttribute);
+        add_object_type(countObjects<Model>(), sfbxS_Model);
+        add_object_type(countObjects<Geometry>(), sfbxS_Geometry);
+        add_object_type(countObjects<Deformer>(), sfbxS_Deformer);
+        add_object_type(countObjects<Pose>(), sfbxS_Pose);
 
-        add_object_type(CountObject<AnimationStack>(m_objects), sfbxS_AnimationStack);
-        add_object_type(CountObject<AnimationLayer>(m_objects), sfbxS_AnimationLayer);
-        add_object_type(CountObject<AnimationCurveNode>(m_objects), sfbxS_AnimationCurveNode);
-        add_object_type(CountObject<AnimationCurve>(m_objects), sfbxS_AnimationCurve);
+        add_object_type(countObjects<AnimationStack>(), sfbxS_AnimationStack);
+        add_object_type(countObjects<AnimationLayer>(), sfbxS_AnimationLayer);
+        add_object_type(countObjects<AnimationCurveNode>(), sfbxS_AnimationCurveNode);
+        add_object_type(countObjects<AnimationCurve>(), sfbxS_AnimationCurve);
 
-        add_object_type(CountObject<Material>(m_objects), sfbxS_Material);
+        add_object_type(countObjects<Material>(), sfbxS_Material);
     }
 
     auto takes = createNode(sfbxS_Takes);

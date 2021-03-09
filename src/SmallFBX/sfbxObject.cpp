@@ -149,7 +149,10 @@ Object::Object()
     m_id = (int64)this;
 }
 
-Object::~Object() {}
+Object::~Object()
+{
+}
+
 ObjectClass Object::getClass() const { return ObjectClass::Unknown; }
 ObjectSubClass Object::getSubClass() const { return ObjectSubClass::Unknown; }
 string_view Object::getClassName() const { return GetObjectClassName(getClass()); }
@@ -213,11 +216,23 @@ void Object::addChild(Object* v)
     }
 }
 
+void Object::eraseChild(Object* v)
+{
+    if (erase(m_children, v))
+        v->eraseParent(this);
+}
+
 void Object::addParent(Object* v)
 {
     if (v)
         m_parents.push_back(v);
 }
+
+void Object::eraseParent(Object* v)
+{
+    erase(m_parents, v);
+}
+
 
 int64 Object::getID() const { return m_id; }
 string_view Object::getName() const { return m_name; }

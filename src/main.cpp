@@ -154,6 +154,11 @@ static void OnScroll(GLFWwindow* window, double x, double y)
 
 wabcAPI bool wabcLoadScene(std::string path)
 {
+    if (g_scene && g_scene->loadAdditive(path.c_str())) {
+        printf("wabcLoadScene(\"%s\"): additive load succeeded\n", path.c_str());
+        return true;
+    }
+
     g_scene = wabc::LoadScene(path.c_str());
     if (g_scene) {
         printf("wabcLoadScene(\"%s\"): succeeded\n", path.c_str());

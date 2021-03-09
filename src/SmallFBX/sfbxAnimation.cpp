@@ -64,6 +64,13 @@ void AnimationStack::addChild(Object* v)
         m_anim_layers.push_back(l);
 }
 
+void AnimationStack::eraseChild(Object* v)
+{
+    super::eraseChild(v);
+    if (auto l = as<AnimationLayer>(v))
+        erase(m_anim_layers, l);
+}
+
 float AnimationStack::getLocalStart() const { return m_local_start; }
 float AnimationStack::getLocalStop() const { return m_local_stop; }
 float AnimationStack::getReferenceStart() const { return m_reference_start; }
@@ -83,9 +90,15 @@ void AnimationStack::applyAnimation(float time)
 
 bool AnimationStack::remap(Document* doc)
 {
-    for (auto layer : m_anim_layers)
+    for (size_t i = 0; i < m_anim_layers.size(); /**/) {
+        auto layer = m_anim_layers[i];
         if (!layer->remap(doc))
-            return false;
+            eraseChild(layer);
+        else
+            ++i;
+    }
+    if (m_anim_layers.empty())
+        return false;
 
     doc->addObject(shared_from_this());
     for (auto layer : getAnimationLayers()) {
@@ -121,6 +134,13 @@ void AnimationLayer::addChild(Object* v)
         m_anim_nodes.push_back(acn);
 }
 
+void AnimationLayer::eraseChild(Object* v)
+{
+    super::eraseChild(v);
+    if (auto acn = as<AnimationCurveNode>(v))
+        erase(m_anim_nodes, acn);
+}
+
 span<AnimationCurveNode*> AnimationLayer::getAnimationCurveNodes() const
 {
     return make_span(m_anim_nodes);
@@ -141,10 +161,14 @@ void AnimationLayer::applyAnimation(float time)
 
 bool AnimationLayer::remap(Document* doc)
 {
-    for (auto n : m_anim_nodes)
-        if (!n->remap(doc))
-            return false;
-    return true;
+    for (size_t i = 0; i < m_anim_nodes.size(); /**/) {
+        auto node = m_anim_nodes[i];
+        if (!node->remap(doc))
+            eraseChild(node);
+        else
+            ++i;
+    }
+    return !m_anim_nodes.empty();
 }
 
 
@@ -235,6 +259,13 @@ void AnimationCurveNode::addChild(Object* v)
     super::addChild(v);
     if (auto curve = as<AnimationCurve>(v))
         m_curves.push_back(curve);
+}
+
+void AnimationCurveNode::eraseChild(Object* v)
+{
+    super::eraseChild(v);
+    if (auto curve = as<AnimationCurve>(v))
+        erase(m_curves, curve);
 }
 
 AnimationKind AnimationCurveNode::getAnimationKind() const
@@ -354,6 +385,8 @@ void AnimationCurveNode::addValue(float time, float3 value)
 
 bool AnimationCurveNode::remap(Document* doc)
 {
+    if (m_kind == AnimationKind::Unknown || m_curves.empty())
+        return false;
     for (auto& p : getParents()) {
         if (!as<AnimationLayer>(p)) {
             if (auto np = doc->findObject(p->getName()))

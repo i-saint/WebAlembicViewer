@@ -59,6 +59,13 @@ void Skin::addChild(Object* v)
     }
 }
 
+void Skin::eraseChild(Object* v)
+{
+    super::eraseChild(v);
+    if (auto cluster = as<Cluster>(v))
+        erase(m_clusters, cluster);
+}
+
 GeomMesh* Skin::getMesh() const { return m_mesh; }
 span<Cluster*> Skin::getClusters() const { return make_span(m_clusters); }
 
@@ -286,6 +293,13 @@ void BlendShape::addChild(Object* v)
     super::addChild(v);
     if (auto ch = as<BlendShapeChannel>(v))
         m_channels.push_back(ch);
+}
+
+void BlendShape::eraseChild(Object* v)
+{
+    super::eraseChild(v);
+    if (auto ch = as<BlendShapeChannel>(v))
+        erase(m_channels, ch);
 }
 
 span<BlendShapeChannel*> BlendShape::getChannels() const

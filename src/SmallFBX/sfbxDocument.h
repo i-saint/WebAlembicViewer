@@ -57,11 +57,20 @@ public:
     span<ObjectPtr> getAllObjects() const;
     span<Object*> getRootObjects() const;
     Model* getRootModel() const;
+    span<AnimationStack*> getAnimationStacks() const;
     AnimationStack* getCurrentTake() const;
     void setCurrentTake(AnimationStack* v);
 
     void constructNodes();
     std::string toString();
+
+    template<class T>
+    size_t countObjects() const
+    {
+        return count(m_objects,
+            [](auto& p) { return as<T>(p.get()) && p->getID() != 0; });
+    }
+
 
 private:
     void initialize();

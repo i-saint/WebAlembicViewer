@@ -94,6 +94,7 @@ public:
     virtual void release() = 0;
 
     virtual bool load(const char* path) = 0;
+    virtual bool loadAdditive(const char* path) = 0;
     virtual void unload() = 0;
 
     virtual std::tuple<double, double> getTimeRange() const = 0;

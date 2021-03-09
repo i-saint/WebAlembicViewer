@@ -29,6 +29,7 @@ public:
     void release() override;
 
     bool load(const char* path) override;
+    bool loadAdditive(const char* path) override;
     void unload() override;
 
     std::tuple<double, double> getTimeRange() const override;
@@ -186,6 +187,21 @@ bool SceneFBX::load(const char* path)
     m_mono_mesh->upload();
 
     return true;
+}
+
+bool SceneFBX::loadAdditive(const char* path)
+{
+    auto doc = sfbx::MakeDocument();
+    if (doc->read(path)) {
+        auto takes = doc->getAnimationStacks();
+        if (!takes.empty()) {
+            if (takes[0]->remap(m_document)) {
+                m_document->setCurrentTake(takes[0]);
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 void SceneFBX::unload()

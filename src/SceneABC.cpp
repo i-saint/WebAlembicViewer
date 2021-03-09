@@ -17,6 +17,7 @@ public:
     void release() override;
 
     bool load(const char* path) override;
+    bool loadAdditive(const char* path) override;
     void unload() override;
 
     std::tuple<double, double> getTimeRange() const override;
@@ -187,6 +188,11 @@ bool SceneABC::load(const char* path)
     }
 
     return m_archive.valid();
+}
+
+bool SceneABC::loadAdditive(const char* path)
+{
+    return false;
 }
 
 std::tuple<double, double> SceneABC::getTimeRange() const

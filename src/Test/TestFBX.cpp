@@ -51,13 +51,26 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
 
 testCase(fbxRead)
 {
-    std::string path;
+    std::string path, path2;
     test::GetArg("path", path);
+    test::GetArg("path2", path2);
     if (path.empty())
         return;
 
     sfbx::DocumentPtr doc = sfbx::MakeDocument();
     if (doc->read(path)) {
+        if (!path2.empty()) {
+            sfbx::DocumentPtr doc2 = sfbx::MakeDocument();
+            if (doc2->read(path2)) {
+                auto takes = doc2->getAnimationStacks();
+                if (!takes.empty()) {
+                    if (takes[0]->remap(doc)) {
+                        doc->setCurrentTake(takes[0]);
+                    }
+                }
+            }
+        }
+
         testPrint("Objects:\n");
         for (auto obj : doc->getRootObjects())
             PrintObject(obj);
@@ -193,7 +206,7 @@ testCase(fbxWrite)
 
         // animation
         {
-            sfbx::AnimationStack* take = doc->createObject<sfbx::AnimationStack>("test");
+            sfbx::AnimationStack* take = doc->createObject<sfbx::AnimationStack>("take1");
             sfbx::AnimationLayer* layer = take->createLayer("deform");
             sfbx::AnimationCurveNode* n1 = layer->createCurveNode(sfbx::AnimationKind::Rotation, joints[1]);
             n1->addValue(0.0f, float3{  0.0f, 0.0f, 0.0f });
@@ -211,15 +224,56 @@ testCase(fbxWrite)
 
 
         doc->constructNodes();
-        doc->writeBinary("test_b.fbx");
-        doc->writeAscii("test_a.fbx");
+        doc->writeBinary("test_base_bin.fbx");
+        doc->writeAscii("test_base_ascii.fbx");
     }
-
     {
         sfbx::DocumentPtr doc = sfbx::MakeDocument();
-        doc->read("test.fbx");
-        for (auto obj : doc->getRootObjects())
-            PrintObject(obj);
+        sfbx::Model* root = doc->getRootModel();
+
+        sfbx::Model* joints[5]{};
+        joints[0] = root->createChild<sfbx::Root>("joint1");
+        joints[1] = joints[0]->createChild<sfbx::LimbNode>("joint2");
+        joints[2] = joints[1]->createChild<sfbx::LimbNode>("joint3");
+        joints[3] = joints[2]->createChild<sfbx::LimbNode>("joint4");
+        joints[4] = joints[3]->createChild<sfbx::LimbNode>("joint5");
+
+
+        // animation
+        {
+            sfbx::AnimationStack* take = doc->createObject<sfbx::AnimationStack>("take2");
+            sfbx::AnimationLayer* layer = take->createLayer("deform");
+            sfbx::AnimationCurveNode* n1 = layer->createCurveNode(sfbx::AnimationKind::Rotation, joints[1]);
+            n1->addValue(0.0f, float3{ 0.0f, 0.0f, 0.0f });
+            n1->addValue(3.0f, float3{ 30.0f, 0.0f, 0.0f });
+            n1->addValue(6.0f, float3{ 0.0f, 0.0f, 0.0f });
+            n1->addValue(9.0f, float3{ -30.0f, 0.0f, 0.0f });
+            n1->addValue(12.0f, float3{ 0.0f, 0.0f, 0.0f });
+        }
+
+        doc->constructNodes();
+        doc->writeBinary("test_anim_bin.fbx");
+        doc->writeAscii("test_anim_ascii.fbx");
+    }
+
+
+    {
+        sfbx::DocumentPtr base = sfbx::MakeDocument();
+        base->read("test_base_bin.fbx");
+
+        {
+            sfbx::DocumentPtr anim = sfbx::MakeDocument();
+            anim->read("test_anim_bin.fbx");
+            auto takes = anim->getAnimationStacks();
+            if (!takes.empty()) {
+                if (takes[0]->remap(base)) {
+                    base->setCurrentTake(takes[0]);
+                }
+            }
+        }
+        if (auto take = base->getCurrentTake()) {
+            take->applyAnimation(11.0f);
+        }
     }
 }
 
