@@ -21,8 +21,31 @@ void Geometry::eraseChild(Object* v)
         erase(m_deformers, deformer);
 }
 
-bool Geometry::hasDeformer() const { return !m_deformers.empty(); }
-span<Deformer*> Geometry::getDeformers() const { return make_span(m_deformers); }
+Model* Geometry::getModel() const
+{
+    for (auto p : m_parents)
+        if (auto model = as<Model>(p))
+            return model;
+    return nullptr;
+}
+
+bool Geometry::hasDeformer() const
+{
+    return !m_deformers.empty();
+}
+
+bool Geometry::hasSkinDeformer() const
+{
+    for (auto d : m_deformers)
+        if (auto skin = as<Skin>(d))
+            return true;
+    return false;
+}
+
+span<Deformer*> Geometry::getDeformers() const
+{
+    return make_span(m_deformers);
+}
 
 template<> Skin* Geometry::createDeformer()
 {
@@ -233,37 +256,54 @@ void GeomMesh::addNormalLayer(LayerElementF3&& v) { m_normal_layers.push_back(st
 void GeomMesh::addUVLayer(LayerElementF2&& v) { m_uv_layers.push_back(std::move(v)); }
 void GeomMesh::addColorLayer(LayerElementF4&& v) { m_color_layers.push_back(std::move(v)); }
 
-span<float3> GeomMesh::getPointsDeformed()
+span<float3> GeomMesh::getPointsDeformed(bool apply_transform)
 {
-    if (m_deformers.empty()) {
+    if (m_deformers.empty() && !apply_transform)
         return make_span(m_points);
+
+    m_points_deformed = m_points;
+    auto dst = make_span(m_points_deformed);
+    bool is_skinned = false;
+    for (auto deformer : m_deformers) {
+        deformer->deformPoints(dst);
+        if (as<Skin>(deformer))
+            is_skinned = true;
     }
-    else {
-        m_points_deformed = m_points;
-        auto ret = make_span(m_points_deformed);
-        for (auto deformer : m_deformers)
-            deformer->deformPoints(ret);
-        return make_span(ret);
+    if (!is_skinned && apply_transform) {
+        if (auto model = getModel()) {
+            auto mat = model->getGlobalMatrix();
+            for (auto& v : dst)
+                v = mul_p(mat, v);
+        }
     }
+    return dst;
 }
 
-span<float3> GeomMesh::getNormalsDeformed(size_t layer_index)
+span<float3> GeomMesh::getNormalsDeformed(size_t layer_index, bool apply_transform)
 {
-    if (layer_index >= m_normal_layers.size()) {
+    if (layer_index >= m_normal_layers.size())
         return {};
-    }
 
     auto& l = m_normal_layers[layer_index];
-    if (m_deformers.empty()) {
+    if (m_deformers.empty() && !apply_transform)
         return make_span(l.data);
+
+    l.data_deformed = l.data;
+    auto dst = make_span(l.data_deformed);
+    bool is_skinned = false;
+    for (auto deformer : m_deformers) {
+        deformer->deformNormals(dst);
+        if (as<Skin>(deformer))
+            is_skinned = true;
     }
-    else {
-        l.data_deformed = l.data;
-        auto ret = make_span(l.data_deformed);
-        for (auto deformer : m_deformers)
-            deformer->deformNormals(ret);
-        return make_span(ret);
+    if (!is_skinned && apply_transform) {
+        if (auto model = getModel()) {
+            auto mat = model->getGlobalMatrix();
+            for (auto& v : dst)
+                v = normalize(mul_v(mat, v));
+        }
     }
+    return dst;
 }
 
 

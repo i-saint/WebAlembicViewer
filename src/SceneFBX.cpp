@@ -13,8 +13,6 @@ public:
     {
         sfbx::Object* obj;
         double time = 0.0;
-        float4x4 local_matrix = float4x4::identity();
-        float4x4 global_matrix = float4x4::identity();
     };
 
     struct MeshData
@@ -72,9 +70,6 @@ void SceneFBX::scanObjects(ImportContext ctx)
 {
     auto obj = ctx.obj;
     if (auto model = as<sfbx::Model>(obj)) {
-        auto m = model->getLocalMatrix();
-        ctx.local_matrix = (float4x4&)m;
-        ctx.global_matrix = ctx.local_matrix * ctx.global_matrix;
 
         if (auto cam = as<sfbx::Camera>(model)) {
             // todo
@@ -87,6 +82,7 @@ void SceneFBX::scanObjects(ImportContext ctx)
         tmp->pointsex_offset = m_mono_mesh->m_points_ex.size();
         m_mesh_data.push_back(tmp);
 
+        auto global_matrix = mesh->getModel()->getGlobalMatrix();
         auto counts = mesh->getCounts();
         auto indices = mesh->getIndices();
         auto points = mesh->getPoints();
@@ -98,7 +94,7 @@ void SceneFBX::scanObjects(ImportContext ctx)
         int index_offset = (int)m_mono_mesh->m_points.size();
         float3* dst_points = expand(m_mono_mesh->m_points, num_points);
         for (int i = 0; i < num_points; ++i)
-            dst_points[i] = mul_p(ctx.global_matrix, (float3&)points[i]);
+            dst_points[i] = mul_p((const float4x4&)global_matrix, (float3&)points[i]);
 
         // count primitives and allocate space
         int num_lines = 0;
@@ -224,14 +220,8 @@ std::tuple<double, double> SceneFBX::getTimeRange() const
 
 void SceneFBX::applyDeform()
 {
-    bool needs_upload = false;
-
     for (auto& mesh : m_mesh_data) {
-        if (!mesh->mesh_fbx->hasDeformer())
-            continue;
-
-        needs_upload = true;
-        auto points_deformed = mesh->mesh_fbx->getPointsDeformed();
+        auto points_deformed = mesh->mesh_fbx->getPointsDeformed(true);
         auto src = make_span((float3*)points_deformed.data(), points_deformed.size());
         auto dst = make_span(m_mono_mesh->m_points.data() + mesh->points_offset, m_mono_mesh->m_points.size());
         auto dst_ex = make_span(m_mono_mesh->m_points_ex.data() + mesh->pointsex_offset, mesh->indices_tri.size());
@@ -239,8 +229,7 @@ void SceneFBX::applyDeform()
         sfbx::copy_indexed(dst_ex, src, mesh->indices_tri);
     }
 
-    if (needs_upload)
-        m_mono_mesh->upload();
+    m_mono_mesh->upload();
 }
 
 void SceneFBX::seek(double time)

@@ -603,7 +603,7 @@ inline static tvec4<T> mul4(const tmat4x4<T>& m, const tvec3<T>& v)
 template<class T> inline T dot(const tvec2<T>& l, const tvec2<T>& r) { return l.x*r.x + l.y*r.y; }
 template<class T> inline T dot(const tvec3<T>& l, const tvec3<T>& r) { return l.x*r.x + l.y*r.y + l.z*r.z; }
 template<class T> inline T dot(const tvec4<T>& l, const tvec4<T>& r) { return l.x*r.x + l.y*r.y + l.z*r.z + l.w*r.w; }
-template<class T> inline T dot(const tquat<T>& l, const tquat<T>& r) { return dot((const float4&)l, (const float4&)r); }
+template<class T> inline T dot(const tquat<T>& l, const tquat<T>& r) { return dot((const tvec4<T>&)l, (const tvec4<T>&)r); }
 template<class T> inline T length_sq(const tvec2<T>& v) { return dot(v, v); }
 template<class T> inline T length_sq(const tvec3<T>& v) { return dot(v, v); }
 template<class T> inline T length_sq(const tvec4<T>& v) { return dot(v, v); }

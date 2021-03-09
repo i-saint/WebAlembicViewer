@@ -314,7 +314,9 @@ public:
     void addChild(Object* v) override;
     void eraseChild(Object* v) override;
 
+    Model* getModel() const;
     bool hasDeformer() const;
+    bool hasSkinDeformer() const;
     span<Deformer*> getDeformers() const;
 
     // T: Skin, BlendShape
@@ -358,8 +360,8 @@ public:
     void addUVLayer(LayerElementF2&& v);
     void addColorLayer(LayerElementF4&& v);
 
-    span<float3> getPointsDeformed();
-    span<float3> getNormalsDeformed(size_t layer_index = 0);
+    span<float3> getPointsDeformed(bool apply_transform = false);
+    span<float3> getNormalsDeformed(size_t layer_index = 0, bool apply_transform = false);
 
 protected:
     void constructObject() override;
