@@ -320,13 +320,7 @@ Object* Document::createObject(ObjectClass c, ObjectSubClass s)
         }
         break;
     case ObjectClass::Material:          r = new Material(); break;
-    case ObjectClass::AnimationStack:
-    {
-        auto anim_stack = new AnimationStack();
-        m_takes.push_back(anim_stack);
-        r = anim_stack;
-        break;
-    }
+    case ObjectClass::AnimationStack:    r = new AnimationStack(); break;
     case ObjectClass::AnimationLayer:    r = new AnimationLayer(); break;
     case ObjectClass::AnimationCurveNode:r = new AnimationCurveNode(); break;
     case ObjectClass::AnimationCurve:    r = new AnimationCurve(); break;
@@ -334,8 +328,7 @@ Object* Document::createObject(ObjectClass c, ObjectSubClass s)
     }
 
     if (r) {
-        r->m_document = this;
-        m_objects.push_back(ObjectPtr(r));
+        addObject(ObjectPtr(r));
     }
     else {
         sfbxPrint("sfbx::Document::createObject(): unrecongnized type \"%s\"\n", GetObjectClassName(c));
@@ -347,18 +340,24 @@ template<class T>
 T* Document::createObject(string_view name)
 {
     T* r = new T();
-    r->m_document = this;
     r->setName(name);
-    m_objects.push_back(ObjectPtr(r));
-    if constexpr (std::is_same_v<T, AnimationStack>) {
-        m_takes.push_back(r);
-    }
+    addObject(ObjectPtr(r));
     return r;
 }
 
 #define Body(T) template T* Document::createObject(string_view name);
 sfbxEachObjectType(Body)
 #undef Body
+
+void Document::addObject(ObjectPtr obj)
+{
+    if (obj) {
+        m_objects.push_back(obj);
+        if (auto take = as<AnimationStack>(obj.get()))
+            m_takes.push_back(take);
+        obj->m_document = this;
+    }
+}
 
 
 Object* Document::findObject(int64 id) const

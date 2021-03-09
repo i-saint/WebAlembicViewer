@@ -50,6 +50,8 @@ public:
 
     Object* createObject(ObjectClass t, ObjectSubClass s);
     template<class T> T* createObject(string_view name = {});
+    void addObject(ObjectPtr obj);
+
     Object* findObject(int64 id) const;
     Object* findObject(string_view name) const; // name must be in node name format (e.g. "hoge\x00\x01Mesh")
     span<ObjectPtr> getAllObjects() const;

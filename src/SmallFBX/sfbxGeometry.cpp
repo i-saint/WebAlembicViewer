@@ -17,8 +17,19 @@ void Geometry::addChild(Object* v)
 bool Geometry::hasDeformer() const { return !m_deformers.empty(); }
 span<Deformer*> Geometry::getDeformers() const { return make_span(m_deformers); }
 
-template<> Skin* Geometry::createDeformer() { return createChild<Skin>(); }
-template<> BlendShape* Geometry::createDeformer() { return createChild<BlendShape>(); }
+template<> Skin* Geometry::createDeformer()
+{
+    auto ret = createChild<Skin>();
+    //ret->setName(getName()); // FBX SDK seems don't do this
+    return ret;
+}
+
+template<> BlendShape* Geometry::createDeformer()
+{
+    auto ret = createChild<BlendShape>();
+    ret->setName(getName());
+    return ret;
+}
 
 
 ObjectSubClass GeomMesh::getSubClass() const { return ObjectSubClass::Mesh; }

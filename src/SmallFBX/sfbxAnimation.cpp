@@ -81,6 +81,26 @@ void AnimationStack::applyAnimation(float time)
         layer->applyAnimation(time);
 }
 
+bool AnimationStack::remap(Document* doc)
+{
+    for (auto layer : m_anim_layers)
+        if (!layer->remap(doc))
+            return false;
+
+    doc->addObject(shared_from_this());
+    for (auto layer : getAnimationLayers()) {
+        doc->addObject(layer->shared_from_this());
+        for (auto node : layer->getAnimationCurveNodes()) {
+            doc->addObject(node->shared_from_this());
+            for (auto curve : node->getAnimationCurves())
+                doc->addObject(curve->shared_from_this());
+        }
+    }
+    return true;
+}
+
+
+
 ObjectClass AnimationLayer::getClass() const { return ObjectClass::AnimationLayer; }
 string_view AnimationLayer::getClassName() const { return "AnimLayer"; }
 
@@ -117,6 +137,14 @@ void AnimationLayer::applyAnimation(float time)
 {
     for (auto n : m_anim_nodes)
         n->applyAnimation(time);
+}
+
+bool AnimationLayer::remap(Document* doc)
+{
+    for (auto n : m_anim_nodes)
+        if (!n->remap(doc))
+            return false;
+    return true;
 }
 
 
@@ -222,6 +250,11 @@ Object* AnimationCurveNode::getAnimationTarget() const
     return nullptr;
 }
 
+span<AnimationCurve*> AnimationCurveNode::getAnimationCurves() const
+{
+    return make_span(m_curves);
+}
+
 float AnimationCurveNode::getStartTime() const
 {
     return m_curves.empty() ? 0.0f : m_curves[0]->getStartTime();
@@ -317,6 +350,19 @@ void AnimationCurveNode::addValue(float time, float3 value)
     m_curves[0]->addValue(time, value.x);
     m_curves[1]->addValue(time, value.y);
     m_curves[2]->addValue(time, value.z);
+}
+
+bool AnimationCurveNode::remap(Document* doc)
+{
+    for (auto& p : getParents()) {
+        if (!as<AnimationLayer>(p)) {
+            if (auto np = doc->findObject(p->getName()))
+                p = np;
+            else
+                return false;
+        }
+    }
+    return true;
 }
 
 

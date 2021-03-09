@@ -477,7 +477,6 @@ class Cluster : public SubDeformer
 using super = SubDeformer;
 public:
     ObjectSubClass getSubClass() const override;
-    void addChild(Object* v) override;
 
     span<int> getIndices() const;
     span<float> getWeights() const;
@@ -508,6 +507,7 @@ public:
 
     span<BlendShapeChannel*> getChannels() const;
     BlendShapeChannel* createChannel(string_view name);
+    BlendShapeChannel* createChannel(Shape* shape);
 
     void deformPoints(span<float3> dst) const override;
     void deformNormals(span<float3> dst) const override;
@@ -536,7 +536,6 @@ public:
     span<ShapeData> getShapeData() const;
     // weight: 0.0f - 100.0f
     void addShape(Shape* shape, float weight = 100.0f);
-    Shape* createShape(string_view name, float weight = 100.0f);
 
     void setWeight(float v);
     void deformPoints(span<float3> dst) const;
@@ -631,6 +630,8 @@ public:
 
     void applyAnimation(float time);
 
+    bool remap(Document* doc);
+
 protected:
     string_view getClassName() const override;
     void constructObject() override;
@@ -656,6 +657,8 @@ public:
 
     void applyAnimation(float time);
 
+    bool remap(Document* doc);
+
 protected:
     string_view getClassName() const override;
     void constructObject() override;
@@ -673,6 +676,7 @@ public:
 
     AnimationKind getAnimationKind() const;
     Object* getAnimationTarget() const;
+    span<AnimationCurve*> getAnimationCurves() const;
     float getStartTime() const;
     float getStopTime() const;
 
@@ -686,6 +690,8 @@ public:
     void initialize(AnimationKind kind, Object* target);
     void addValue(float time, float value);
     void addValue(float time, float3 value);
+
+    bool remap(Document* doc);
 
 protected:
     string_view getClassName() const override;

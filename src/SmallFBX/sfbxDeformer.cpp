@@ -197,7 +197,10 @@ const JointMatrices& Skin::getJointMatrices() const
 
 Cluster* Skin::createCluster(Model* joint)
 {
+    if (!joint)
+        return nullptr;
     auto r = createChild<Cluster>();
+    r->setName(joint->getName());
     r->addChild(joint);
     return r;
 }
@@ -249,13 +252,6 @@ void Cluster::constructNodes()
         n->createChild(sfbxS_TransformLink, (double4x4)m_transform_link);
 }
 
-void Cluster::addChild(Object* v)
-{
-    super::addChild(v);
-    if (auto model = as<Model>(v))
-        setName(v->getName());
-}
-
 span<int> Cluster::getIndices() const { return make_span(m_indices); }
 span<float> Cluster::getWeights() const { return make_span(m_weights); }
 float4x4 Cluster::getTransform() const { return m_transform; }
@@ -300,6 +296,15 @@ span<BlendShapeChannel*> BlendShape::getChannels() const
 BlendShapeChannel* BlendShape::createChannel(string_view name)
 {
     return createChild<BlendShapeChannel>(name);
+}
+
+BlendShapeChannel* BlendShape::createChannel(Shape* shape)
+{
+    if (!shape)
+        return nullptr;
+    auto ret = createChannel(shape->getName());
+    ret->addShape(shape);
+    return ret;
 }
 
 void BlendShape::deformPoints(span<float3> dst) const
@@ -367,13 +372,6 @@ void BlendShapeChannel::addShape(Shape* shape, float weight)
         addChild(shape);
         m_shape_data.push_back({ shape, weight });
     }
-}
-
-Shape* BlendShapeChannel::createShape(string_view name, float weight)
-{
-    auto ret = createChild<Shape>(name);
-    m_shape_data.push_back({ ret, weight });
-    return ret;
 }
 
 void BlendShapeChannel::setWeight(float v)

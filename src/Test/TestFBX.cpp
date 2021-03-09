@@ -160,11 +160,12 @@ testCase(fbxWrite)
                 {-s, 0, 0}, {s, 0, 0},
             };
 
-            blendshape = mesh->createDeformer<sfbx::BlendShape>();
-            bschannel = blendshape->createChannel("shape");
-            sfbx::Shape* shape = bschannel->createShape("shape", 100.0f);
+            sfbx::Shape* shape = doc->createObject<sfbx::Shape>("shape");
             shape->setIndices(indices);
             shape->setDeltaPoints(delta_points);
+
+            blendshape = mesh->createDeformer<sfbx::BlendShape>();
+            bschannel = blendshape->createChannel(shape);
         }
 
         // joints & skin
