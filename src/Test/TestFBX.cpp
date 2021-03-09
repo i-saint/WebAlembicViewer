@@ -51,9 +51,10 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
 
 testCase(fbxRead)
 {
-    std::string path, path2;
+    std::string path, path2, path3;
     test::GetArg("path", path);
     test::GetArg("path2", path2);
+    test::GetArg("path3", path3);
     if (path.empty())
         return;
 
@@ -63,6 +64,17 @@ testCase(fbxRead)
             sfbx::DocumentPtr doc2 = sfbx::MakeDocument();
             if (doc2->read(path2)) {
                 auto takes = doc2->getAnimationStacks();
+                if (!takes.empty()) {
+                    if (takes[0]->remap(doc)) {
+                        doc->setCurrentTake(takes[0]);
+                    }
+                }
+            }
+        }
+        if (!path3.empty()) {
+            sfbx::DocumentPtr doc3 = sfbx::MakeDocument();
+            if (doc3->read(path3)) {
+                auto takes = doc3->getAnimationStacks();
                 if (!takes.empty()) {
                     if (takes[0]->remap(doc)) {
                         doc->setCurrentTake(takes[0]);
@@ -241,7 +253,7 @@ testCase(fbxWrite)
 
         // animation
         {
-            sfbx::AnimationStack* take = doc->createObject<sfbx::AnimationStack>("take2");
+            sfbx::AnimationStack* take = doc->createObject<sfbx::AnimationStack>("take1");
             sfbx::AnimationLayer* layer = take->createLayer("deform");
             sfbx::AnimationCurveNode* n1 = layer->createCurveNode(sfbx::AnimationKind::Rotation, joints[1]);
             n1->addValue(0.0f, float3{ 0.0f, 0.0f, 0.0f });

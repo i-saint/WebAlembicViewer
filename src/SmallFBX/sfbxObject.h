@@ -71,6 +71,7 @@ public:
     span<Object*> getChildren() const;
     Object* getParent(size_t i = 0) const;
     Object* getChild(size_t i = 0) const;
+    Object* findChild(string_view name) const;
 
     virtual void setID(int64 v);
     virtual void setName(string_view v);
@@ -642,6 +643,7 @@ public:
 
     bool remap(Document* doc);
     bool remap(DocumentPtr doc) { return remap(doc.get()); }
+    void merge(AnimationStack* src); // merge src into this
 
 protected:
     string_view getClassName() const override;
@@ -670,6 +672,7 @@ public:
     void applyAnimation(float time);
 
     bool remap(Document* doc);
+    void merge(AnimationLayer* src);
 
 protected:
     string_view getClassName() const override;

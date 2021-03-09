@@ -28,14 +28,14 @@ static float3 g_camera_target{ 0.0f, 0.0f, 0.0f };
 static int g_active_camera = -1; // -1: free
 static wabc::SensorFitMode g_sensor_fit_mode = wabc::SensorFitMode::Auto;
 static float g_camera_fov = 60.0f;
-static float g_camera_near = 0.01f;
-static float g_camera_far = 1000.0f;
+static float g_camera_near = 0.025f;
+static float g_camera_far = 5000.0f;
 static double g_seek_time;
 
 #ifdef wabcWithGL
 static void Draw()
 {
-    if (!g_renderer || !g_scene)
+    if (!g_renderer)
         return;
 
     if (g_active_camera < 0) {
@@ -43,13 +43,15 @@ static void Draw()
         float3 up = float3::up();
         g_renderer->setCamera(g_camera_position, dir, up, g_camera_fov, g_camera_near, g_camera_far);
     }
-    else {
+    else if (g_scene) {
         g_renderer->setCamera(g_scene->getCameras()[g_active_camera], g_sensor_fit_mode);
     }
 
     g_renderer->beginDraw();
-    g_renderer->draw(g_scene->getMesh());
-    g_renderer->draw(g_scene->getPoints());
+    if (g_scene) {
+        g_renderer->draw(g_scene->getMesh());
+        g_renderer->draw(g_scene->getPoints());
+    }
     g_renderer->endDraw();
 }
 
@@ -317,7 +319,9 @@ int main(int argc, char** argv)
         g_renderer->initialize(g_window);
 
     if (argc >= 2) {
-        g_scene = wabc::LoadScene(argv[1]);
+        for (int i = 1; i < argc; ++i)
+            wabcLoadScene(argv[i]);
+
         if (g_scene) {
             //wabcBenchmark();
 

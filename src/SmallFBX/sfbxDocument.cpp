@@ -104,7 +104,7 @@ bool Document::read(std::istream& is)
 
         if (Node* takes = findNode(sfbxS_Takes)) {
             auto current = GetChildPropertyString(takes, sfbxS_Current);
-            for (auto t : m_takes) {
+            for (auto t : m_anim_stacks) {
                 if (t->getDisplayName() == current) {
                     m_current_take = t;
                     break;
@@ -354,11 +354,31 @@ void Document::addObject(ObjectPtr obj)
     if (obj) {
         m_objects.push_back(obj);
         if (auto take = as<AnimationStack>(obj.get()))
-            m_takes.push_back(take);
+            m_anim_stacks.push_back(take);
         obj->m_document = this;
     }
 }
 
+
+void Document::eraseObject(Object* obj)
+{
+    {
+        auto it = std::find_if(m_objects.begin(), m_objects.end(),
+            [obj](const ObjectPtr& p) { return p.get() == obj; });
+        if (it != m_objects.end())
+            m_objects.erase(it);
+    }
+    {
+        auto it = std::find(m_root_objects.begin(), m_root_objects.end(), obj);
+        if (it != m_root_objects.end())
+            m_root_objects.erase(it);
+    }
+    {
+        auto it = std::find(m_anim_stacks.begin(), m_anim_stacks.end(), obj);
+        if (it != m_anim_stacks.end())
+            m_anim_stacks.erase(it);
+    }
+}
 
 Object* Document::findObject(int64 id) const
 {
@@ -377,7 +397,20 @@ Object* Document::findObject(string_view name) const
 span<ObjectPtr> Document::getAllObjects() const { return make_span(m_objects); }
 span<Object*> Document::getRootObjects() const { return make_span(m_root_objects); }
 Model* Document::getRootModel() const { return m_root_model; }
-span<AnimationStack*> Document::getAnimationStacks() const { return make_span(m_takes); }
+
+span<AnimationStack*> Document::getAnimationStacks() const
+{
+    return make_span(m_anim_stacks);
+}
+
+AnimationStack* Document::findAnimationStack(string_view name) const
+{
+    for (auto take : m_anim_stacks)
+        if (take->getName() == name || take->getDisplayName() == name)
+            return take;
+    return nullptr;
+}
+
 AnimationStack* Document::getCurrentTake() const { return m_current_take; }
 void Document::setCurrentTake(AnimationStack* v) { m_current_take = v; }
 
@@ -530,7 +563,7 @@ void Document::constructNodes()
 
     auto takes = createNode(sfbxS_Takes);
     takes->createChild(sfbxS_Current, take_name);
-    for (auto* t : m_takes) {
+    for (auto* t : m_anim_stacks) {
         auto take = takes->createChild(sfbxS_Take, t->getDisplayName());
         take->createChild(sfbxS_FileName, std::string(t->getDisplayName()) + ".tak");
 

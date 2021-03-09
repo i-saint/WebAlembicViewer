@@ -100,16 +100,33 @@ bool AnimationStack::remap(Document* doc)
     if (m_anim_layers.empty())
         return false;
 
-    doc->addObject(shared_from_this());
+    if (auto t = doc->findAnimationStack(getName()))
+        t->merge(this);
+
+    if (!doc->findObject(getName()))
+        doc->addObject(shared_from_this());
     for (auto layer : getAnimationLayers()) {
-        doc->addObject(layer->shared_from_this());
+        if (!doc->findObject(layer->getName()))
+            doc->addObject(layer->shared_from_this());
+
         for (auto node : layer->getAnimationCurveNodes()) {
             doc->addObject(node->shared_from_this());
             for (auto curve : node->getAnimationCurves())
                 doc->addObject(curve->shared_from_this());
         }
     }
+
     return true;
+}
+
+void AnimationStack::merge(AnimationStack* src)
+{
+    for (auto layer : src->getAnimationLayers()) {
+        if (auto l = as<AnimationLayer>(findChild(layer->getName())))
+            l->merge(layer);
+        else
+            addChild(layer);
+    }
 }
 
 
@@ -169,6 +186,12 @@ bool AnimationLayer::remap(Document* doc)
             ++i;
     }
     return !m_anim_nodes.empty();
+}
+
+void AnimationLayer::merge(AnimationLayer* src)
+{
+    for (auto node : src->getAnimationCurveNodes())
+        addChild(node);
 }
 
 

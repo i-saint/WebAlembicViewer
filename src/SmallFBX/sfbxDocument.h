@@ -51,13 +51,17 @@ public:
     Object* createObject(ObjectClass t, ObjectSubClass s);
     template<class T> T* createObject(string_view name = {});
     void addObject(ObjectPtr obj);
+    void eraseObject(Object* objv);
 
     Object* findObject(int64 id) const;
     Object* findObject(string_view name) const; // name must be in node name format (e.g. "hoge\x00\x01Mesh")
     span<ObjectPtr> getAllObjects() const;
     span<Object*> getRootObjects() const;
     Model* getRootModel() const;
+
     span<AnimationStack*> getAnimationStacks() const;
+    AnimationStack* findAnimationStack(string_view name) const;
+
     AnimationStack* getCurrentTake() const;
     void setCurrentTake(AnimationStack* v);
 
@@ -82,7 +86,7 @@ private:
 
     std::vector<ObjectPtr> m_objects;
     std::vector<Object*> m_root_objects;
-    std::vector<AnimationStack*> m_takes;
+    std::vector<AnimationStack*> m_anim_stacks;
     Model* m_root_model{};
     AnimationStack* m_current_take{};
 };

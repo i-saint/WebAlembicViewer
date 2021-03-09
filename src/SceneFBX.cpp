@@ -191,8 +191,9 @@ bool SceneFBX::loadAdditive(const char* path)
     if (doc->read(path)) {
         auto takes = doc->getAnimationStacks();
         if (!takes.empty()) {
-            if (takes[0]->remap(m_document)) {
-                m_document->setCurrentTake(takes[0]);
+            auto t = takes[0];
+            if (t->remap(m_document)) {
+                m_document->setCurrentTake(m_document->findAnimationStack(t->getName()));
                 return true;
             }
         }

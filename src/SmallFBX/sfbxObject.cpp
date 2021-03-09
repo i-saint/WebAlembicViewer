@@ -245,6 +245,14 @@ span<Object*> Object::getChildren() const { return make_span(m_children); }
 Object* Object::getParent(size_t i) const { return i < m_parents.size() ? m_parents[i] : nullptr; }
 Object* Object::getChild(size_t i) const  { return i < m_children.size() ? m_children[i] : nullptr; }
 
+Object* Object::findChild(string_view name) const
+{
+    for (auto c : m_children)
+        if (c->getName() == name)
+            return c;
+    return nullptr;
+}
+
 void Object::setID(int64 id) { m_id = id; }
 void Object::setName(string_view v) { m_name = MakeObjectName(v, getClassName()); }
 
