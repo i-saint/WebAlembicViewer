@@ -1,5 +1,11 @@
 *.user
 *.png
+*.fbx
+*.abc
+*.usd
+*.usda
+*.mqoz
+*.wasm
 
 .vs/
 _out/

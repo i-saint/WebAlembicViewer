@@ -18,6 +18,7 @@
     <ClCompile Include="SmallFBX\sfbxDeformer.cpp" />
     <ClCompile Include="SmallFBX\sfbxDocument.cpp" />
     <ClCompile Include="SmallFBX\sfbxGeometry.cpp" />
+    <ClCompile Include="SmallFBX\sfbxMaterial.cpp" />
     <ClCompile Include="SmallFBX\sfbxModel.cpp" />
     <ClCompile Include="SmallFBX\sfbxNode.cpp" />
     <ClCompile Include="SmallFBX\sfbxObject.cpp" />
@@ -28,9 +29,14 @@
     <ClInclude Include="SmallFBX.h" />
     <ClInclude Include="SmallFBX\pch.h" />
     <ClInclude Include="SmallFBX\sfbxAlgorithm.h" />
+    <ClInclude Include="SmallFBX\sfbxAnimation.h" />
+    <ClInclude Include="SmallFBX\sfbxDeformer.h" />
     <ClInclude Include="SmallFBX\sfbxDocument.h" />
+    <ClInclude Include="SmallFBX\sfbxGeometry.h" />
     <ClInclude Include="SmallFBX\sfbxInternal.h" />
+    <ClInclude Include="SmallFBX\sfbxMaterial.h" />
     <ClInclude Include="SmallFBX\sfbxMath.h" />
+    <ClInclude Include="SmallFBX\sfbxModel.h" />
     <ClInclude Include="SmallFBX\sfbxNode.h" />
     <ClInclude Include="SmallFBX\sfbxObject.h" />
     <ClInclude Include="SmallFBX\sfbxProperty.h" />

@@ -1,9 +1,57 @@
 #include "pch.h"
 #include "sfbxInternal.h"
-#include "sfbxObject.h"
+#include "sfbxModel.h"
 #include "sfbxDocument.h"
 
 namespace sfbx {
+
+
+ObjectClass NodeAttribute::getClass() const
+{
+    return ObjectClass::NodeAttribute;
+}
+
+ObjectSubClass NullAttribute::getSubClass() const { return ObjectSubClass::Null; }
+
+void NullAttribute::constructNodes()
+{
+    super::constructNodes();
+    getNode()->createChild(sfbxS_TypeFlags, sfbxS_Null);
+}
+
+ObjectSubClass RootAttribute::getSubClass() const { return ObjectSubClass::Root; }
+
+void RootAttribute::constructNodes()
+{
+    super::constructNodes();
+    getNode()->createChild(sfbxS_TypeFlags, sfbxS_Null, sfbxS_Skeleton, sfbxS_Root);
+}
+
+ObjectSubClass LimbNodeAttribute::getSubClass() const { return ObjectSubClass::LimbNode; }
+
+void LimbNodeAttribute::constructNodes()
+{
+    super::constructNodes();
+    getNode()->createChild(sfbxS_TypeFlags, sfbxS_Skeleton);
+}
+
+ObjectSubClass LightAttribute::getSubClass() const { return ObjectSubClass::Light; }
+
+void LightAttribute::constructNodes()
+{
+    super::constructNodes();
+    // todo
+}
+
+ObjectSubClass CameraAttribute::getSubClass() const { return ObjectSubClass::Camera; }
+
+void CameraAttribute::constructNodes()
+{
+    super::constructNodes();
+    // todo
+}
+
+
 
 ObjectClass Model::getClass() const { return ObjectClass::Model; }
 

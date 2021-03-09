@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "sfbxInternal.h"
-#include "sfbxObject.h"
+#include "sfbxGeometry.h"
 #include "sfbxDocument.h"
 
 namespace sfbx {

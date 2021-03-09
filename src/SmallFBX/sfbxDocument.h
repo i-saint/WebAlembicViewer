@@ -1,7 +1,10 @@
 #pragma once
-
-#include "sfbxNode.h"
 #include "sfbxObject.h"
+#include "sfbxModel.h"
+#include "sfbxGeometry.h"
+#include "sfbxDeformer.h"
+#include "sfbxMaterial.h"
+#include "sfbxAnimation.h"
 
 namespace sfbx {
 
