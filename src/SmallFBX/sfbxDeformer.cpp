@@ -253,7 +253,7 @@ void Cluster::exportFBXObjects()
     if (!m_indices.empty())
         n->createChild(sfbxS_Indexes, m_indices);
     if (!m_weights.empty())
-        n->createChild(sfbxS_Weights, MakeAdaptor<float64>(m_weights));
+        n->createChild(sfbxS_Weights, make_adaptor<float64>(m_weights));
     if (m_transform != float4x4::identity())
         n->createChild(sfbxS_Transform, (double4x4)m_transform);
     if (m_transform_link != float4x4::identity())

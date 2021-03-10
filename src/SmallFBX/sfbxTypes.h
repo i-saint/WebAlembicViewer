@@ -1,5 +1,4 @@
 #pragma once
-
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -9,16 +8,9 @@
 #ifdef __cpp_lib_span
     #include <span>
 #endif
-
-#define sfbxRestrict(...) std::enable_if_t<__VA_ARGS__, bool> = true
+#include "sfbxMeta.h"
 
 namespace sfbx {
-
-// is_contiguous_container<T> : true if T has data() and size(). intended to detect std::vector, sfbx::RawVector and sfbx::span.
-template<class T, class = void>
-inline constexpr bool is_contiguous_container = false;
-template<class T>
-inline constexpr bool is_contiguous_container<T, std::void_t<decltype(std::declval<T>().data()), decltype(std::declval<T>().size())>> = true;
 
 
 // SmallFBX require C++17, but not C++20. use std::span only if C++20 is available and our own version if not.
@@ -94,7 +86,7 @@ inline constexpr span<T> make_span(const T (&v)[N]) { return array_to_span<T, N>
 
 // from contagious container (std::vector, etc)
 template<class Cont, sfbxRestrict(is_contiguous_container<Cont>)>
-inline constexpr span<typename Cont::value_type> make_span(const Cont& v) { return { const_cast<typename Cont::value_type*>(v.data()), v.size() }; }
+inline constexpr span<get_value_type<Cont>> make_span(const Cont& v) { return { const_cast<get_value_type<Cont>*>(v.data()), v.size() }; }
 
 // from pointer & size
 template<class T>
@@ -107,7 +99,7 @@ template<size_t N>
 inline constexpr string_view make_view(const char(&v)[N]) { return string_view{ v, N - 1 }; } // -1 to ignore null terminator
 
 template<class Cont, sfbxRestrict(is_contiguous_container<Cont>)>
-inline constexpr string_view make_view(const Cont& v) { return { const_cast<typename Cont::value_type*>(v.data()), v.size() }; }
+inline constexpr string_view make_view(const Cont& v) { return { const_cast<get_value_type<Cont>*>(v.data()), v.size() }; }
 
 
 using int8 = int8_t;
@@ -320,6 +312,7 @@ enum class RotationOrder : int
     SphericXYZ
 };
 
+
 // FBX's bool property represents true as 'Y' and false as 'T'
 struct boolean
 {
@@ -330,12 +323,25 @@ struct boolean
 };
 
 
+template<class D, class S>
+struct array_adaptor
+{
+    using dst_type = D;
+    using src_type = S;
+
+    span<S> values;
+    template<class... T> array_adaptor(T&&... v) : values(make_span(v...)) {}
+};
+template<class D, class S, class... T>
+inline auto make_adaptor(const S& src, T&&... a) { return array_adaptor<D, get_value_type<S>>(src, a...); }
+
+
 class Node; using NodePtr = std::shared_ptr<Node>;
 class Object; using ObjectPtr = std::shared_ptr<Object>;
 class Document; using DocumentPtr = std::shared_ptr<Document>;
 
 template<class T, class U>
-T* as(U* v) { return dynamic_cast<T*>(v); }
+inline T* as(U* v) { return dynamic_cast<T*>(v); }
 
 } // namespace sfbx
 

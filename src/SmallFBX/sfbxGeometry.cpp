@@ -130,7 +130,7 @@ void GeomMesh::exportFBXObjects()
     n->createChild(sfbxS_GeometryVersion, sfbxI_GeometryVersion);
 
     // points
-    n->createChild(sfbxS_Vertices, MakeAdaptor<double3>(m_points));
+    n->createChild(sfbxS_Vertices, make_adaptor<double3>(m_points));
 
     // indices
     {
@@ -185,7 +185,7 @@ void GeomMesh::exportFBXObjects()
         l->createChild(sfbxS_Name, layer.name);
 
         add_mapping_and_reference_info(l, layer);
-        l->createChild(sfbxS_Normals, MakeAdaptor<double3>(layer.data));
+        l->createChild(sfbxS_Normals, make_adaptor<double3>(layer.data));
         if (!layer.indices.empty())
             l->createChild(sfbxS_NormalsIndex, layer.indices);
     }
@@ -201,7 +201,7 @@ void GeomMesh::exportFBXObjects()
         l->createChild(sfbxS_Name, layer.name);
 
         add_mapping_and_reference_info(l, layer);
-        l->createChild(sfbxS_UV, MakeAdaptor<double2>(layer.data));
+        l->createChild(sfbxS_UV, make_adaptor<double2>(layer.data));
         if (!layer.indices.empty())
             l->createChild(sfbxS_UVIndex, layer.indices);
     }
@@ -217,7 +217,7 @@ void GeomMesh::exportFBXObjects()
         l->createChild(sfbxS_Name, layer.name);
 
         add_mapping_and_reference_info(l, layer);
-        l->createChild(sfbxS_Colors, MakeAdaptor<double4>(layer.data));
+        l->createChild(sfbxS_Colors, make_adaptor<double4>(layer.data));
         if (!layer.indices.empty())
             l->createChild(sfbxS_ColorIndex, layer.indices);
     }
@@ -335,9 +335,9 @@ void Shape::exportFBXObjects()
     if (!m_indices.empty())
         n->createChild(sfbxS_Indexes, m_indices);
     if (!m_delta_points.empty())
-        n->createChild(sfbxS_Vertices, MakeAdaptor<double3>(m_delta_points));
+        n->createChild(sfbxS_Vertices, make_adaptor<double3>(m_delta_points));
     if (!m_delta_normals.empty())
-        n->createChild(sfbxS_Normals, MakeAdaptor<double3>(m_delta_normals));
+        n->createChild(sfbxS_Normals, make_adaptor<double3>(m_delta_normals));
 }
 
 span<int> Shape::getIndices() const { return make_span(m_indices); }

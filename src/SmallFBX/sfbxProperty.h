@@ -46,19 +46,6 @@ PropPOD(double4);
 PropPOD(double4x4);
 #undef PropPOD
 
-template<class D, class S>
-struct ArrayAdaptor
-{
-    using dst_type = D;
-    using src_type = S;
-
-    span<S> values;
-    ArrayAdaptor(const RawVector<S>& v) : values(make_span(v)) {}
-    ArrayAdaptor(span<S> v) : values(v) {}
-};
-template<class D, class Cont>
-inline auto MakeAdaptor(const Cont& src) { return ArrayAdaptor<D, typename Cont::value_type>(src); }
-
 
 class Property
 {
@@ -76,7 +63,7 @@ public:
     template<class T, sfbxRestrict(is_propery_pod<T>)> void assign(T v);
     template<class T> void assign(span<T> v);
     template<class T> void assign(const RawVector<T>& v) { assign(make_span(v)); }
-    template<class D, class S> void assign(ArrayAdaptor<D, S> v) { copy(allocateArray<D>(v.values.size()), v.values); }
+    template<class D, class S> void assign(array_adaptor<D, S> v) { copy(allocateArray<D>(v.values.size()), v.values); }
     void assign(string_view v);
 
 

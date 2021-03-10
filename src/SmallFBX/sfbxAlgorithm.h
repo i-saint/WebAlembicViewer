@@ -4,11 +4,6 @@
 
 namespace sfbx {
 
-template<class T, class = void>
-inline constexpr bool has_resize = false;
-template<class T>
-inline constexpr bool has_resize<T, std::void_t<decltype(std::declval<T>().resize(0))>> = true;
-
 // call resize() if Cont has. otherwise do nothing.
 template <class Cont>
 inline void resize(Cont& dst, size_t n)
@@ -112,7 +107,7 @@ inline size_t count(const Container& cont, const Body& body)
 }
 
 template<class Container>
-inline bool erase(Container& cont, typename Container::value_type v)
+inline bool erase(Container& cont, get_value_type<Container> v)
 {
     auto it = std::find(cont.begin(), cont.end(), v);
     if (it != cont.end()) {
