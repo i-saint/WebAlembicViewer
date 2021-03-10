@@ -30,7 +30,7 @@
     <ProjectReference Include="setup.vcxproj">
       <Project>{1c5de91b-7ae9-4304-9fa1-0de1aba8c02d}</Project>
     </ProjectReference>
-    <ProjectReference Include="SmallFBX.vcxproj">
+    <ProjectReference Include="SmallFBX\src\SmallFBX.vcxproj">
       <Project>{3c7d88e0-b0d0-4e63-9f3f-75530b2da797}</Project>
     </ProjectReference>
   </ItemGroup>
@@ -56,7 +56,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>$(ProjectDir);$(ProjectDir)Externals\include;Externals\include\OpenEXR;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir);$(ProjectDir)SmallFBX\src;$(ProjectDir)Externals\include;Externals\include\OpenEXR;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)Externals\lib_win64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)_build_msvc\$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_build_msvc\obj\$(Platform)_$(Configuration)\$(ProjectName)\</IntDir>

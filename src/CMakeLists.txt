@@ -26,6 +26,10 @@ if (EMSCRIPTEN)
         ${CMAKE_SOURCE_DIR}/Externals/include/OpenEXR
     )
     file(GLOB ext_libs ${CMAKE_SOURCE_DIR}/Externals/lib_emscripten/*.a)
+
+    set(ZLIB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/Externals/include)
+    set(ZLIB_LIBRARY_DEBUG ${CMAKE_SOURCE_DIR}/Externals/lib_emscripten/libz.a)
+    set(ZLIB_LIBRARY_RELEASE ${CMAKE_SOURCE_DIR}/Externals/lib_emscripten/libz.a)
 else()
     option(DISABLE_GL "disable OpenGL. mainly for benchmark test." OFF)
     if(DISABLE_GL)
@@ -39,13 +43,14 @@ else()
     set(ext_libs ${ALEMBIC_LIBRARIES})
 endif()
 
-add_subdirectory(SmallFBX)
+add_subdirectory(SmallFBX/src/SmallFBX)
 
 file(GLOB sources *.cpp *.h)
 add_executable(WebAlembicViewer ${sources})
 target_include_directories(WebAlembicViewer
     PRIVATE
         ${CMAKE_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/SmallFBX/src
         ${ext_includes}
 )
 target_link_libraries(WebAlembicViewer

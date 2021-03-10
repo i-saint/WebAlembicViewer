@@ -1,0 +1,3 @@
+[submodule "src/SmallFBX"]
+	path = src/SmallFBX
+	url = https://github.com/i-saint/SmallFBX
