@@ -193,7 +193,7 @@ bool SceneFBX::loadAdditive(const char* path)
         if (!takes.empty()) {
             auto t = takes[0];
             if (t->remap(m_document)) {
-                m_document->setCurrentTake(m_document->findAnimationStack(t->getName()));
+                m_document->setCurrentTake(m_document->findAnimationStack(t->getFullName()));
                 return true;
             }
         }

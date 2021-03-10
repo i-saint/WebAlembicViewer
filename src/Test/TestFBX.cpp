@@ -15,7 +15,7 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
         testPrint("  ");
 
     testPrint("\"%s\" [0x%llx] (%s : %s)\n",
-        obj->getName().data(),
+        obj->getFullName().data(),
         obj->getID(),
         sfbx::GetObjectClassName(obj->getClass()),
         sfbx::GetObjectSubClassName(obj->getSubClass()));

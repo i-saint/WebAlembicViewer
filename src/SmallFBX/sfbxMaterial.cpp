@@ -8,15 +8,15 @@ namespace sfbx {
 ObjectClass Video::getClass() const { return ObjectClass::Video; }
 ObjectSubClass Video::getSubClass() const { return ObjectSubClass::Clip; }
 
-void Video::constructObject()
+void Video::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
     // todo
 }
 
-void Video::constructNodes()
+void Video::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
     // todo
 }
 
@@ -24,15 +24,15 @@ void Video::constructNodes()
 
 ObjectClass Material::getClass() const { return ObjectClass::Material; }
 
-void Material::constructObject()
+void Material::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
     // todo
 }
 
-void Material::constructNodes()
+void Material::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
     // todo
 }
 } // namespace sfbx

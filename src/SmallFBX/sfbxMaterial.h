@@ -14,8 +14,8 @@ public:
     ObjectSubClass getSubClass() const override;
 
 protected:
-    void constructObject() override;
-    void constructNodes() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
 };
 
 class Material : public Object
@@ -25,8 +25,8 @@ public:
     ObjectClass getClass() const override;
 
 protected:
-    void constructObject() override;
-    void constructNodes() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
 };
 
 

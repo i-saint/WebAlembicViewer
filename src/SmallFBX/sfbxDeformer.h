@@ -73,8 +73,8 @@ public:
     void deformNormals(span<float3> dst) const override;
 
 protected:
-    void constructObject() override;
-    void constructNodes() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
     void addParent(Object* v) override;
 
     GeomMesh* m_mesh{};
@@ -100,8 +100,8 @@ public:
     void setBindMatrix(float4x4 v); // v: global matrix of the joint (not inverted)
 
 protected:
-    void constructObject() override;
-    void constructNodes() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
 
     RawVector<int> m_indices;
     RawVector<float> m_weights;
@@ -126,8 +126,8 @@ public:
     void deformNormals(span<float3> dst) const override;
 
 protected:
-    void constructObject() override;
-    void constructNodes() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
 
     std::vector<BlendShapeChannel*> m_channels;
 };
@@ -155,8 +155,8 @@ public:
     void deformNormals(span<float3> dst) const;
 
 protected:
-    void constructObject() override;
-    void constructNodes() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
 
     std::vector<ShapeData> m_shape_data;
     float m_weight = 0.0f;
@@ -190,8 +190,8 @@ public:
     void addPoseData(Model* joint, float4x4 bind_matrix);
 
 protected:
-    void constructObject() override;
-    void constructNodes() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
 
     std::vector<PoseData> m_pose_data;
 };

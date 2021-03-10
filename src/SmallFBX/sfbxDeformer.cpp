@@ -25,14 +25,14 @@ string_view SubDeformer::getClassName() const { return sfbxS_SubDeformer; }
 
 ObjectSubClass Skin::getSubClass() const { return ObjectSubClass::Skin; }
 
-void Skin::constructObject()
+void Skin::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
 }
 
-void Skin::constructNodes()
+void Skin::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
 
     auto n = getNode();
     n->createChild(sfbxS_Version, sfbxI_SkinVersion);
@@ -230,9 +230,9 @@ void Skin::deformNormals(span<float3> dst) const
 
 ObjectSubClass Cluster::getSubClass() const { return ObjectSubClass::Cluster; }
 
-void Cluster::constructObject()
+void Cluster::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
 
     auto n = getNode();
     GetChildPropertyValue<int>(m_indices, n, sfbxS_Indexes);
@@ -241,9 +241,9 @@ void Cluster::constructObject()
     GetChildPropertyValue<double4x4>(m_transform_link, n, sfbxS_TransformLink);
 }
 
-void Cluster::constructNodes()
+void Cluster::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
 
     auto n = getNode();
     n->createChild(sfbxS_Version, sfbxI_ClusterVersion);
@@ -275,14 +275,14 @@ void Cluster::setBindMatrix(float4x4 v)
 
 ObjectSubClass BlendShape::getSubClass() const { return ObjectSubClass::BlendShape; }
 
-void BlendShape::constructObject()
+void BlendShape::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
 }
 
-void BlendShape::constructNodes()
+void BlendShape::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
 
     auto n = getNode();
     n->createChild(sfbxS_Version, sfbxI_BlendShapeVersion);
@@ -336,9 +336,9 @@ void BlendShape::deformNormals(span<float3> dst) const
 
 ObjectSubClass BlendShapeChannel::getSubClass() const { return ObjectSubClass::BlendShapeChannel; }
 
-void BlendShapeChannel::constructObject()
+void BlendShapeChannel::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
 
     for (auto c : getChildren()) {
         if (auto shape = as<Shape>(c))
@@ -355,9 +355,9 @@ void BlendShapeChannel::constructObject()
     }
 }
 
-void BlendShapeChannel::constructNodes()
+void BlendShapeChannel::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
 
     auto n = getNode();
     n->createChild(sfbxS_Version, sfbxI_BlendShapeChannelVersion);
@@ -437,9 +437,9 @@ ObjectClass Pose::getClass() const { return ObjectClass::Pose; }
 
 ObjectSubClass BindPose::getSubClass() const { return ObjectSubClass::BindPose; }
 
-void BindPose::constructObject()
+void BindPose::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
 
     for (auto n : getNode()->getChildren()) {
         if (n->getName() == sfbxS_PoseNode) {
@@ -457,9 +457,9 @@ void BindPose::constructObject()
     }
 }
 
-void BindPose::constructNodes()
+void BindPose::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
 
     auto n = getNode();
     n->createChild(sfbxS_Type, sfbxS_BindPose);

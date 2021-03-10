@@ -13,41 +13,41 @@ ObjectClass NodeAttribute::getClass() const
 
 ObjectSubClass NullAttribute::getSubClass() const { return ObjectSubClass::Null; }
 
-void NullAttribute::constructNodes()
+void NullAttribute::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
     getNode()->createChild(sfbxS_TypeFlags, sfbxS_Null);
 }
 
 ObjectSubClass RootAttribute::getSubClass() const { return ObjectSubClass::Root; }
 
-void RootAttribute::constructNodes()
+void RootAttribute::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
     getNode()->createChild(sfbxS_TypeFlags, sfbxS_Null, sfbxS_Skeleton, sfbxS_Root);
 }
 
 ObjectSubClass LimbNodeAttribute::getSubClass() const { return ObjectSubClass::LimbNode; }
 
-void LimbNodeAttribute::constructNodes()
+void LimbNodeAttribute::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
     getNode()->createChild(sfbxS_TypeFlags, sfbxS_Skeleton);
 }
 
 ObjectSubClass LightAttribute::getSubClass() const { return ObjectSubClass::Light; }
 
-void LightAttribute::constructNodes()
+void LightAttribute::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
     // todo
 }
 
 ObjectSubClass CameraAttribute::getSubClass() const { return ObjectSubClass::Camera; }
 
-void CameraAttribute::constructNodes()
+void CameraAttribute::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
     // todo
 }
 
@@ -55,9 +55,9 @@ void CameraAttribute::constructNodes()
 
 ObjectClass Model::getClass() const { return ObjectClass::Model; }
 
-void Model::constructObject()
+void Model::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
     auto n = getNode();
     if (!n)
         return;
@@ -115,9 +115,9 @@ void Model::constructObject()
 
 #define sfbxVector3d(V) (float64)V.x, (float64)V.y, (float64)V.z
 
-void Model::constructNodes()
+void Model::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
     auto n = getNode();
     if (!n)
         return;
@@ -264,11 +264,11 @@ void Model::setScale(float3 v)        { MarkDirty(m_scale, v); }
 
 ObjectSubClass Null::getSubClass() const { return ObjectSubClass::Null; }
 
-void Null::constructNodes()
+void Null::exportFBXObjects()
 {
     if (!m_attr)
         m_attr = createChild<NullAttribute>();
-    super::constructNodes();
+    super::exportFBXObjects();
 }
 
 void Null::addChild(Object* v)
@@ -281,11 +281,11 @@ void Null::addChild(Object* v)
 
 ObjectSubClass Root::getSubClass() const { return ObjectSubClass::Root; }
 
-void Root::constructNodes()
+void Root::exportFBXObjects()
 {
     if (!m_attr)
         m_attr = createChild<RootAttribute>();
-    super::constructNodes();
+    super::exportFBXObjects();
 }
 
 void Root::addChild(Object* v)
@@ -298,11 +298,11 @@ void Root::addChild(Object* v)
 
 ObjectSubClass LimbNode::getSubClass() const { return ObjectSubClass::LimbNode; }
 
-void LimbNode::constructNodes()
+void LimbNode::exportFBXObjects()
 {
     if (!m_attr)
         m_attr = createChild<LimbNodeAttribute>();
-    super::constructNodes();
+    super::exportFBXObjects();
 }
 
 
@@ -316,9 +316,9 @@ void LimbNode::addChild(Object* v)
 
 ObjectSubClass Mesh::getSubClass() const { return ObjectSubClass::Mesh; }
 
-void Mesh::constructObject()
+void Mesh::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
 
 #ifdef sfbxEnableLegacyFormatSupport
     // in old fbx, Model::Mesh has geometry data
@@ -353,18 +353,18 @@ span<Material*> Mesh::getMaterials() const
 
 ObjectSubClass Light::getSubClass() const { return ObjectSubClass::Light; }
 
-void Light::constructObject()
+void Light::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
     auto n = getNode();
     // todo
 }
 
-void Light::constructNodes()
+void Light::exportFBXObjects()
 {
     if (!m_attr)
         m_attr = createChild<LightAttribute>();
-    super::constructNodes();
+    super::exportFBXObjects();
 
     // todo
 }
@@ -379,18 +379,18 @@ void Light::addChild(Object* v)
 
 ObjectSubClass Camera::getSubClass() const { return ObjectSubClass::Camera; }
 
-void Camera::constructObject()
+void Camera::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
     auto n = getNode();
     // todo
 }
 
-void Camera::constructNodes()
+void Camera::exportFBXObjects()
 {
     if (!m_attr)
         m_attr = createChild<CameraAttribute>();
-    super::constructNodes();
+    super::exportFBXObjects();
     // todo
 }
 

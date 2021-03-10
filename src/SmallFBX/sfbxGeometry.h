@@ -67,8 +67,8 @@ public:
     span<float3> getNormalsDeformed(size_t layer_index = 0, bool apply_transform = false);
 
 protected:
-    void constructObject() override;
-    void constructNodes() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
 
     RawVector<int> m_counts;
     RawVector<int> m_indices;
@@ -94,8 +94,8 @@ public:
     void setDeltaNormals(span<float3> v);
 
 public:
-    void constructObject() override;
-    void constructNodes() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
 
     RawVector<int> m_indices;
     RawVector<float3> m_delta_points;

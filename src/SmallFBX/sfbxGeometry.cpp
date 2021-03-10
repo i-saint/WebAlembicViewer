@@ -64,9 +64,9 @@ template<> BlendShape* Geometry::createDeformer()
 
 ObjectSubClass GeomMesh::getSubClass() const { return ObjectSubClass::Mesh; }
 
-void GeomMesh::constructObject()
+void GeomMesh::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
 
     for (auto n : getNode()->getChildren()) {
         if (n->getName() == sfbxS_Vertices) {
@@ -119,9 +119,9 @@ void GeomMesh::constructObject()
     }
 }
 
-void GeomMesh::constructNodes()
+void GeomMesh::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
 
     Node* n = getNode();
 
@@ -309,9 +309,9 @@ span<float3> GeomMesh::getNormalsDeformed(size_t layer_index, bool apply_transfo
 
 ObjectSubClass Shape::getSubClass() const { return ObjectSubClass::Shape; }
 
-void Shape::constructObject()
+void Shape::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
 
     for (auto n : getNode()->getChildren()) {
         auto name = n->getName();
@@ -324,9 +324,9 @@ void Shape::constructObject()
     }
 }
 
-void Shape::constructNodes()
+void Shape::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
 
     Node* n = getNode();
     n->createChild(sfbxS_Version, sfbxI_ShapeVersion);

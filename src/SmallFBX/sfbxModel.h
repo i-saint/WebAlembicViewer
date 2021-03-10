@@ -19,7 +19,7 @@ class NullAttribute : public NodeAttribute
 using super = NodeAttribute;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructNodes() override;
+    void exportFBXObjects() override;
 };
 
 
@@ -28,7 +28,7 @@ class RootAttribute : public NodeAttribute
 using super = NodeAttribute;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructNodes() override;
+    void exportFBXObjects() override;
 };
 
 
@@ -37,7 +37,7 @@ class LimbNodeAttribute : public NodeAttribute
 using super = NodeAttribute;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructNodes() override;
+    void exportFBXObjects() override;
 };
 
 
@@ -46,7 +46,7 @@ class LightAttribute : public NodeAttribute
 using super = NodeAttribute;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructNodes() override;
+    void exportFBXObjects() override;
 };
 
 
@@ -55,7 +55,7 @@ class CameraAttribute : public NodeAttribute
 using super = NodeAttribute;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructNodes() override;
+    void exportFBXObjects() override;
 };
 
 
@@ -92,8 +92,8 @@ public:
     void setScale(float3 v);
 
 protected:
-    void constructObject() override;
-    void constructNodes() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
     void addParent(Object* v) override;
     void eraseParent(Object* v) override;
     void propagateDirty();
@@ -124,7 +124,7 @@ public:
     void addChild(Object* v) override;
 
 protected:
-    void constructNodes() override;
+    void exportFBXObjects() override;
 
     NullAttribute* m_attr{};
 };
@@ -137,7 +137,7 @@ public:
     void addChild(Object* v) override;
 
 protected:
-    void constructNodes() override;
+    void exportFBXObjects() override;
 
     RootAttribute* m_attr{};
 };
@@ -151,7 +151,7 @@ public:
     void addChild(Object* v) override;
 
 protected:
-    void constructNodes() override;
+    void exportFBXObjects() override;
 
     LimbNodeAttribute* m_attr{};
 };
@@ -168,7 +168,7 @@ public:
     span<Material*> getMaterials() const;
 
 protected:
-    void constructObject() override;
+    void importFBXObjects() override;
 
     GeomMesh* m_geom{};
     std::vector<Material*> m_materials;
@@ -183,8 +183,8 @@ public:
     void addChild(Object* v) override;
 
 protected:
-    void constructObject() override;
-    void constructNodes() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
 
     LightAttribute* m_attr{};
 };
@@ -195,8 +195,8 @@ class Camera : public Model
 using super = Model;
 public:
     ObjectSubClass getSubClass() const override;
-    void constructObject() override;
-    void constructNodes() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
     void addChild(Object* v) override;
 
 protected:

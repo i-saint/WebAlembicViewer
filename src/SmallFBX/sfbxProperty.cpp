@@ -328,7 +328,7 @@ std::string Property::toString(int depth) const
                 };
 
                 string_view obj_name, class_name;
-                if (SplitObjectName(make_view(m_data), obj_name, class_name)) {
+                if (SplitFullName(make_view(m_data), obj_name, class_name)) {
                     s.insert(s.end(), class_name.begin(), class_name.end());
                     s += "::";
                     s.insert(s.end(), obj_name.begin(), obj_name.end());

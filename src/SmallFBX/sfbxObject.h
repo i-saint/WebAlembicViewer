@@ -65,11 +65,13 @@ const char*     GetObjectClassName(ObjectClass t);
 ObjectSubClass  GetObjectSubClass(string_view n);
 ObjectSubClass  GetObjectSubClass(Node* n);
 const char*     GetObjectSubClassName(ObjectSubClass t);
-std::string     MakeObjectName(string_view name, string_view type);
-// true if name is in object name format (display name + \x00 \x01 + class name)
-bool IsObjectName(string_view name);
-// split node name into display name & class name (e.g. "hoge\x00\x01Mesh" -> "hoge" & "Mesh")
-bool SplitObjectName(string_view node_name, string_view& display_name, string_view& class_name);
+
+// return full name (display name + \x00 \x01 + class name)
+std::string MakeFullName(string_view display_name, string_view class_name);
+// true if name is in full name (display name + \x00 \x01 + class name)
+bool IsFullName(string_view name);
+// split full name into display name & class name (e.g. "hoge\x00\x01Mesh" -> "hoge" & "Mesh")
+bool SplitFullName(string_view full_name, string_view& display_name, string_view& class_name);
 
 
 // base object class
@@ -87,8 +89,8 @@ public:
     virtual void eraseChild(Object* v);
 
     int64 getID() const;
-    string_view getName() const; // in object name format (e.g. "hoge\x00\x01Mesh")
-    string_view getDisplayName() const; // return display part (e.g. "hoge" if object name is "hoge\x00\x01Mesh")
+    string_view getFullName() const; // in object name format (e.g. "hoge\x00\x01Mesh")
+    string_view getName() const; // return display part (e.g. "hoge" if object name is "hoge\x00\x01Mesh")
     Node* getNode() const;
 
     span<Object*> getParents() const;
@@ -106,9 +108,9 @@ protected:
     Object(const Object&) = delete;
     Object& operator=(const Object) = delete;
 
-    virtual void constructObject(); // import data from fbx nodes
-    virtual void constructNodes(); // export data to fbx nodes
-    virtual void constructLinks(); // export connections to fbx nodes
+    virtual void importFBXObjects(); // import data from Objects node
+    virtual void exportFBXObjects(); // export data to Objects node
+    virtual void exportFBXConnections(); // export links to Connections node
     virtual string_view getClassName() const;
     virtual void addParent(Object* v);
     virtual void eraseParent(Object* v);

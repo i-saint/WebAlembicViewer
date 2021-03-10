@@ -44,8 +44,8 @@ public:
 
 protected:
     string_view getClassName() const override;
-    void constructObject() override;
-    void constructNodes() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
 
     float m_local_start{};
     float m_local_stop{};
@@ -73,8 +73,8 @@ public:
 
 protected:
     string_view getClassName() const override;
-    void constructObject() override;
-    void constructNodes() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
 
     std::vector<AnimationCurveNode*> m_anim_nodes;
 };
@@ -108,9 +108,9 @@ public:
 
 protected:
     string_view getClassName() const override;
-    void constructObject() override;
-    void constructNodes() override;
-    void constructLinks() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
+    void exportFBXConnections() override;
 
     AnimationKind m_kind = AnimationKind::Unknown;
     std::vector<AnimationCurve*> m_curves;
@@ -134,9 +134,9 @@ public:
 
 protected:
     string_view getClassName() const override;
-    void constructObject() override;
-    void constructNodes() override;
-    void constructLinks() override;
+    void importFBXObjects() override;
+    void exportFBXObjects() override;
+    void exportFBXConnections() override;
 
     float m_default{};
     RawVector<float> m_times;

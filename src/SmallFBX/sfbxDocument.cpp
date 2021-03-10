@@ -97,19 +97,15 @@ bool Document::read(std::istream& is)
         // index based loop because m_objects maybe push_backed in the loop
         for (size_t i = 0; i < m_objects.size(); ++i) {
             auto obj = m_objects[i];
-            obj->constructObject();
+            obj->importFBXObjects();
             if (obj->getParents().empty())
                 m_root_objects.push_back(obj.get());
         }
 
         if (Node* takes = findNode(sfbxS_Takes)) {
             auto current = GetChildPropertyString(takes, sfbxS_Current);
-            for (auto t : m_anim_stacks) {
-                if (t->getDisplayName() == current) {
-                    m_current_take = t;
-                    break;
-                }
-            }
+            if (auto* t = findAnimationStack(current))
+                m_current_take = t;
         }
     }
     catch (const std::runtime_error& e) {
@@ -407,7 +403,7 @@ span<AnimationStack*> Document::getAnimationStacks() const
 AnimationStack* Document::findAnimationStack(string_view name) const
 {
     for (auto take : m_anim_stacks)
-        if (take->getName() == name || take->getDisplayName() == name)
+        if (take->getName() == name || take->getFullName() == name)
             return take;
     return nullptr;
 }
@@ -422,7 +418,7 @@ void Document::constructNodes()
 
     std::time_t t = std::time(nullptr);
     std::tm* now = std::localtime(&t);
-    std::string take_name{ m_current_take ? m_current_take->getDisplayName() : "" };
+    std::string take_name{ m_current_take ? m_current_take->getName() : "" };
 
     auto header_extension = createNode(sfbxS_FBXHeaderExtension);
     {
@@ -446,7 +442,7 @@ void Document::constructNodes()
             other_flags->createChild(sfbxS_TCDefinition, sfbxI_TCDefinition);
         }
         {
-            auto scene_info = header_extension->createChild(sfbxS_SceneInfo, MakeObjectName(sfbxS_GlobalInfo, sfbxS_SceneInfo), sfbxS_UserData);
+            auto scene_info = header_extension->createChild(sfbxS_SceneInfo, MakeFullName(sfbxS_GlobalInfo, sfbxS_SceneInfo), sfbxS_UserData);
             scene_info->createChild(sfbxS_Type, sfbxS_UserData);
             scene_info->createChild(sfbxS_Version, 100);
             {
@@ -532,9 +528,9 @@ void Document::constructNodes()
 
     // index based loop because m_objects maybe push_backed in the loop
     for (size_t i = 0; i < m_objects.size(); ++i)
-        m_objects[i]->constructNodes();
+        m_objects[i]->exportFBXObjects();
     for (size_t i = 0; i < m_objects.size(); ++i)
-        m_objects[i]->constructLinks();
+        m_objects[i]->exportFBXConnections();
 
     {
         auto add_object_type = [definitions](size_t n, const char* type) -> Node* {
@@ -565,8 +561,8 @@ void Document::constructNodes()
     auto takes = createNode(sfbxS_Takes);
     takes->createChild(sfbxS_Current, take_name);
     for (auto* t : m_anim_stacks) {
-        auto take = takes->createChild(sfbxS_Take, t->getDisplayName());
-        take->createChild(sfbxS_FileName, std::string(t->getDisplayName()) + ".tak");
+        auto take = takes->createChild(sfbxS_Take, t->getName());
+        take->createChild(sfbxS_FileName, std::string(t->getName()) + ".tak");
 
         float lstart = t->getLocalStart();
         float lstop = t->getLocalStop();

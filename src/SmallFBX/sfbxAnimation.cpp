@@ -9,9 +9,9 @@ namespace sfbx {
 ObjectClass AnimationStack::getClass() const { return ObjectClass::AnimationStack; }
 string_view AnimationStack::getClassName() const { return "AnimStack"; }
 
-void AnimationStack::constructObject()
+void AnimationStack::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
 
     EnumerateProperties(getNode(), [this](Node* n) {
         if (GetPropertyString(n, 0) == sfbxS_LocalStart)
@@ -25,9 +25,9 @@ void AnimationStack::constructObject()
         });
 }
 
-void AnimationStack::constructNodes()
+void AnimationStack::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
 
     float start{}, stop{};
     bool first = true;
@@ -100,10 +100,10 @@ bool AnimationStack::remap(Document* doc)
     if (m_anim_layers.empty())
         return false;
 
-    if (auto t = doc->findAnimationStack(getName()))
+    if (auto t = doc->findAnimationStack(getFullName()))
         t->merge(this);
 
-    if (!doc->findObject(getName()))
+    if (!doc->findObject(getFullName()))
         doc->addObject(shared_from_this());
     for (auto layer : getAnimationLayers()) {
         if (!doc->findObject(layer->getName()))
@@ -134,14 +134,14 @@ void AnimationStack::merge(AnimationStack* src)
 ObjectClass AnimationLayer::getClass() const { return ObjectClass::AnimationLayer; }
 string_view AnimationLayer::getClassName() const { return "AnimLayer"; }
 
-void AnimationLayer::constructObject()
+void AnimationLayer::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
 }
 
-void AnimationLayer::constructNodes()
+void AnimationLayer::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
 }
 
 void AnimationLayer::addChild(Object* v)
@@ -229,11 +229,11 @@ static const AnimationKindData* FindAnimationKindData(string_view name)
 ObjectClass AnimationCurveNode::getClass() const { return ObjectClass::AnimationCurveNode; }
 string_view AnimationCurveNode::getClassName() const { return "AnimCurveNode"; }
 
-void AnimationCurveNode::constructObject()
+void AnimationCurveNode::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
 
-    auto name = getDisplayName();
+    auto name = getName();
     auto* akd = FindAnimationKindData(name);
     if (akd) {
         m_kind = akd->kind;
@@ -246,12 +246,12 @@ void AnimationCurveNode::constructObject()
     }
 }
 
-void AnimationCurveNode::constructNodes()
+void AnimationCurveNode::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
 
     auto props = getNode()->createChild(sfbxS_Properties70);
-    if (auto* akd = FindAnimationKindData(getDisplayName())) {
+    if (auto* akd = FindAnimationKindData(getName())) {
         size_t n = m_curves.size();
         if (akd->curve_names.size() == n) {
             for (size_t i = 0; i < n; ++i) {
@@ -262,7 +262,7 @@ void AnimationCurveNode::constructNodes()
     }
 }
 
-void AnimationCurveNode::constructLinks()
+void AnimationCurveNode::exportFBXConnections()
 {
     // ignore super::constructLinks()
 
@@ -425,9 +425,9 @@ bool AnimationCurveNode::remap(Document* doc)
 ObjectClass AnimationCurve::getClass() const { return ObjectClass::AnimationCurve; }
 string_view AnimationCurve::getClassName() const { return "AnimCurve"; }
 
-void AnimationCurve::constructObject()
+void AnimationCurve::importFBXObjects()
 {
-    super::constructObject();
+    super::importFBXObjects();
 
     for (auto n : getNode()->getChildren()) {
         auto name = n->getName();
@@ -445,9 +445,9 @@ void AnimationCurve::constructObject()
     }
 }
 
-void AnimationCurve::constructNodes()
+void AnimationCurve::exportFBXObjects()
 {
-    super::constructNodes();
+    super::exportFBXObjects();
 
     RawVector<int64> times_i64;
     transform(times_i64, m_times, [](float v) { return ToTicks(v); });
@@ -466,7 +466,7 @@ void AnimationCurve::constructNodes()
     n->createChild(sfbxS_KeyAttrRefCount, make_span(attr_refcount));
 }
 
-void AnimationCurve::constructLinks()
+void AnimationCurve::exportFBXConnections()
 {
     // do nothing
 }

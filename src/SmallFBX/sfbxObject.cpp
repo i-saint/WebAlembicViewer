@@ -72,22 +72,22 @@ const char* GetObjectSubClassName(ObjectSubClass t)
     }
 }
 
-std::string MakeObjectName(string_view name, string_view type)
+std::string MakeFullName(string_view display_name, string_view class_name)
 {
     std::string ret;
-    size_t pos = name.find('\0');
+    size_t pos = display_name.find('\0'); // ignore class name part
     if (pos == std::string::npos)
-        ret = name;
+        ret = display_name;
     else
-        ret.assign(name.data(), pos);
+        ret.assign(display_name.data(), pos);
 
     ret += (char)0x00;
     ret += (char)0x01;
-    ret += type;
+    ret += class_name;
     return ret;
 }
 
-bool IsObjectName(string_view name)
+bool IsFullName(string_view name)
 {
     size_t n = name.size();
     if (n > 2) {
@@ -98,10 +98,10 @@ bool IsObjectName(string_view name)
     return false;
 }
 
-bool SplitObjectName(string_view node_name, string_view& display_name, string_view& class_name)
+bool SplitFullName(string_view full_name, string_view& display_name, string_view& class_name)
 {
-    const char* str = node_name.data();
-    size_t n = node_name.size();
+    const char* str = full_name.data();
+    size_t n = full_name.size();
     if (n > 2) {
         for (size_t i = 0; i < n - 1; ++i) {
             if (str[i] == 0x00 && str[i + 1] == 0x01) {
@@ -112,7 +112,7 @@ bool SplitObjectName(string_view node_name, string_view& display_name, string_vi
             }
         }
     }
-    display_name = string_view(node_name);
+    display_name = string_view(full_name);
     return false;
 }
 
@@ -150,21 +150,21 @@ void Object::setNode(Node* n)
     }
 }
 
-void Object::constructObject()
+void Object::importFBXObjects()
 {
 }
 
-void Object::constructNodes()
+void Object::exportFBXObjects()
 {
     if (m_id == 0)
         return;
 
     auto objects = m_document->findNode(sfbxS_Objects);
     m_node = objects->createChild(
-        GetObjectClassName(getClass()), m_id, getName(), GetObjectSubClassName(getSubClass()));
+        GetObjectClassName(getClass()), m_id, getFullName(), GetObjectSubClassName(getSubClass()));
 }
 
-void Object::constructLinks()
+void Object::exportFBXConnections()
 {
     for (auto parent : getParents())
         m_document->createLinkOO(this, parent);
@@ -209,8 +209,8 @@ void Object::eraseParent(Object* v)
 
 
 int64 Object::getID() const { return m_id; }
-string_view Object::getName() const { return m_name; }
-string_view Object::getDisplayName() const { return m_name.c_str(); }
+string_view Object::getFullName() const { return m_name; }
+string_view Object::getName() const { return m_name.c_str(); }
 
 Node* Object::getNode() const { return m_node; }
 
@@ -222,13 +222,13 @@ Object* Object::getChild(size_t i) const  { return i < m_children.size() ? m_chi
 Object* Object::findChild(string_view name) const
 {
     for (auto c : m_children)
-        if (c->getName() == name)
+        if (c->getFullName() == name)
             return c;
     return nullptr;
 }
 
 void Object::setID(int64 id) { m_id = id; }
-void Object::setName(string_view v) { m_name = MakeObjectName(v, getClassName()); }
+void Object::setName(string_view v) { m_name = MakeFullName(v, getClassName()); }
 
 
 } // namespace sfbx
