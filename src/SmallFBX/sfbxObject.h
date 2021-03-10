@@ -1,5 +1,5 @@
 #pragma once
-#include "sfbxNode.h"
+#include "sfbxTypes.h"
 
 namespace sfbx {
 
@@ -59,12 +59,12 @@ sfbxEachObjectType(Decl)
 #undef Decl
 
 
-ObjectClass     GetObjectClass(string_view n);
-ObjectClass     GetObjectClass(Node* n);
-const char*     GetObjectClassName(ObjectClass t);
-ObjectSubClass  GetObjectSubClass(string_view n);
-ObjectSubClass  GetObjectSubClass(Node* n);
-const char*     GetObjectSubClassName(ObjectSubClass t);
+ObjectClass GetObjectClass(string_view n);
+ObjectClass GetObjectClass(Node* n);
+string_view GetObjectClassName(ObjectClass t);
+ObjectSubClass GetObjectSubClass(string_view n);
+ObjectSubClass GetObjectSubClass(Node* n);
+string_view GetObjectSubClassName(ObjectSubClass t);
 
 // return full name (display name + \x00 \x01 + class name)
 std::string MakeFullName(string_view display_name, string_view class_name);
@@ -99,19 +99,19 @@ public:
     Object* getChild(size_t i = 0) const;
     Object* findChild(string_view name) const;
 
-    virtual void setID(int64 v);
-    virtual void setName(string_view v);
-    virtual void setNode(Node* v);
+    void setID(int64 v);
+    void setName(string_view v);
+    void setNode(Node* v);
 
 protected:
     Object();
     Object(const Object&) = delete;
     Object& operator=(const Object) = delete;
 
-    virtual void importFBXObjects(); // import data from Objects node
-    virtual void exportFBXObjects(); // export data to Objects node
-    virtual void exportFBXConnections(); // export links to Connections node
-    virtual string_view getClassName() const;
+    virtual void importFBXObjects();
+    virtual void exportFBXObjects();
+    virtual void exportFBXConnections();
+    virtual string_view getInternalClassName() const;
     virtual void addParent(Object* v);
     virtual void eraseParent(Object* v);
 

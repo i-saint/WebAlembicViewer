@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "sfbxInternal.h"
 #include "sfbxMaterial.h"
-#include "sfbxDocument.h"
 
 namespace sfbx {
 

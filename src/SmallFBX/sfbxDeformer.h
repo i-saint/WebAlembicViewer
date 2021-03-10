@@ -1,6 +1,5 @@
 #pragma once
-#include "sfbxModel.h"
-#include "sfbxGeometry.h"
+#include "sfbxObject.h"
 
 namespace sfbx {
 
@@ -26,7 +25,6 @@ using super = Object;
 public:
 protected:
     ObjectClass getClass() const override;
-    string_view getClassName() const override;
 };
 
 

@@ -1,13 +1,15 @@
 #include "pch.h"
 #include "sfbxInternal.h"
 #include "sfbxAnimation.h"
+#include "sfbxModel.h"
+#include "sfbxDeformer.h"
+#include "sfbxMaterial.h"
 #include "sfbxDocument.h"
 
 namespace sfbx {
 
 
 ObjectClass AnimationStack::getClass() const { return ObjectClass::AnimationStack; }
-string_view AnimationStack::getClassName() const { return "AnimStack"; }
 
 void AnimationStack::importFBXObjects()
 {
@@ -132,7 +134,6 @@ void AnimationStack::merge(AnimationStack* src)
 
 
 ObjectClass AnimationLayer::getClass() const { return ObjectClass::AnimationLayer; }
-string_view AnimationLayer::getClassName() const { return "AnimLayer"; }
 
 void AnimationLayer::importFBXObjects()
 {
@@ -227,7 +228,6 @@ static const AnimationKindData* FindAnimationKindData(string_view name)
 
 
 ObjectClass AnimationCurveNode::getClass() const { return ObjectClass::AnimationCurveNode; }
-string_view AnimationCurveNode::getClassName() const { return "AnimCurveNode"; }
 
 void AnimationCurveNode::importFBXObjects()
 {
@@ -423,7 +423,6 @@ bool AnimationCurveNode::remap(Document* doc)
 
 
 ObjectClass AnimationCurve::getClass() const { return ObjectClass::AnimationCurve; }
-string_view AnimationCurve::getClassName() const { return "AnimCurve"; }
 
 void AnimationCurve::importFBXObjects()
 {

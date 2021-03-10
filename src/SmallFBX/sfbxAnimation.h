@@ -1,7 +1,5 @@
 #pragma once
-#include "sfbxModel.h"
-#include "sfbxDeformer.h"
-#include "sfbxMaterial.h"
+#include "sfbxObject.h"
 
 namespace sfbx {
 
@@ -43,7 +41,6 @@ public:
     void merge(AnimationStack* src); // merge src into this
 
 protected:
-    string_view getClassName() const override;
     void importFBXObjects() override;
     void exportFBXObjects() override;
 
@@ -72,7 +69,6 @@ public:
     void merge(AnimationLayer* src);
 
 protected:
-    string_view getClassName() const override;
     void importFBXObjects() override;
     void exportFBXObjects() override;
 
@@ -107,7 +103,6 @@ public:
     bool remap(Document* doc);
 
 protected:
-    string_view getClassName() const override;
     void importFBXObjects() override;
     void exportFBXObjects() override;
     void exportFBXConnections() override;
@@ -133,7 +128,6 @@ public:
     void addValue(float time, float value);
 
 protected:
-    string_view getClassName() const override;
     void importFBXObjects() override;
     void exportFBXObjects() override;
     void exportFBXConnections() override;

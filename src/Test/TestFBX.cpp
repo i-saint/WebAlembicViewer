@@ -17,8 +17,8 @@ static void PrintObject(sfbx::Object* obj, int depth = 0)
     testPrint("\"%s\" [0x%llx] (%s : %s)\n",
         obj->getFullName().data(),
         obj->getID(),
-        sfbx::GetObjectClassName(obj->getClass()),
-        sfbx::GetObjectSubClassName(obj->getSubClass()));
+        sfbx::GetObjectClassName(obj->getClass()).data(),
+        sfbx::GetObjectSubClassName(obj->getSubClass()).data());
 
     // for test
     if (auto skin = as<sfbx::Skin>(obj)) {

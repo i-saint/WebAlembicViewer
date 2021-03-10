@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "sfbxInternal.h"
+#include "sfbxModel.h"
+#include "sfbxGeometry.h"
 #include "sfbxDeformer.h"
 #include "sfbxDocument.h"
 
@@ -20,7 +22,6 @@ void Deformer::deformNormals(span<float3> dst) const {}
 
 
 ObjectClass SubDeformer::getClass() const { return ObjectClass::Deformer; }
-string_view SubDeformer::getClassName() const { return sfbxS_SubDeformer; }
 
 
 ObjectSubClass Skin::getSubClass() const { return ObjectSubClass::Skin; }

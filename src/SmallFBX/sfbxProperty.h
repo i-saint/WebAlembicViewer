@@ -73,7 +73,6 @@ public:
 
     template<class T> span<T> allocateArray(size_t size);
 
-    // T: corresponding types with PropertyType (boolean ... float64 and span<> & std::vector<>, std::string)
     template<class T, sfbxRestrict(is_propery_pod<T>)> void assign(T v);
     template<class T> void assign(span<T> v);
     template<class T> void assign(const RawVector<T>& v) { assign(make_span(v)); }

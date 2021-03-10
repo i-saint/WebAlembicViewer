@@ -1,13 +1,17 @@
 #include "pch.h"
 #include "sfbxInternal.h"
 #include "sfbxObject.h"
+#include "sfbxModel.h"
+#include "sfbxGeometry.h"
+#include "sfbxDeformer.h"
+#include "sfbxMaterial.h"
+#include "sfbxAnimation.h"
 #include "sfbxDocument.h"
 
 namespace sfbx {
 
 ObjectClass GetObjectClass(string_view n)
 {
-
     if (n.empty()) {
         return ObjectClass::Unknown;
     }
@@ -24,7 +28,7 @@ ObjectClass GetObjectClass(Node* n)
     return GetObjectClass(n->getName());
 }
 
-const char* GetObjectClassName(ObjectClass t)
+string_view GetObjectClassName(ObjectClass t)
 {
     switch (t) {
 #define Case(T) case ObjectClass::T: return sfbxS_##T;
@@ -62,7 +66,7 @@ ObjectSubClass GetObjectSubClass(Node* n)
         return ObjectSubClass::Unknown;
 }
 
-const char* GetObjectSubClassName(ObjectSubClass t)
+string_view GetObjectSubClassName(ObjectSubClass t)
 {
     switch (t) {
 #define Case(T) case ObjectSubClass::T: return sfbxS_##T;
@@ -71,6 +75,26 @@ const char* GetObjectSubClassName(ObjectSubClass t)
     default: return "";
     }
 }
+
+
+static constexpr inline string_view GetInternalObjectClassName(ObjectClass t, ObjectSubClass st)
+{
+#define Case1(T, ST, Ret) if (t == ObjectClass::T && st == ObjectSubClass::ST) return Ret
+#define Case2(T, Ret) if (t == ObjectClass::T) return Ret
+
+    Case1(Deformer, Cluster, sfbxS_SubDeformer);
+    Case1(Deformer, BlendShapeChannel, sfbxS_SubDeformer);
+    Case2(AnimationStack, sfbxS_AnimStack);
+    Case2(AnimationLayer, sfbxS_AnimLayer);
+    Case2(AnimationCurveNode, sfbxS_AnimCurveNode);
+    Case2(AnimationCurve, sfbxS_AnimCurve);
+
+#undef Case1
+#undef Case2
+
+    return GetObjectClassName(t);
+}
+
 
 std::string MakeFullName(string_view display_name, string_view class_name)
 {
@@ -129,7 +153,7 @@ Object::~Object()
 
 ObjectClass Object::getClass() const { return ObjectClass::Unknown; }
 ObjectSubClass Object::getSubClass() const { return ObjectSubClass::Unknown; }
-string_view Object::getClassName() const { return GetObjectClassName(getClass()); }
+string_view Object::getInternalClassName() const { return GetInternalObjectClassName(getClass(), getSubClass()); }
 
 void Object::setNode(Node* n)
 {
@@ -172,8 +196,7 @@ void Object::exportFBXConnections()
 
 template<class T> T* Object::createChild(string_view name)
 {
-    auto ret = m_document->createObject<T>();
-    ret->setName(name);
+    auto ret = m_document->createObject<T>(name);
     addChild(ret);
     return ret;
 }
@@ -228,7 +251,7 @@ Object* Object::findChild(string_view name) const
 }
 
 void Object::setID(int64 id) { m_id = id; }
-void Object::setName(string_view v) { m_name = MakeFullName(v, getClassName()); }
+void Object::setName(string_view v) { m_name = MakeFullName(v, getInternalClassName()); }
 
 
 } // namespace sfbx

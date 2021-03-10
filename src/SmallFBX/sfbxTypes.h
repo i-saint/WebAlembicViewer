@@ -110,15 +110,6 @@ template<class Cont, sfbxRestrict(is_contiguous_container<Cont>)>
 inline constexpr string_view make_view(const Cont& v) { return { const_cast<typename Cont::value_type*>(v.data()), v.size() }; }
 
 
-class noncopyable
-{
-protected:
-    noncopyable() = default;
-    ~noncopyable() = default;
-    noncopyable(const noncopyable&) = delete;
-    noncopyable& operator=(const noncopyable) = delete;
-};
-
 using int8 = int8_t;
 using int16 = int16_t;
 using int32 = int32_t;

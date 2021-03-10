@@ -1,10 +1,10 @@
 #include "pch.h"
 #include "sfbxInternal.h"
 #include "sfbxModel.h"
-#include "sfbxDocument.h"
+#include "sfbxGeometry.h"
+#include "sfbxMaterial.h"
 
 namespace sfbx {
-
 
 ObjectClass NodeAttribute::getClass() const
 {

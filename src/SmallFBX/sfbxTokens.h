@@ -102,6 +102,12 @@
 #define sfbxS_BlendShapeChannel     "BlendShapeChannel"
 #define sfbxS_Clip                  "Clip"
 
+#define sfbxS_SubDeformer           "SubDeformer"
+#define sfbxS_AnimStack             "AnimStack"
+#define sfbxS_AnimLayer             "AnimLayer"
+#define sfbxS_AnimCurveNode         "AnimCurveNode"
+#define sfbxS_AnimCurve             "AnimCurve"
+
 #define sfbxS_Properties            "Properties"
 #define sfbxS_Properties70          "Properties70"
 #define sfbxS_bool                  "bool"
@@ -123,7 +129,6 @@
 #define sfbxS_Weights               "Weights"
 #define sfbxS_PoseNode              "PoseNode"
 #define sfbxS_NbPoseNodes           "NbPoseNodes"
-#define sfbxS_SubDeformer           "SubDeformer"
 #define sfbxS_Total1                "Total1"
 #define sfbxS_Link_DeformAcuracy    "Link_DeformAcuracy"
 #define sfbxS_DeformPercent         "DeformPercent"

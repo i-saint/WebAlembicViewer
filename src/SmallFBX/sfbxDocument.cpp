@@ -1,5 +1,11 @@
 #include "pch.h"
 #include "sfbxInternal.h"
+#include "sfbxObject.h"
+#include "sfbxModel.h"
+#include "sfbxGeometry.h"
+#include "sfbxDeformer.h"
+#include "sfbxMaterial.h"
+#include "sfbxAnimation.h"
 #include "sfbxDocument.h"
 
 namespace sfbx {
@@ -328,7 +334,7 @@ Object* Document::createObject(ObjectClass c, ObjectSubClass s)
         addObject(ObjectPtr(r));
     }
     else {
-        sfbxPrint("sfbx::Document::createObject(): unrecongnized type \"%s\"\n", GetObjectClassName(c));
+        sfbxPrint("sfbx::Document::createObject(): unrecongnized type \"%s\"\n", GetObjectClassName(c).data());
     }
     return r;
 }

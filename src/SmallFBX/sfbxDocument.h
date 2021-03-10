@@ -1,11 +1,6 @@
 #pragma once
 #include "sfbxObject.h"
-#include "sfbxModel.h"
-#include "sfbxGeometry.h"
-#include "sfbxDeformer.h"
-#include "sfbxMaterial.h"
-#include "sfbxAnimation.h"
-
+#
 namespace sfbx {
 
 enum class FileVersion : int
@@ -71,13 +66,13 @@ public:
     void constructNodes();
     std::string toString();
 
+
+    // utils
     template<class T>
     size_t countObjects() const
     {
-        return count(m_objects,
-            [](auto& p) { return as<T>(p.get()) && p->getID() != 0; });
+        return count(m_objects, [](auto& p) { return as<T>(p.get()) && p->getID() != 0; });
     }
-
 
 private:
     void initialize();
