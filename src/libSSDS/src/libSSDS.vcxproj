@@ -11,44 +11,32 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pch.cpp">
+    <ClCompile Include="libSSDS\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="SceneABC.cpp" />
-    <ClCompile Include="SceneFBX.cpp" />
-    <ClCompile Include="SceneGraph.cpp" />
-    <ClCompile Include="Renderer.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="libSSDS\libSSDS.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="pch.h" />
-    <ClInclude Include="SceneGraph.h" />
-    <ClInclude Include="VectorMath.h" />
-    <ClInclude Include="WebAlembicViewer.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="setup.vcxproj">
-      <Project>{1c5de91b-7ae9-4304-9fa1-0de1aba8c02d}</Project>
-    </ProjectReference>
-    <ProjectReference Include="SmallFBX\src\SmallFBX.vcxproj">
-      <Project>{3c7d88e0-b0d0-4e63-9f3f-75530b2da797}</Project>
-    </ProjectReference>
+    <ClInclude Include="libSSDS.h" />
+    <ClInclude Include="libSSDS\pch.h" />
+    <ClInclude Include="libSSDS\ssdsMath.h" />
+    <ClInclude Include="libSSDS\ssdsMeta.h" />
+    <ClInclude Include="libSSDS\ssdsTypes.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{9D1A9D96-7FFF-431A-BEFC-1D9DC317A736}</ProjectGuid>
+    <ProjectGuid>{89C04D37-F3F1-4D3E-ABAA-20C9B7057E25}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PlatformToolset>v142</PlatformToolset>
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <CharacterSet>Unicode</CharacterSet>
-    <EnableASAN>true</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <PlatformToolset>v142</PlatformToolset>
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -57,8 +45,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>$(ProjectDir);$(ProjectDir)SmallFBX\src;$(ProjectDir)Externals\include;Externals\include\OpenEXR;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)Externals\lib_win64;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
+    <IncludePath>$(ProjectDir);$(ProjectDir)Externals/include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64)</LibraryPath>
     <OutDir>$(SolutionDir)_build_msvc\$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)_build_msvc\obj\$(Platform)_$(Configuration)\$(ProjectName)\</IntDir>
   </PropertyGroup>
@@ -69,15 +57,6 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
-    <Link>
-      <SubSystem>Console</SubSystem>
-    </Link>
-    <Manifest>
-      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
-    </Manifest>
-    <PostBuildEvent>
-      <Command>xcopy /D "$(ProjectDir)\Externals\lib_win64\*.dll" "$(TargetDir)"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
