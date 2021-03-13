@@ -23,7 +23,7 @@ static GLFWwindow* g_window;
 static int g_key_mod;
 static int g_mouse_button;
 static float2 g_mouse_pos;
-static float3 g_camera_position{ 0.0f, 10.0f, 50.0f };
+static float3 g_camera_position{ 0.0f, 5.0f, 25.0f };
 static float3 g_camera_target{ 0.0f, 0.0f, 0.0f };
 static int g_active_camera = -1; // -1: free
 static wabc::SensorFitMode g_sensor_fit_mode = wabc::SensorFitMode::Auto;

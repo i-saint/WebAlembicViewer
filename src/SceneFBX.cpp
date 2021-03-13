@@ -167,17 +167,16 @@ bool SceneFBX::load(const char* path)
 {
     unload();
 
-    m_document = sfbx::MakeDocument();
-    if (!m_document->read(path)) {
+    m_document = sfbx::MakeDocument(path);
+    if (!m_document->valid()) {
         unload();
         return false;
     }
 
     m_mono_mesh = std::make_shared<Mesh>();
-
-    ImportContext ctx;
-    for (auto obj : m_document->getRootObjects()) {
-        ctx.obj = obj;
+    {
+        ImportContext ctx;
+        ctx.obj = m_document->getRootModel();
         scanObjects(ctx);
     }
     m_mono_mesh->upload();
@@ -187,18 +186,9 @@ bool SceneFBX::load(const char* path)
 
 bool SceneFBX::loadAdditive(const char* path)
 {
-    auto doc = sfbx::MakeDocument();
-    if (doc->read(path)) {
-        auto takes = doc->getAnimationStacks();
-        if (!takes.empty()) {
-            auto t = takes[0];
-            if (t->remap(m_document)) {
-                m_document->setCurrentTake(m_document->findAnimationStack(t->getFullName()));
-                return true;
-            }
-        }
-    }
-    return false;
+    if (!m_document)
+        return false;
+    return m_document->mergeAnimations(path);
 }
 
 void SceneFBX::unload()
