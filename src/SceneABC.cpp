@@ -284,10 +284,11 @@ void SceneABC::seekImpl(ImportContext ctx)
         if (dst) {
             float3 pos = extract_position(ctx.global_matrix);
             float3 dir = normalize(mul_v(ctx.global_matrix, float3{ 0.0f, 0.0f, -1.0f }));
+            float3 up = normalize(mul_v(ctx.global_matrix, float3{ 0.0f, 1.0f, 0.0f }));
 
             dst->m_position = pos;
             dst->m_direction = dir;
-            dst->m_up = float3::up();
+            dst->m_up = up;
 
             dst->m_focal_length = (float)sample.getFocalLength();
             dst->m_aperture = float2{

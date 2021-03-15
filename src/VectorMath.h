@@ -261,6 +261,13 @@ struct tmat4x4
     }
 };
 
+template<class T, class U>
+inline T to(const U& v)
+{
+    static_assert(sizeof(T) == sizeof(U));
+    return reinterpret_cast<const T&>(v);
+}
+
 template<class T> struct get_scalar_type_t { using type = typename T::scalar_t; };
 #define Scalar(T) template<> struct get_scalar_type_t<T> { using type = T; }
 Scalar(int); Scalar(float); Scalar(double);

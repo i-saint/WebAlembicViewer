@@ -72,6 +72,14 @@ void SceneFBX::scanObjects(ImportContext ctx)
     if (auto model = as<sfbx::Model>(obj)) {
 
         if (auto cam = as<sfbx::Camera>(model)) {
+            auto tmp = std::make_shared<Camera>();
+            tmp->m_path = cam->getPath();
+            tmp->m_userdata = cam;
+
+            m_camera_table[tmp->m_path] = tmp;
+            m_cameras.push_back(tmp.get());
+        }
+        else if (auto light = as<sfbx::Light>(model)) {
             // todo
         }
     }
@@ -228,11 +236,30 @@ void SceneFBX::seek(double time)
     if (!m_document || time == m_time)
         return;
 
-    if (auto take = m_document->getCurrentTake()) {
+    if (auto take = m_document->getCurrentTake())
         take->applyAnimation(time);
-    }
-
     applyDeform();
+
+    for (auto& kvp : m_camera_table) {
+        Camera* dst = kvp.second.get();
+        auto fbx = (sfbx::Camera*)dst->m_userdata;
+
+        float4x4 global_matrix = to<float4x4>(fbx->getGlobalMatrix());
+        float3 pos = extract_position(global_matrix);
+        float3 dir = normalize(mul_v(global_matrix, float3{ -1.0f, 0.0f, 0.0f }));
+        float3 up = normalize(mul_v(global_matrix, float3{ 0.0f, 1.0f, 0.0f }));
+
+        dst->m_position = pos;
+        dst->m_direction = dir;
+        dst->m_up = up;
+
+        dst->m_focal_length = fbx->getFocalLength();
+        dst->m_aperture = to<float2>(fbx->getFilmSize());
+        dst->m_lens_shift = to<float2>(fbx->getFilmOffset()) / dst->m_aperture;
+
+        dst->m_near = std::max(fbx->getNearPlane(), 0.01f);
+        dst->m_far = std::max(fbx->getFarPlane(), dst->m_near);
+    }
 }
 
 IScene* CreateSceneFBX_()

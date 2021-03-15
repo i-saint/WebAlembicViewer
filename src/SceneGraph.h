@@ -31,6 +31,7 @@ public:
     float2 m_lens_shift{};
     float m_near = 0.01f;
     float m_far = 100.0f;
+    void* m_userdata{};
 };
 using CameraPtr = std::shared_ptr<Camera>;
 
